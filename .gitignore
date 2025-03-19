@@ -91,3 +91,4 @@ docker-compose.override.yml
 
 # 如果有其他特定的文件需要忽略，可以在此添加
 student-info.md
+info.md

@@ -1,0 +1,93 @@
+# 忽略 macOS 生成的系统文件
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# 忽略 Windows 生成的系统文件
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# 忽略 Linux 相关的系统文件
+~*
+
+# 忽略 IDE/编辑器生成的文件
+# VSCode
+.vscode/
+
+# JetBrains 系列（IntelliJ IDEA, PyCharm, WebStorm, etc.）
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# 忽略 Node.js 相关的文件（如果是前端项目）
+node_modules/
+npm-debug.log*
+yarn-error.log
+.yarn/
+
+# 忽略 Python 相关文件（如果是 Python 项目）
+__pycache__/
+*.py[cod]
+*.swp
+*.swo
+.env
+.venv/
+
+# 忽略 Java 相关文件（如果是 Java 项目）
+*.class
+*.jar
+*.war
+*.ear
+*.log
+target/
+bin/
+
+# 忽略 Go 相关文件（如果是 Go 项目）
+*.exe
+*.test
+*.out
+
+# 忽略 Rust 相关文件（如果是 Rust 项目）
+target/
+Cargo.lock
+
+# 忽略编译/临时文件
+*.o
+*.obj
+*.dll
+*.so
+*.dylib
+*.exe
+*.out
+*.a
+*.lib
+*.log
+
+# 忽略数据库/环境配置文件
+*.sqlite
+*.sqlite3
+*.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# 忽略其他可能的缓存文件
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 忽略 Docker 临时文件
+docker-compose.override.yml
+
+# 如果有其他特定的文件需要忽略，可以在此添加
+student-info.md

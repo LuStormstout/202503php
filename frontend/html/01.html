@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学习 HTML</title>
+    <style>
+        table {
+            width: 500px;
+            height: 200px;
+            border: 1px solid #000;
+        }
+
+        th {
+            border: 1px solid #000;
+            text-align: center;
+            padding: 10px;
+            background-color: #f0f0f0;
+        }
+
+        tr {
+            border: 1px solid #000;
+        }
+
+        td {
+            border: 1px solid #000;
+            text-align: center;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body style="margin-left: 100px; margin-bottom: 300px;">
+<h1 class="title-1">欢迎学习 HTML</h1>
+<h2>欢迎学习 HTML</h2>
+<h3>欢迎学习 HTML</h3>
+<h4>欢迎学习 HTML</h4>
+<h5>欢迎学习 HTML</h5>
+<h6>欢迎学习 HTML</h6>
+<p>
+    <del>家族に対する相談支援及</del>
+    <br>び情報提供等を行っています。
+    如果一个 <strong>UTF-8</strong> 解析器写得很差（<u>并且与当前标准的版本不兼容</u>），
+    那么它接收到一些伪 UTF-8 时会将其转换成看似正确实则错误的 <em>Unicode</em> 输出。
+    处理八位表示的校验例程可能遗漏一些信息。
+</p>
+<hr>
+
+<!-- 列表标签 无序列表 -->
+<ul>
+    <li>苹果</li>
+    <li>香蕉</li>
+    <li>橘子</li>
+</ul>
+<!-- 有序列表 -->
+<ol>
+    <li>第一步</li>
+    <li>第二步</li>
+    <li>第三步</li>
+</ol>
+<!-- 嵌套列表 -->
+<ul>
+    <li>手机
+        <ul>
+            <li>iPhone</li>
+            <li>小米</li>
+        </ul>
+    </li>
+    <li>汽车
+        <ul>
+            <li>保时捷</li>
+            <li>丰田</li>
+            <li>本田</li>
+            <li>斯巴鲁</li>
+        </ul>
+    </li>
+    <li>步骤
+        <ol>
+            <li>第一步</li>
+            <li>第二步</li>
+            <li>第三步</li>
+        </ol>
+    </li>
+</ul>
+<hr>
+<!--链接和图片标签-->
+<a href="https://google.com">Google</a>
+<br>
+<!--相对路径-->
+<!--./ 表示当前目录-->
+<!--../ 表示上一级目录-->
+<!--在 Linux 或者是 macOS 系统中 / 表示根目录-->
+<!--在 Windows 系统中 D:/ 表示 D 盘的根目录-->
+<!--绝对路径 就是从根目录开始的路径-->
+<!--<img src="../css/01.png" alt="">-->
+<img src="./02.png" alt="Focus ST" title="Focus ST">
+<img src="/Library/WebServer/Documents/cod/202503php/frontend/html/02.png" alt="Focus ST">
+<!--<img src="D:/202503php/frontend/html/02.png" alt="">-->
+
+<hr>
+
+<!--表格标签-->
+<table>
+    <thead>
+    <tr>
+        <th>前端</th>
+        <th>后端</th>
+        <th>操作系统</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>HTML</td>
+        <td>PHP</td>
+        <td>Linux</td>
+    </tr>
+    <tr>
+        <td>CSS</td>
+        <td>Python</td>
+        <td>macOS</td>
+    </tr>
+    <tr>
+        <td>js</td>
+        <td>Ruby</td>
+        <td>Windows</td>
+    </tr>
+    </tbody>
+</table>
+<hr>
+<table style="margin-top: 30px;">
+    <tbody>
+    <tr>
+        <td style="background-color: #f0f0f0">前端</td>
+        <td>HTML</td>
+        <td>CSS</td>
+        <td>js</td>
+    </tr>
+    <tr>
+        <td style="background-color: #f0f0f0">后端</td>
+        <td>PHP</td>
+        <td>Python</td>
+        <td>Ruby</td>
+    </tr>
+    <tr>
+        <td style="background-color: #f0f0f0">操作系统</td>
+        <td>Linux</td>
+        <td>macOS</td>
+        <td>Windows</td>
+    </tr>
+    </tbody>
+</table>
+
+<hr style="width: 500px;margin-left: 0;">
+<form action="http://localhost127.0.0.1:8000/users/login" method="post">
+    <label for="username">用户名:</label>
+    <input type="text" name="username" id="username" value=""
+           placeholder="请输入你的用户名" data-coustom="from-cn">
+    <br>
+    <label for="email">邮箱:</label>
+    <input type="email" name="email" id="email" value=""
+           placeholder="请输入你的邮箱">
+    <br>
+    <label for="password">密码:</label>
+    <input type="password" name="password" id="password" value=""
+           placeholder="请输入你的密码">
+    <br>
+    <label for="disabled">禁用的:</label>
+    <input type="text" name="disabled" id="disabled" value=""
+           placeholder="用来演示被禁用的 input" disabled>
+    <br>
+    <label for="city">请选择你的城市:</label>
+    <select name="city" id="city">
+        <option value="" selected>-- 请选择你的城市 --</option>
+        <option value="chengdu">成都</option>
+        <option value="tokyo">东京</option>
+        <option value="beijing">北京</option>
+    </select>
+    <br>
+    <label for="content">个人简介:</label>
+    <textarea name="content" id="content" cols="50" rows="5" placeholder="请输入你的个人简介"></textarea>
+    <br>
+    <label for="gender-male">性别:</label>
+    <input type="radio" id="gender-male" name="gender" value="male">男
+    <label for="gender-female"></label>
+    <input type="radio" id="gender-female" name="gender" value="female">女
+    <label for="gender-ex"></label>
+    <input type="radio" id="gender-ex" name="gender" value="" checked>演示默认选择
+    <br>
+    <span>爱好:</span>
+    <label><input type="checkbox" name="hobby" value="it" checked>IT</label>
+    <label><input type="checkbox" name="hobby" value="car">汽车</label>
+    <label><input type="checkbox" name="hobby" value="sport">运动</label>
+    <label><input type="checkbox" name="hobby" value="music">音乐</label>
+    <br>
+    <!--<input type="button" value="注册">-->
+    <button type="submit">Sign up</button>
+    <button type="reset">重置</button>
+</form>
+<hr>
+<button type="button">点击领取优惠券</button>
+</body>
+</html>

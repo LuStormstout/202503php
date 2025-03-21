@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>学习 HTML</title>
+</head>
+<body>
+<!--音频标签-->
+<audio src="/Users/lustormstout/Documents/陈一发儿/音乐/陈一发儿 - 漠河舞厅.mp3" controls="controls" autoplay="autoplay"
+       loop="loop">
+    您的浏览器不支持音频播放
+</audio>
+
+<!--<audio controls>-->
+<!--    <source src="/Users/lustormstout/Documents/陈一发儿/音乐/陈一发儿 - 漠河舞厅.mp3" type="audio/mpeg">-->
+<!--    您的浏览器不支持音频播放。-->
+<!--</audio>-->
+
+<!--视频标签-->
+<video src="/Users/lustormstout/Downloads/zimeiyakou.mp4" controls="controls" autoplay="autoplay"
+       loop="loop" width="900" height="600">
+    您的浏览器不支持视频播放
+</video>
+
+<!--<video controls width="600">-->
+<!--    <source src="/Users/lustormstout/Downloads/zimeiyakou.mp4" type="video/mp4">-->
+<!--    您的浏览器不支持视频播放。-->
+<!--</video>-->
+
+<!--HTML 布局标签-->
+<!--块级元素和行内元素-->
+<!--块级元素-->
+<!--块级元素在页面中以块的形式展现，它会占据一整行或者多整行，可以对其设置宽度、高度、对齐等属性。-->
+<!--块级元素会自动换行-->
+<!--常见的块级元素有：div、h1、p、ul、li、ol、table、form 等。-->
+<!--行内元素-->
+<!--行内元素在页面中以行的形式展现，不会占据一整行，可以设置宽度、高度、对齐等属性，但是设置无效。-->
+<!--行内元素不会自动换行-->
+<!--常见的行内元素有：span、a、strong、em、label、input、select、textarea 等。-->
+<div>
+    <h1>h1 块级元素</h1>
+    <div style="width: 400px; height: 400px; background-color: #FF3333;">块级元素1</div>
+    <div style="width: 400px; height: 400px; background-color: blue;">块级元素2</div>
+    <span style="width: 300px; height: 300px; background-color: yellow;">span 行内元素</span>
+    <strong style="width: 300px; height: 300px; background-color: red;">strong 行内元素</strong>
+</div>
+
+<hr>
+
+<!--语义化标签-->
+<!--语义化标签是指根据内容的结构化（内容的意义和目的）选择合适的标签。-->
+<header style="background-color: #FF3333; padding: 10px; width: auto; height: 120px;">
+    <h1>我的网站</h1>
+    <nav>
+        <a href="#home">首页</a>
+        <a href="#about">关于</a>
+    </nav>
+</header>
+<section style="background-color: #00FFFF; padding: 10px; width: auto; height: 500px;">
+    <h2>文章标题</h2>
+    <p>这是文章内容。</p>
+</section>
+<footer style="background-color: #FF3399; padding: 10px; width: auto; height: 60px;">
+    <p>版权所有 &copy; 2025</p>
+</footer>
+
+<hr>
+
+<table style="width: 500px; height: 200px; border: 1px solid #000; text-align: center;">
+    <tr>
+        <th>姓名</th>
+        <th>年龄</th>
+        <th>职业</th>
+    </tr>
+    <tr>
+        <td>张三</td>
+        <td>25</td>
+        <td>工程师</td>
+    </tr>
+    <tr>
+        <td>李四</td>
+        <td>30</td>
+        <td>设计师</td>
+    </tr>
+</table>
+
+<div style="margin-bottom: 500px;"></div>
+</body>
+</html>

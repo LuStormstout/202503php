@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="./01.css">
+    <style>
+        /*p {*/
+        /*    color: #FF40A0;*/
+        /*    font-size: 100px;*/
+        /*}*/
+    </style>
+    <!--CSS 样式的优先级别：内联样式 > 内部样式 > 外部样式-->
+    <!--内联样式：直接在 HTML 标签中使用 style 属性设置样式-->
+    <!--内部样式：在 head 标签中使用 style 标签设置样式-->
+    <!--外部样式：在 head 标签中使用 link 标签引入外部样式表-->
+    <!--特殊情况：!important 优先级最高-->
+    <!--但是大家要谨慎使用 !important，因为它会覆盖所有的样式，可能会导致样式混乱。-->
+    <title>学习 CSS</title>
+</head>
+<body>
+<div class="header">
+    <h1>学习 CSS</h1>
+    <!--<p style="color: #80FFFF; font-size: 18px;">CSS，全称为 Cascading Style Sheets（层叠样式表），是一种样式表语言，用于为-->
+    <!--HTML 文档设置样式。通过-->
+    <!--CSS，可以控制网页的外观和布局，使其更具吸引力和实用性。</p>-->
+    <p>CSS，全称为 Cascading Style Sheets（层叠样式表），是一种样式表语言，用于为
+        HTML 文档设置样式。通过
+        CSS，可以控制网页的外观和布局，使其更具吸引力和实用性。</p>
+    <div class="div4">
+        <p class="div4-p">div4 里面的 P 标签</p>
+    </div>
+</div>
+<div id="content">id 是 content 的 div</div>
+<div class="footer div2">class 是 footer div2 的 div</div>
+<div class="div3" id="div3">class 是 div3, id 是 div3 的 div</div>
+<div class="div5 brother-selector">div5</div>
+<div class="div6 brother-selector">div6</div>
+<div class="div7 brother-selector">div7</div>
+<p></p>
+
+<hr>
+
+<form action="">
+    <label><input type="text" value="type 是 text"></label>
+    <label><input type="password" value="type 是 password"></label>
+    <input type="button" value="type 是 button" title="这是一个按钮">
+    <label><input type="email" value="type 是 email"></label>
+    <label><input type="text" data-custom="999" value="data-custom 属性的值是 999"></label>
+    <label><input type="text" data-custom="1000" value="data-custom 属性的值是 1000"></label>
+</form>
+
+<hr>
+
+<a href="https://py4e.com" class="google-link">点击这个就到 py4e.com 网站去了呀!</a>
+<label><input type="text" value="测试伪类的 input 标签"></label>
+
+<div style="margin-bottom: 300px;"></div>
+</body>
+</html>

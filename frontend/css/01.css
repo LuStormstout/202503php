@@ -1,0 +1,141 @@
+/*元素选择器*/
+p {
+    /*color: red !important;*/
+    /*color: blue;*/
+    font-size: 60px;
+}
+
+/*body 标签默认是有margin的*/
+body {
+    /*margin: 0;*/
+    margin: 20px;
+}
+
+/*类选择器*/
+.footer {
+    background-color: dimgrey;
+    width: 300px;
+    height: 100px;
+}
+
+.div2 {
+    margin-left: 30px;
+}
+
+.div3 {
+    width: 300px;
+    height: 100px;
+    background-color: darkgreen;
+}
+
+.brother-selector {
+    border: 1px solid red;
+    width: 300px;
+    height: 100px;
+}
+
+/*id选择器*/
+/*ID 选择器的优先级高于类选择器。*/
+#content {
+    background-color: brown;
+    width: 200px;
+    height: 100px;
+    margin-left: 30px;
+}
+
+#div3 {
+    background-color: darkorange;
+    width: 300px;
+    height: 100px;
+}
+
+/*47 开始上课*/
+
+/*但是我们在工作中设置样式的时候一般都用类选择器或者是标签选择器, ID 一般是在 JS 中使用的比较多。*/
+
+/*组合选择器*/
+/*组合选择器是将两个或多个选择器组合在一起，形成一个新的选择器。*/
+/*后代选择器*/
+/*后代选择器是指在 CSS 中，通过空格来表示元素与元素之间的层级关系。*/
+/*后代选择器的优先级比较低，所以在工作中一般不用。*/
+.header h1 {
+    color: red;
+}
+
+/*子选择器*/
+/*子选择器是指在 CSS 中，通过大于号（>）来表示元素与元素之间的层级关系。*/
+.header > p {
+    color: green;
+}
+
+/*相邻兄弟选择器*/
+/*相邻兄弟选择器是指在 CSS 中，通过加号（+）来表示元素与元素之间的层级关系。*/
+.div2 + .div3 {
+    margin-left: 30px;
+}
+
+/*通用兄弟选择器*/
+/*通用兄弟选择器是指在 CSS 中，通过波浪号（~）来表示元素与元素之间的层级关系。*/
+/*会获取到所有的对应的兄弟元素*/
+.div5 ~ div {
+    background-color: hotpink; /*设置背景颜色*/
+    margin-left: 30px; /*设置左边距*/
+}
+
+/*属性选择器*/
+input[type="text"] {
+    border: 1px solid red; /*设置边框, 宽度为 1px 实线 红色*/
+}
+
+input[type="email"] {
+    background-color: #00FFFF;
+}
+
+[title] {
+    background-color: #FF3333;
+}
+
+input {
+    width: 500px;
+    height: 80px;
+    text-align: center; /*字体居中*/
+}
+
+[data-custom="1000"] {
+    background-color: #FFCC00;
+}
+
+/*伪类选择器*/
+/*伪类选择器是指在 CSS 中，通过冒号（:）来表示元素的特殊状态。*/
+
+/*未访问的链接*/
+.google-link:link {
+    color: #FF0000;
+}
+
+/*已访问的链接*/
+.google-link:visited {
+    color: #00FF00;
+}
+
+/*鼠标悬停的链接*/
+.google-link:hover {
+    color: #0000FF;
+}
+
+/*被选中的链接*/
+.google-link:active {
+    color: #FF00FF;
+}
+
+/*用户交互伪类*/
+/*用户交互伪类是指在 CSS 中，通过冒号（:）来表示元素的特殊状态。*/
+/*鼠标悬停*/
+input:hover {
+    background-color: #FFCC00;
+}
+
+/*获得焦点*/
+input:focus {
+    background-color: #FF00FF;
+}

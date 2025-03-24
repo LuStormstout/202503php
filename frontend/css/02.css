@@ -1,0 +1,263 @@
+body {
+    margin: 0; /* 设置外边距 */
+    padding: 0; /* 设置内边距 */
+}
+
+.content-p {
+    color: #FF0040; /* 设置文字颜色 */
+    background-color: #C0FFFF; /* 设置背景颜色 */
+}
+
+.header {
+    height: 60px; /* 设置高度 */
+    width: auto; /* 设置宽度 */
+    background-color: #606060; /* 设置背景颜色 */
+}
+
+.left {
+    float: left; /* 设置左浮动 */
+    width: 50%; /* 设置宽度 */
+    height: 700px; /* 设置高度 */
+    background-color: #CCCCFF; /* 设置背景颜色 */
+}
+
+.content-left-inner {
+    width: 50%; /* 设置宽度 */
+    height: 400px; /* 设置高度 */
+    background-color: #FF8000; /* 设置背景颜色 */
+    margin-left: 100px;
+    box-shadow: 10px 10px 5px rgba(0, 0, 0, 0.5); /* 设置阴影 */
+    /* 第一个参数是水平偏移量，第二个参数是垂直偏移量，第三个参数是模糊半径，第四个参数是阴影颜色 */
+    text-align: center; /* 设置文本居中 */
+}
+
+.content-left-inner-h1 {
+    text-shadow: 4px 4px 3px gray; /* 设置文字阴影 */
+    /* 第一个参数是水平偏移量，第二个参数是垂直偏移量，第三个参数是模糊半径，第四个参数是阴影颜色 */
+}
+
+.font-custom-1 {
+    margin: 10px; /* 设置外边距 */
+    font-size: 18px; /* 设置字体大小 */
+    /*font-weight: bold; !* 设置字体加粗 *!*/
+    /*font-style: italic; !* 设置字体斜体 *!*/
+    font-family: "Monaco", Microsoft YaHei, serif; /* 设置字体 第一个参数是优先使用的字体，第二个参数是备用字体, 第三个参数是通用字体, 可选的参数有 serif: 衬线字体, sans-serif: 无衬线字体, monospace: 等宽字体 */
+    line-height: 20px; /* 设置行高 */
+    /*text-decoration: underline; !* 设置下划线 *!*/
+    text-align: justify; /* 设置文本对齐方式  justify 两端对齐, center 居中对齐, left 左对齐, right 右对齐 */
+}
+
+.font-custom-2 {
+    font-size: 50px; /* 设置字体大小 */
+    font-weight: bold; /* 设置字体加粗 */
+    font-family: "BiauKaiTC", Microsoft YaHei, serif; /* 设置字体 第一个参数是优先使用的字体，第二个参数是备用字体, 第三个参数是通用字体, 可选的参数有 serif: 衬线字体, sans-serif: 无衬线字体, monospace: 等宽字体 */
+    text-align: center; /* 设置文本对齐方式  justify 两端对齐, center 居中对齐, left 左对齐, right 右对齐 */
+    /*text-align: right; */
+}
+
+.right {
+    float: right; /* 设置右浮动 */
+    width: 50%; /* 设置宽度 */
+    height: 700px; /* 设置高度 */
+    background-color: #00FFFF; /* 设置背景颜色 */
+    background-image: url("../html/02.png"); /* 设置背景图片 */
+    background-repeat: no-repeat; /* 设置背景图片不重复 */
+    /*background-size: cover; !* 拉伸覆盖 *!*/
+    background-position: center; /* 居中显示 */
+    border-bottom: 2px solid #FF9966; /* 设置下边框 solid 实线 */
+    border-top: 2px dashed #FF9966; /* 设置上边框 dashed 虚线 */
+    /*border-left: ; !* 设置左边框 *!*/
+    /*border-right: ; !* 设置右边框 *!*/
+    /*border-top: ; !* 设置上边框 *!*/
+    /*border: ; !* 设置边框 *!*/
+    border-radius: 20px; /* 设置圆角 */
+}
+
+/*margin-left + margin-right + border-left + border-right + padding-left + padding-right + width = width of parent element */
+
+.content {
+    width: auto; /* 设置宽度 */
+    height: 1000px; /* 设置高度 */
+    background-color: #808080; /* 设置背景颜色 */
+    margin: 10px; /* 设置外边距 */
+    padding: 10px; /* 设置内边距 */
+    border: 10px solid #CCFFFF; /* 设置边框 */
+}
+
+.footer {
+    /*height: 60px; !* 设置高度 *!*/
+    /*width: auto; !* 设置宽度 *!*/
+    background-color: #606060; /* 设置背景颜色 */
+    height: 500px; /* 设置高度 */
+    width: auto; /* 设置宽度 */
+    margin: 10px; /* 设置外边距 */
+    /*border-radius: 50%; !* 设置圆角 *!*/
+}
+
+.header {
+    display: flex; /* 设置弹性盒子 */
+    position: sticky;
+    top: 0;
+    box-shadow: 5px 5px 5px gray; /* 设置阴影 */
+}
+
+.home {
+    flex: 3; /* 设置弹性盒子的比例 */
+    text-align: center;
+    margin-top: 20px; /* 设置外边距 */
+}
+
+.link {
+    flex: 6; /* 设置弹性盒子的比例 */
+    text-align: center;
+    margin-top: 20px; /* 设置外边距 */
+}
+
+.account {
+    flex: 3; /* 设置弹性盒子的比例 */
+    text-align: center;
+    margin-top: 20px; /* 设置外边距 */
+}
+
+a {
+    text-decoration-line: none; /* 设置无下划线 */
+}
+
+.footer-inner-left {
+    width: 200px;
+    height: 200px;
+    background-color: #FF8000;
+    text-align: center;
+
+    position: relative; /* 设置相对定位 */
+    top: 10px; /* 设置上边距 */
+    left: 10px; /* 设置左边距 */
+}
+
+.footer-inner-right {
+    width: 200px;
+    height: 200px;
+    background-color: #FF8000;
+
+    position: absolute; /* 设置绝对定位, 相对于最近的已定位的父元素, 如果没有已定位的父元素, 则相对于 html 元素 */
+    top: 1137px; /* 设置上边距 */
+    /*right: 20px; !* 设置右边距 *!*/
+    left: 230px; /* 设置左边距 */
+}
+
+.footer-inner-contact {
+    text-align: center; /* 设置文本居中 */
+    width: 200px;
+    height: 50px;
+    background-color: #FF8000;
+
+    display: flex; /* 设置弹性盒子 */
+    align-items: center; /* 设置垂直居中 */
+
+    position: fixed; /* 设置固定定位, 相对于浏览器窗口 */
+    bottom: 10px; /* 设置下边距 */
+    right: 10px; /* 设置右边距 */
+}
+
+.footer-inner-contact a {
+    margin-left: 65px;
+    text-decoration-line: none; /* 设置无下划线 */
+}
+
+.footer-inner-bottom {
+    margin-top: 100px;
+}
+
+.footer-inner-bottom-btn1 {
+    width: auto;
+    height: 50px;
+    margin-left: 10px;
+    margin-right: 10px;
+    text-align: center;
+    line-height: 50px;
+    border-radius: 10px;
+
+    background-color: #FF3333;
+    transition: background-color 2s ease; /* 设置过渡效果 第一个参数是属性, 第二个参数是时间, 第三个参数是速度曲线 */
+}
+
+.footer-inner-bottom-btn1:hover {
+    background-color: #40FF40;
+}
+
+@keyframes move {
+    0% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(100px);
+    }
+    50% {
+        transform: translateY(50px);
+    }
+    75% {
+        transform: translateY(-50px);
+    }
+    100% {
+        transform: translateX(500px);
+    }
+}
+
+.footer-inner-bottom-btn2 {
+    width: auto;
+    height: 50px;
+    margin-left: 10px;
+    margin-right: 10px;
+    text-align: center;
+    line-height: 50px;
+    border-radius: 10px;
+    background-color: #FF3333;
+
+    animation: move 5s infinite; /* 设置动画 第一个参数是动画名称, 第二个参数是时间, 第三个参数是次数 */
+}
+
+@media (max-width: 1500px) {
+    .right {
+        display: none; /* 设置不显示 */
+    }
+
+    .left {
+        width: 100%; /* 设置宽度 */
+    }
+}
+
+@media (min-width: 800px) and (max-width: 1500px) {
+    .left {
+        background-color: lightblue;
+    }
+}
+
+/* 伪元素 */
+/*用于在元素内容前后插入内容*/
+.footer-inner-left > p::before {
+    content: '🎉'; /* 设置内容 */
+}
+
+.footer-inner-left > p::after {
+    content: '🎉'; /* 设置内容 */
+}
+
+/*::first-letter 和 ::first-line 伪元素*/
+/*::first-letter 用于向文本的第一个字母设置特殊样式*/
+/*::first-line 用于向文本的第一行设置特殊样式*/
+.footer-inner-left > p::first-letter {
+    font-size: 50px; /* 设置字体大小 */
+    color: #FF3333; /* 设置文字颜色 */
+}
+
+.font-custom-1::first-line {
+    font-size: 30px; /* 设置字体大小 */
+    color: #40FFFF; /* 设置文字颜色 */
+}
+
+/* 这个写法相当于是让图片自适应 */
+img {
+    max-width: 100%; /* 设置最大宽度, 100% 就是图片本身的宽度或者是父元素的宽度, 这取决于哪个更小 */
+    height: auto;
+}
+

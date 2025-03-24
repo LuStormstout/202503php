@@ -1,0 +1,50 @@
+.card {
+    max-width: 400px;
+    margin: 20px auto;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.card img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin-bottom: 10px;
+}
+
+.card h1 {
+    font-size: 20px;
+    color: #333;
+}
+
+.card p {
+    font-size: 16px;
+    color: #777;
+}
+
+.contact{
+    margin-top: 40px;
+    margin-bottom: 20px;
+}
+
+.card a {
+    padding: 10px 20px;
+    font-size: 16px;
+    color: white;
+    background-color: #007BFF;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer; /* 鼠标移动到链接上时显示手型 */
+    text-decoration: none; /* 去掉链接下划线 */
+}
+
+.card a:hover {
+    background-color: #0056b3;
+}
+
+.info {
+    list-style: none; /* 去掉列表样式 */
+}

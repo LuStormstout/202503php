@@ -1,0 +1,111 @@
+body {
+    margin: 0;
+    padding: 0;
+}
+
+.content {
+    display: flex; /* 声明为弹性容器 */
+    /*flex-direction: row; !* 设置主轴方向为水平方向 从左到右 *!*/
+    /*flex-direction: row-reverse; !* 设置主轴方向为水平方向 从右到左 *!*/
+    /*flex-direction: column; !* 设置主轴方向为垂直方向 从上到下 *!*/
+    /*flex-direction: column-reverse; !* 设置主轴方向为垂直方向 从下到上 *!*/
+
+    /*justify-content: flex-start; !* 设置主轴对齐方式为左对齐 *!*/
+    /*justify-content: center; !* 设置主轴对齐方式为居中对齐 *!*/
+    /*justify-content: flex-end; !* 设置主轴对齐方式为右对齐 *!*/
+    /*justify-content: space-between; !* 设置主轴对齐方式为两端对齐 子元素之间的间距平均分配 *!*/
+    /*justify-content: space-around; !* 设置主轴对齐方式为两端对齐 子元素两侧的间距相等 *!*/
+    /*justify-content: space-evenly; !* 设置主轴对齐方式为两端对齐 子元素之间的间距平均分配 *!*/
+
+    /*align-items: flex-start; !* 设置交叉轴对齐方式为顶部对齐 *!*/
+    /*align-items: center; !* 设置交叉轴对齐方式为居中对齐 *!*/
+    /*align-items: flex-end; !* 设置交叉轴对齐方式为底部对齐 *!*/
+    /*align-items: baseline; !* 设置交叉轴对齐方式为基线对齐 *!*/
+    /*align-items: stretch; !* 设置交叉轴对齐方式为拉伸对齐(默认) *!*/
+}
+
+.header {
+    /*width: 33%;*/
+    /*width: 400px;*/
+    flex: 1;
+    /*height: 200px;*/
+    height: 400px;
+    /*background-color: #FF3333;*/
+}
+
+.main {
+    /*width: 33%;*/
+    /*width: 400px;*/
+    flex: 2;
+    /*height: 300px;*/
+    height: 1100px;
+    background-color: #E5E5E5;
+    box-shadow: 3px 3px 5px #888888;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+
+.footer {
+    /*width: 33%;*/
+    /*width: 400px;*/
+    flex: 1;
+    /*height: 400px;*/
+    height: 400px;
+    /*background-color: #40FFA0;*/
+}
+
+/* 导航栏容器 */
+.navbar {
+    display: flex; /* 设置弹性容器 */
+    justify-content: space-between; /* 左右两端对齐 */
+    align-items: center; /* 垂直居中对齐 */
+    padding: 10px 20px; /* 内边距 */
+    background-color: #333; /* 背景色 */
+    color: white; /* 文字颜色 */
+    position: sticky; /* 固定定位 */
+    top: 0; /* 距离顶部0 */
+}
+
+/* Logo 部分 */
+.logo {
+    font-size: 1.5em; /* 字体大小 */
+    font-weight: bold; /* 加粗 */
+}
+
+/* 导航链接容器 */
+.nav-links {
+    display: flex; /* 设置为弹性容器 */
+    gap: 15px; /* 子元素间距 */
+}
+
+/* 导航链接样式 */
+.nav-links a {
+    text-decoration: none; /* 去掉下划线 */
+    color: white; /* 文字颜色 */
+    padding: 5px 10px; /* 内边距 */
+    transition: background 0.3s; /* 背景色变化过渡 */
+}
+
+/* 鼠标悬停效果 */
+.nav-links a:hover {
+    background-color: #555; /* 背景色变灰 */
+    border-radius: 5px; /* 圆角 */
+}
+
+/* 响应式：在屏幕宽度小于600px时，导航栏垂直排列 */
+@media (max-width: 600px) {
+    .navbar {
+        flex-direction: column; /* 垂直方向排列 */
+        align-items: flex-start; /* 左对齐 */
+    }
+
+    .nav-links {
+        flex-direction: column; /* 导航链接垂直排列 */
+        width: 100%; /* 链接容器宽度撑满 */
+    }
+
+    .nav-links a {
+        width: 100%; /* 链接宽度撑满 */
+        text-align: left; /* 左对齐文本 */
+    }
+}

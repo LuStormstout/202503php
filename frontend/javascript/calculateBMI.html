@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>calculateBMI</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #e9ecef;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        form {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        #bmi-result {
+            margin-top: 20px;
+            font-size: 20px;
+            color: #495057;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<form action="#" id="bmi-form">
+    <label for="height">身高(cm): </label>
+    <input type="number" id="height" placeholder="请输入身高">
+    <br>
+    <label for="weight">体重(kg): </label>
+    <input type="number" id="weight" placeholder="请输入体重">
+    <br>
+    <p id="bmi-result">「这里会显示运算结果」</p>
+    <br>
+    <button id="btn-calculate">计算 BMI</button>
+</form>
+
+<script>
+    document.getElementById('btn-calculate').addEventListener('click', function (e) {
+        e.preventDefault(); // 阻止默认提交行为
+    });
+</script>
+<script src="calculateBMI.js"></script>
+</body>
+</html>

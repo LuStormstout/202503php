@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Tools</title>
+    <link rel="stylesheet" href="tools.css">
+</head>
+<body>
+
+<nav>
+    <ul>
+        <li><a href="#timer-section">Timer</a></li>
+        <li><a href="#bmi-section">BMI Calculator</a></li>
+    </ul>
+</nav>
+
+<div id="timer-section" class="timer-box">
+    <h1 id="timer">0</h1>
+    <button class="start" id="start">Start</button>
+    <button class="stop" id="stop">Stop</button>
+    <button class="reset" id="reset">Reset</button>
+</div>
+
+<div id="bmi-section" class="calculate-bmi">
+    <form action="#" id="bmi-form">
+        <label for="height">Height (cm): </label>
+        <input type="number" id="height" placeholder="Enter height">
+        <br>
+        <label for="weight">Weight (kg): </label>
+        <input type="number" id="weight" placeholder="Enter weight">
+        <br>
+        <p id="bmi-result">Your BMI result is: </p>
+        <br>
+        <button id="btn-calculate">Calculate BMI</button>
+    </form>
+</div>
+
+<script src="tools.js"></script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        .move-by-keydown-event {
+            width: 100px;
+            height: 100px;
+            background-color: red;
+        }
+
+        .parent {
+            margin-top: 20px;
+            margin-left: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 400px;
+            height: 400px;
+            background-color: blue;
+        }
+
+        .child {
+            width: 200px;
+            height: 200px;
+            background-color: yellow;
+        }
+
+        .server-side-languages {
+            display: flex;
+            flex-direction: row;
+            margin: 200px;
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .item {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100px;
+            height: 30px;
+            margin-right: 10px;
+            padding: 5px;
+            background-color: #f4f4f4;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <p id="heading">C语言（英语：C
+        Language）是一种通用的、过程式编程编程语言，支持结构化编程、词法作用域和递归，使用静态类型系统，并且广泛用于系统软件与应用软件的开发。</p>
+
+    <ul class="server-side-languages">
+        <li class="item">Java</li>
+        <li class="item">Python</li>
+        <li class="item">JavaScript</li>
+        <li class="item">PHP</li>
+    </ul>
+
+    <p id="keydown-event-output"></p>
+    <div id="move-by-keydown-event" class="move-by-keydown-event"></div>
+
+    <div>
+        <form action="" method="post" id="submit-event">
+            <label for="username">Username: </label>
+            <input type="text" name="username" id="username" placeholder="Enter a username">
+            <br>
+            <label for="email">Email: </label>
+            <input type="text" name="email" id="email" placeholder="Enter a email">
+            <br>
+            <button type="submit" id="submit">Submit</button>
+        </form>
+        <p id="submit-event-output"></p>
+    </div>
+
+    <div>
+        <button id="remove-event-listener">Click me</button>
+    </div>
+
+    <div id="parent" class="parent">
+        <div id="child" class="child"></div>
+    </div>
+</div>
+
+<div>
+    <div id="get-userinfo" style="width: 200px; height: 80px; background-color: #00FFFF; text-align: center; margin-top: 20px;">get userinfo</div>
+    <ul id="userinfo">
+
+    </ul>
+</div>
+
+<script src="03.js"></script>
+</body>
+</html>

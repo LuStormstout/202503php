@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>学习 jQuery</title>
+    <style>
+        .container {
+            width: 800px;
+            margin: 0 auto;
+        }
+
+        #header {
+            height: 100px;
+            background-color: #f0f0f0;
+        }
+
+        h1 {
+            color: red;
+        }
+
+        .active {
+            color: green;
+        }
+
+        .btn-bg {
+            background-color: #80FFFF;
+        }
+
+        .main {
+            background-color: #f0f0f0;
+            padding: 10px;
+        }
+
+        .event {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: row;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .event button {
+            margin: 0 10px;
+            width: 200px;
+            height: 50px;
+        }
+
+        .animation {
+            display: flex;
+            /*justify-content: center;*/
+            align-items: center;
+            flex-direction: row;
+            margin-top: 10px;
+            width: 800px;
+            height: 200px;
+            background-color: #f0f0f0;
+        }
+
+        .box {
+            width: 100px;
+            height: 100px;
+            background-color: red;
+        }
+
+        .box-2 {
+            width: 100px;
+            height: 100px;
+            background-color: #00FF00;
+        }
+    </style>
+</head>
+<body>
+<nav>
+
+</nav>
+<div class="container">
+    <header id="header"></header>
+    <h1>学习 jQuery</h1>
+    <p id="title">这是一个段落</p>
+    <p id="content-2" class="content">这是另一个段落</p>
+    <p class="content">这是第三个段落</p>
+    <p class="content">这是第四个段落</p>
+    <p class="content-5">
+        <span class="note">
+            <a href="javascript:void(0);">这是一个链接</a>
+            这是第五个段落
+            <span>这是 span 里面的 span</span>
+        </span>
+    </p>
+    <p class="content-6" id="content-6">这是第六个段落</p>
+    <label for="input-1"></label>
+    <input type="text" id="input-1" value="这是一个输入框">
+    <p>
+        <a id="link-1" href="https://localhost:8080">这是跳转到 https://localhost:8080</a>
+    </p>
+    <label for="input-2"></label>
+    <input type="text" id="input-2" value="这是第二个输入框" placeholder="这是第二个输入框的 placeholder" disabled>
+    <br>
+    <label for="city"></label>
+    <select name="city" id="city" style="width: 100px; height: 30px; margin-top: 50px;">
+        <option value="tokyo">东京</option>
+        <option value="beijing">北京</option>
+        <option value="chengdu" selected>成都</option>
+    </select>
+    <p>
+        <button id="btn-1">这是一个按钮</button>
+    </p>
+    <div id="main" class="main">
+        <p id="main-p-1">这是 main 里面的第一个段落</p>
+        <p id="main-p-2">这是 main 里面的第二个段落</p>
+        <p id="main-p-3">这是 main 里面的第三个段落</p>
+        <p id="main-p-4">这是 main 里面的第四个段落</p>
+        <p id="main-p-5">这是 main 里面的第五个段落</p>
+        <ul id="main-ul">
+            <li id="main-ul-li-1">这是第一个 li</li>
+            <li id="main-ul-li-2">这是第二个 li</li>
+            <li id="main-ul-li-3">这是第三个 li</li>
+            <li id="main-ul-li-4">这是第四个 li</li>
+            <li id="main-ul-li-5">这是第五个 li</li>
+        </ul>
+    </div>
+
+    <div class="event">
+        <button id="btn-2">这是第二个按钮</button>
+        <button id="btn-3">这是第三个按钮</button>
+        <button id="btn-4">这是第四个按钮</button>
+        <button id="btn-5">这是第五个按钮</button>
+        <label for="input-3"></label>
+        <input type="text" id="input-3" value="这是第三个输入框">
+    </div>
+
+    <ul class="list" id="list">
+        <li>这是第一个 li</li>
+        <li>这是第二个 li</li>
+        <li>这是第三个 li</li>
+        <li>这是第四个 li</li>
+        <li>这是第五个 li</li>
+    </ul>
+
+    <div id="animation" class="animation">
+        <button id="toggle-box-2">点击</button>
+        <div id="box" class="box"></div>
+        <div id="box-2" class="box-2"></div>
+        <div id="box-3" class="box"></div>
+    </div>
+
+    <div id="ajax">
+        <button id="ajax-btn">点击发送 ajax 请求</button>
+        <div id="ajax-content">
+            <ul id="ajax-content-ul">
+
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!--<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>-->
+<script src="jquery-3.6.0.min.js"></script>
+<script src="01.js"></script>
+</body>
+</html>

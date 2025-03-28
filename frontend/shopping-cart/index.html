@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>jQuery Shopping Cart</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+<div class="main-container">
+
+    <!-- 商品展示区域 -->
+    <section class="product-list">
+        <h2>Products</h2>
+        <div id="products-container">
+            <!-- 商品卡片由 JS 动态渲染 -->
+        </div>
+    </section>
+
+    <!-- 购物车区域 -->
+    <section class="shopping-cart">
+        <h2>Shopping Cart</h2>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Product</th>
+                <th>Unit Price</th>
+                <th>Quantity</th>
+                <th>Subtotal</th>
+                <th>Action</th>
+            </tr>
+            </thead>
+            <tbody id="cart-body">
+            <!-- JS 动态添加购物车项 -->
+            </tbody>
+        </table>
+
+        <div class="cart-total">
+            Total: ￥<span id="total-amount">0.00</span>
+        </div>
+    </section>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

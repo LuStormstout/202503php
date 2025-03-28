@@ -1,0 +1,129 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f6f8fa;
+    margin: 0;
+    padding: 20px;
+}
+
+.main-container {
+    display: flex;
+    gap: 30px;
+    max-width: 1200px;
+    margin: auto;
+}
+
+section {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
+}
+
+.product-list {
+    flex: 3;
+}
+
+.shopping-cart {
+    flex: 2;
+}
+
+h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 22px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+}
+
+#products-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+}
+
+.product-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fafafa;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.2s;
+}
+
+.product-card:hover {
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.product-card img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+}
+
+.product-card .info {
+    padding: 10px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.product-card .info h3 {
+    font-size: 16px;
+    margin: 0 0 5px;
+}
+
+.product-card .info .price {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.product-card button {
+    padding: 8px;
+    background: #2a9d8f;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.product-card button:hover {
+    background: #21867a;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+th, td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: center;
+}
+
+.cart-total {
+    text-align: right;
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 15px;
+}
+
+.action-btn {
+    background: #f4f4f4;
+    padding: 5px 10px;
+    border: 1px solid #ccc;
+    margin: 0 2px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.action-btn:hover {
+    background: #eaeaea;
+}

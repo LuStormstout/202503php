@@ -92,3 +92,6 @@ docker-compose.override.yml
 # 如果有其他特定的文件需要忽略，可以在此添加
 student-info.md
 info.md
+
+# 忽略前端练习项目里面的 images 文件夹下的所有图片
+images/

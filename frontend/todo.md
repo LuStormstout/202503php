@@ -38,3 +38,7 @@
 
 - 敲一遍我们上课时敲过的代码, 并且理解
 - 将我们练习中的几个小工具整理到 tools.html ..., 整理到一起, 计算 bmi、计时器 timer、待办事项 todo
+
+### 2025/03/31
+
+- https://getbootstrap.com/docs/5.3/getting-started/introduction/ 了解 Bootstrap 的基础知识, 自己按照文档中的尝试一下

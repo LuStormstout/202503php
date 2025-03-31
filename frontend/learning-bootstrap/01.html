@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bootstrap 示例</title>
+    <!-- 引入 Bootstrap CSS -->
+    <link href="../asset/bootstrap-5.3.3-dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">品牌名</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navCollapse">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navCollapse">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" href="#">首页</a></li>
+                <li class="nav-item"><a class="nav-link active" href="#">功能</a></li>
+                <li class="nav-item"><a class="nav-link" href="#">联系</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+<div class="container bg-light mb-5">
+    <h1 class="text-primary">栅格系统（Grid System）</h1>
+    <p class="lead">栅格系统（Grid System）</p>
+
+    <div class="row">
+        <div class="col border">列 1</div>
+        <div class="col border">列 2</div>
+        <div class="col border">列 3</div>
+    </div>
+
+    <div class="row">
+        <div class="col-4 bg-primary">宽度 4</div>
+        <div class="col-8 bg-secondary">宽度 8</div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-md-4 bg-secondary">内容 A</div>
+        <div class="col-12 col-md-4 bg-success">内容 B</div>
+        <div class="col-12 col-md-4 bg-warning">内容 C</div>
+    </div>
+
+    <div class="row">
+        <div class="col-6 bg-warning">第一列</div>
+        <div class="col-6 bg-danger">第二列</div>
+        <div class="col-6 bg-info">第三列（会换行）</div>
+    </div>
+
+    <div class="row align-items-start justify-content-between">
+        <div class="col-4 bg-primary text-white">A</div>
+        <div class="col-4 bg-success text-white">B</div>
+    </div>
+
+    <div class="row">
+        <div class="col-6 bg-info">
+            <div class="row">
+                <div class="col-6 bg-danger">嵌套列 1</div>
+                <div class="col-6 bg-warning">嵌套列 2</div>
+            </div>
+        </div>
+        <div class="col-6 bg-secondary">外层列</div>
+    </div>
+
+    <div class="row">
+        <div class="col-3 col-xl-3 col-md-4 col-sm-6 bg-danger">123</div>
+        <div class="col-3 col-xl-6 bg-info">456</div>
+    </div>
+
+    <hr>
+    <h1 class="text-primary">常用组件（Components）</h1>
+
+    <h3>按钮（Button）</h3>
+    <button class="btn btn-primary">主按钮</button>
+    <button class="btn btn-secondary">次按钮</button>
+    <button class="btn btn-success">成功</button>
+    <button class="btn btn-danger">警告</button>
+    <button class="btn btn-warning">黄色警告</button>
+    <button class="btn btn-info">信息</button>
+    <button class="btn btn-light">浅色</button>
+    <button class="btn btn-dark">深色</button>
+    <a class="btn btn-danger" href="#">这个 a 标签</a>
+
+    <button class="btn btn-primary btn-sm">小按钮</button>
+    <button class="btn btn-primary btn-lg">大按钮</button>
+
+    <!-- 块级按钮 -->
+    <button class="btn btn-outline-secondary w-100">100% 宽按钮</button>
+
+    <h3>警告框（Alert）</h3>
+    <div class="alert alert-success">操作成功！</div>
+    <div class="alert alert-danger">发生错误！</div>
+    <div class="alert alert-warning">请注意！</div>
+
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        这是一个可关闭的提示框。
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <h3>卡片（Card）</h3>
+    <div class="card" style="width: 18rem;">
+        <img src="../asset/images/ford-focus-st.jpg" class="card-img-top" alt="图片">
+        <div class="card-body">
+            <h5 class="card-title">Ford Focus ST</h5>
+            <p class="card-text">这是一个很不错的车.</p>
+            <a href="#" class="btn btn-primary">了解更多</a>
+        </div>
+    </div>
+
+    <h3>模态框（Modal）</h3>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
+        打开模态框
+    </button>
+    <div class="modal fade" id="exampleModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">模态框标题</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    这里是模态框内容
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button class="btn btn-primary">确认</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <hr>
+    <h1 class="text-primary">表单系统（Forms）</h1>
+    <form>
+        <label for="email" class="form-label">邮箱地址</label>
+        <input type="email" class="form-control" id="email" placeholder="name@example.com">
+        <label for="password" class="form-label">密码:</label>
+        <input type="password" class="form-control" id="password" placeholder="密码">
+        <label for="count" class="form-label">数量:</label>
+        <input type="number" class="form-control" id="count" placeholder="数量">
+        <label for="avatar" class="form-label">请上传图片:</label>
+        <input type="file" id="avatar" class="form-control">
+        <label for="information" class="form-label">简介</label>
+        <textarea class="form-control" rows="3" id="information"></textarea>
+        <label for="city" class="form-label">请选择城市:</label>
+        <select class="form-select" id="city">
+            <option selected>请选择</option>
+            <option value="1">选项一</option>
+            <option value="2">选项二</option>
+            <option value="3">选项三</option>
+        </select>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="gender" id="radio1">
+            <label class="form-check-label" for="radio1">男</label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="gender" id="radio2">
+            <label class="form-check-label" for="radio2">女</label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="agree">
+            <label class="form-check-label" for="agree">我同意条款</label>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label for="firstname" class="form-label">名</label>
+                <input type="text" class="form-control" id="firstname">
+            </div>
+            <div class="col-md-6">
+                <label for="lastname" class="form-label">姓</label>
+                <input type="text" class="form-control" id="lastname">
+            </div>
+        </div>
+
+        <label for="right" class="form-label"></label>
+        <input class="form-control is-valid" id="right" type="text" value="正确">
+        <div class="valid-feedback">看起来不错！</div>
+
+        <label for="wrong" class="form-label"></label>
+        <input class="form-control is-invalid" id="wrong" type="text" value="错误">
+        <div class="invalid-feedback">请输入正确内容</div>
+
+        <label for="disabled-input" class="form-label"></label>
+        <input class="form-control" id="disabled-input" type="text" value="禁用字段" disabled>
+        <label for="readonly-input" class="form-label"></label>
+        <input class="form-control" id="readonly-input" type="text" value="只读字段" readonly>
+    </form>
+
+    <hr>
+    <h1 class="text-primary">工具类（Utilities）</h1>
+    <div class="mt-5 bg-info">上边距 1rem</div>
+    <div class="px-2 py-4">左右 0.5rem，上下 1.5rem</div>
+    <div class="ms-auto">左边距自动（推到右侧）</div>
+    <div class="row">
+        <div class="col-md-4 bg-info">1</div>
+        <div class="col-md-4 bg-danger ms-5">2</div>
+        <div class="col-md-4 bg-info">3</div>
+    </div>
+    <p class="text-start">左对齐 Pagination</p>
+    <p class="text-end">右对齐 Pagination</p>
+    <p class="text-center">居中对 齐Pagination</p>
+
+    <p class="text-lowercase">全小写 Pagination</p>
+    <p class="text-uppercase">全大写 Pagination</p>
+    <p class="text-capitalize">首字母大写 pagination</p>
+
+    <p class="fw-bold">粗体 Pagination</p>
+    <p class="fst-italic">斜体 Pagination</p>
+
+    <div class="bg-primary text-white">蓝底白字</div>
+    <div class="bg-light border border-secondary p-2">浅色背景 + 灰色边框</div>
+    <div class="rounded-pill bg-info p-2">圆角胶囊边框</div>
+
+    <!-- 小屏隐藏，大屏显示 -->
+    <div class="d-none d-lg-block bg-warning">仅桌面可见</div>
+
+    <div class="d-flex justify-content-between align-items-center">
+        <span>左</span>
+        <span>右</span>
+    </div>
+
+    <div class="row">
+        <div class="w-50 bg-info">1</div>
+        <div class="w-75 bg-danger">2</div>
+    </div>
+
+    <div class="shadow-sm" style="width: 300px; height: 300px">小阴影</div>
+    <div class="shadow-lg rounded-3" style="width: 300px; height: 300px">大阴影 + 圆角</div>
+    <div class="opacity-50 bg-dark" style="width: 300px; height: 300px">透明度 50%</div>
+</div>
+
+<!-- 引入 Bootstrap JavaScript -->
+<script src="../asset/bootstrap-5.3.3-dist/js/bootstrap.min.js"></script>
+</body>
+</html>

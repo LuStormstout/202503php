@@ -150,7 +150,7 @@ server {
     listen 80;
     server_name 202503php.local;
 
-    root /var/www/html/php;
+    root /var/www/html;
     index index.php index.html;
 
     location / {

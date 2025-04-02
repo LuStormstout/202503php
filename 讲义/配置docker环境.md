@@ -130,9 +130,9 @@ volumes:
 ```nginx
 server {
     listen 80;
-    server_name laravel.product.local;
+    server_name laravel.local;
 
-    root /var/www/html/202503php/laravel-product/public;
+    root /var/www/html/202503php/php/laravel;
     index index.php index.html;
 
     location / {
@@ -210,10 +210,10 @@ date.timezone = Asia/Tokyo  # 设置默认时区为东京，确保时间函数�
 在 `C:\Windows\System32\drivers\etc\hosts` 文件中添加：
 ```
 # 202501php 目录
-127.0.0.1 202501php.local
+127.0.0.1 202503php.local
 
 # Laravel 练习项目
-127.0.0.1 laravel-product.local
+127.0.0.1 laravel.local
 ```
 然后运行：
 ```sh

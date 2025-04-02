@@ -132,7 +132,7 @@ server {
     listen 80;
     server_name laravel.product.local;
 
-    root /var/www/html/202501php/laravel-product/public;
+    root /var/www/html/202503php/laravel-product/public;
     index index.php index.html;
 
     location / {
@@ -148,9 +148,9 @@ server {
 
 server {
     listen 80;
-    server_name 202501php.local;
+    server_name 202503php.local;
 
-    root /var/www/html/202501php;
+    root /var/www/html/202503php;
     index index.php index.html;
 
     location / {

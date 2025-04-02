@@ -30,7 +30,7 @@
 │   │   ├── Dockerfile       # PHP 自定义环境
 │   │   ├── php.ini          # PHP 配置
 │   ├── mysql\               # MySQL 数据存储
-│   ├── docker-compose.yml   # Docker Compose 配置
+│   ├── docker compose.yml   # Docker Compose 配置
 │   └── .env                 # 平台路径变量（按平台切换）
 │
 ├── logs\                    # 存放日志
@@ -42,92 +42,136 @@
 ---
 
 - 在 docker/ 目录下创建 .env 文件：
-```Windows .env
+```env
 PROJECT_ROOT=C:/www/php
 LOGS_ROOT=C:/www/logs
 ```
 
 - 在 macOS 下创建 .env 文件：
-```macOS .env
+```env
 PROJECT_ROOT=/Library/WebServer/Documents/202503php/php
 LOGS_ROOT=/Library/WebServer/Documents/202503php/logs
 ```
 
-## **📌 2. `docker-compose.yml`（完整详细注释）**
+## **📌 2. `docker compose.yml`（完整详细注释）**
 
 ```yaml
-version: "3.8"
+version: '3.8'  # Docker Compose 文件版本，推荐使用 3.8 兼容性最好
 
 services:
-  # --------------------------
-  # Nginx 服务器
-  # --------------------------
+  # ================================
+  # Nginx Web 服务器（反向代理、静态资源处理）
+  # ================================
   nginx:
-    image: nginx:latest                # 使用最新的官方 Nginx 镜像
-    container_name: nginx              # 指定容器名称
-    restart: always                    # 确保 Nginx 自动重启
+    image: nginx:latest  # 使用最新官方 Nginx 镜像
+    container_name: nginx  # 自定义容器名称，方便使用 docker ps 查找
+    restart: always  # 当容器意外退出时自动重启，确保高可用
     ports:
-      - "80:80"                        # 绑定本机 80 端口到容器的 80 端口
+      - "80:80"  # 将主机的 80 端口映射到容器的 80 端口，供浏览器访问
     volumes:
-      - "${PROJECT_ROOT}:/var/www/html"                      # 挂载整个 php 目录，支持多个项目
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf  # 挂载 Nginx 配置
-      - "${LOGS_ROOT}/nginx:/var/log/nginx"                  # 挂载日志目录
+      - ${PROJECT_ROOT}:/var/www/html  # 映射宿主机代码目录到容器，支持 Laravel + 多项目开发
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf  # 使用本地自定义 Nginx 配置
+      - ${LOGS_ROOT}/nginx:/var/log/nginx  # 将容器中的 Nginx 日志映射到主机，方便开发查看
     depends_on:
-      - php                            # 依赖 PHP 容器，确保 PHP 先启动
+      - php  # 确保 PHP 服务先启动，Nginx 启动时才不会报错
     networks:
-      - app_network                    # 连接到自定义网络
+      - app_network  # 加入自定义应用网络，所有服务通过该网络通信
 
-  # --------------------------
-  # PHP-FPM 服务器（带 Composer 和扩展）
-  # --------------------------
+  # ================================
+  # PHP-FPM 应用服务器（运行 Laravel 项目）
+  # ================================
   php:
-    build: ./php                       # 使用自定义 Dockerfile 构建 PHP 容器
+    build: ./php  # 使用 ./php 目录下的 Dockerfile 构建镜像，包含 Composer 和扩展
     container_name: php
-    restart: always                    # 确保 PHP 自动重启
+    restart: always
     volumes:
-      - "${PROJECT_ROOT}:/var/www/html"                       # 让 PHP 访问所有项目
-      - "${LOGS_ROOT}/php:/var/log/php"                       # 记录 PHP 运行日志
-      - ./php/php.ini:/usr/local/etc/php/conf.d/custom-php.ini  # 额外加载本地 php.ini 配置
-    networks:
-      - app_network
-
-  # --------------------------
-  # MySQL 数据库
-  # --------------------------
-  mysql:
-    image: mysql:8.0                   # 使用 MySQL 8.0 镜像
-    container_name: mysql
-    restart: always                    # 如果容器崩溃，自动重启
-    environment:
-      MYSQL_ROOT_PASSWORD: root        # 设置 MySQL root 用户密码
-      MYSQL_DATABASE: mydatabase       # 默认数据库
-      MYSQL_USER: user                 # 创建的普通用户
-      MYSQL_PASSWORD: password         # 普通用户密码
+      - ${PROJECT_ROOT}:/var/www/html  # 映射源码目录，Laravel 项目可实时同步
+      - ${LOGS_ROOT}/php:/var/log/php  # 映射 PHP 错误日志目录，利于调试
+      - ./php/php.ini:/usr/local/etc/php/conf.d/custom-php.ini  # 加载自定义 php.ini 配置文件
+    expose:
+      - "9000"  # 暴露容器内部 9000 端口供 Nginx 内部访问，不对外暴露
     ports:
-      - "3306:3306"                    # 绑定 MySQL 端口
+      - "5173:5173"  # 用于 Laravel Vite 前端热更新开发环境（Vite 默认端口）
+    networks:
+      - app_network
+    healthcheck:
+      test: [ "CMD-SHELL", "php-fpm -t" ]  # 检查 PHP 配置是否正确
+      interval: 10s  # 每 10 秒检查一次
+      timeout: 5s  # 最长等待时间 5 秒
+      retries: 3  # 连续失败 3 次则视为不健康
+
+  # ================================
+  # MySQL 数据库服务（持久化存储）
+  # ================================
+  mysql:
+    image: mysql:8.0  # 使用官方 MySQL 8.0 镜像
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root  # 设置 root 用户密码
+      MYSQL_DATABASE: 202503php  # 默认创建的数据库
+      MYSQL_USER: user  # 创建普通用户
+      MYSQL_PASSWORD: password  # 普通用户的密码
+      TZ: Asia/Tokyo  # 设置容器内的系统时区，保持时间一致性
+    ports:
+      - "3306:3306"  # 将 MySQL 默认端口暴露到主机，用于本地工具连接
     volumes:
-      - mysql_data:/var/lib/mysql      # 使用命名卷存储 MySQL 数据
-      - "${LOGS_ROOT}/mysql:/var/log/mysql"                  # 记录 MySQL 日志
+      - mysql_data:/var/lib/mysql  # 使用命名卷挂载数据库数据，防止数据丢失
+      - ${LOGS_ROOT}/mysql:/var/log/mysql  # 映射数据库日志目录
+    networks:
+      - app_network
+    healthcheck:
+      test: [ "CMD-SHELL", "mysqladmin ping -h localhost -u root -proot" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ================================
+  # MailHog 邮件捕获服务（开发测试邮件）
+  # ================================
+  mailhog:
+    image: mailhog/mailhog  # MailHog 是一个用于测试 SMTP 邮件的开发工具
+    container_name: mailhog
+    restart: always
+    ports:
+      - "1025:1025"  # SMTP 服务端口（用于 Laravel 配置 MAIL_PORT）
+      - "8025:8025"  # Web UI 端口（可在浏览器查看邮件内容）
     networks:
       - app_network
 
-# --------------------------
-# 定义自定义网络
-# --------------------------
-networks:
-  app_network:
+  # ================================
+  # Redis 服务（Laravel 缓存、Session、队列驱动）
+  # ================================
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"  # Redis 默认端口
+    networks:
+      - app_network
 
-# --------------------------
-# 使用命名卷存储 MySQL 数据，避免权限问题
-# --------------------------
+# ================================
+# 命名数据卷（用于持久化数据库数据）
+# ================================
 volumes:
   mysql_data:
+
+# ================================
+# 自定义 Docker 网络（让容器可通过服务名互联）
+# ================================
+networks:
+  app_network:
+    driver: bridge
 ```
 
 ---
 
 ## **📌 3. `nginx/default.conf`（支持多个 Laravel 项目）**
 ```nginx
+# --------------------------
+# Laravel 项目：laravel.local
+# --------------------------
 server {
     listen 80;
     server_name laravel.local;
@@ -143,9 +187,16 @@ server {
         include fastcgi_params;
         fastcgi_pass php:9000;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
     }
+
+    access_log /var/log/nginx/laravel_access.log;
+    error_log  /var/log/nginx/laravel_error.log;
 }
 
+# --------------------------
+# 普通 PHP 项目：202503php.local
+# --------------------------
 server {
     listen 80;
     server_name 202503php.local;
@@ -161,7 +212,11 @@ server {
         include fastcgi_params;
         fastcgi_pass php:9000;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
     }
+
+    access_log /var/log/nginx/202503php_access.log;
+    error_log  /var/log/nginx/202503php_error.log;
 }
 ```
 
@@ -171,20 +226,21 @@ server {
 ```dockerfile
 FROM php:8.2-fpm
 
-# 安装系统依赖和 PHP 扩展
+# 安装系统依赖和 PHP 扩展（含验证码图像处理 GD）
 RUN apt-get update && apt-get install -y \
     unzip git curl libpng-dev libjpeg-dev libfreetype6-dev \
     libonig-dev libxml2-dev zip libzip-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd pdo pdo_mysql bcmath zip opcache
+    && docker-php-ext-install gd pdo pdo_mysql bcmath zip opcache \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 安装 Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# 设置工作目录
+# 设置默认工作目录
 WORKDIR /var/www/html
 
-# 使 PHP-FPM 以 www-data 运行
+# 权限修正
 RUN chown -R www-data:www-data /var/www/html
 
 CMD ["php-fpm"]
@@ -194,14 +250,30 @@ CMD ["php-fpm"]
 
 ## **📌 5. `php.ini`（PHP 配置）**
 ```ini
-error_reporting = E_ALL  # 允许显示所有错误，包括警告和通知
-display_errors = On  # 在页面上显示错误（开发环境建议开启，生产环境建议关闭）
-display_startup_errors = On  # 启动时显示 PHP 初始化阶段的错误
-max_execution_time = 300  # 最大执行时间（秒），防止脚本长时间运行导致服务器卡死
-memory_limit = 512M  # PHP 进程最大可用内存，Laravel 需要较高内存
-post_max_size = 100M  # 允许 POST 请求的最大数据大小，影响文件上传等操作
-upload_max_filesize = 100M  # 允许上传文件的最大大小
-date.timezone = Asia/Tokyo  # 设置默认时区为东京，确保时间函数返回正确时间
+; 显示所有错误（开发环境建议开启）
+error_reporting = E_ALL
+display_errors = On
+display_startup_errors = On
+log_errors = On
+error_log = /var/log/php/error.log
+
+; 运行性能限制
+max_execution_time = 300
+memory_limit = 512M
+
+; 上传限制
+post_max_size = 100M
+upload_max_filesize = 100M
+
+; Laravel 相关
+cgi.fix_pathinfo = 0
+date.timezone = Asia/Tokyo
+
+; 图像验证码支持（GD库相关）
+gd.jpeg_ignore_warning = 1
+
+; 文件编码与字符集
+default_charset = "UTF-8"
 ```
 
 ---
@@ -217,14 +289,14 @@ date.timezone = Asia/Tokyo  # 设置默认时区为东京，确保时间函数�
 ```
 然后运行：
 ```sh
-docker-compose restart nginx
+docker compose restart nginx
 ```
 
 ## **📌 7. Docker 常用命令**
 ```sh
 # 启动 Docker 容器
 cd C:\www\docker
-docker-compose up -d
+docker compose up -d
 
 # 查看正在运行的容器
 docker ps
@@ -233,18 +305,18 @@ docker ps
 docker ps -a
 
 # 停止所有容器
-docker-compose down
+docker compose down
 
 # 重启所有容器
-docker-compose restart
+docker compose restart
 
 # 重新启动 Nginx 服务器
-docker-compose restart nginx
+docker compose restart nginx
 
 # 重新构建 PHP 容器（如果修改了 Dockerfile）
-docker-compose build php
+docker compose build php
 
-docker-compose up -d --build
+docker compose up -d --build
 
 # 进入 PHP 容器
 docker exec -it php bash
@@ -312,7 +384,7 @@ chown -R www-data:www-data /var/www/html/202501php/laravel-product
 #### **4️⃣ 退出容器并重启 Nginx**
 ```sh
 exit
-docker-compose restart nginx
+docker compose restart nginx
 ```
 
 #### **5️⃣ 清理 Laravel 缓存**
@@ -324,7 +396,7 @@ docker exec -it php bash -c "cd /var/www/html/202501php/laravel-product && php a
 ```
 然后重新启动 PHP 容器：
 ```sh
-docker-compose restart php
+docker compose restart php
 ```
 
 #### **7️⃣ 确保日志文件可写**
@@ -336,5 +408,3 @@ touch laravel.log
 chmod 666 laravel.log
 exit
 ```
-
-🚀 **执行完这些步骤后，Laravel 应该可以正确写入日志！如果仍有问题，请检查 `docker logs php` 以获取更多错误信息。**

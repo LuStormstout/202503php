@@ -209,7 +209,7 @@ date.timezone = Asia/Tokyo  # 设置默认时区为东京，确保时间函数�
 ## **📌 6. 修改 Windows `hosts` 文件**
 在 `C:\Windows\System32\drivers\etc\hosts` 文件中添加：
 ```
-# 202501php 目录
+# 202503php 目录
 127.0.0.1 202503php.local
 
 # Laravel 练习项目

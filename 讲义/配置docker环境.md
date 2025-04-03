@@ -417,3 +417,13 @@ docker compose up -d
 docker compose ps
 ```
 
+#### 使用电脑自带的终端进入对应的 docker 镜像
+```sh
+docker exec -it php bash
+docker exec -it mysql bash
+docker exec -it nginx bash
+docker exec -it redis sh
+docker exec -it mailhog sh
+```
+但是大家要注意你们你们的 docker 镜像名称和我这里的 docker 镜像名称不一样
+

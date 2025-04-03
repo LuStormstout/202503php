@@ -408,3 +408,12 @@ touch laravel.log
 chmod 666 laravel.log
 exit
 ```
+
+#### 彻底清除 docker 并且重新安装
+```sh
+docker compose down --volumes --remove-orphans
+docker volume prune -f
+docker compose up -d
+docker compose ps
+```
+

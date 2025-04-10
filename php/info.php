@@ -1,6 +1,6 @@
 <?php
 
-echo "<div style='text-align: center; background-color: #f0f0f0; padding: 20px;'>";
+echo "<div style='text-align: center; background-color: #808080; padding: 20px;'>";
 echo "当前文件路径是: " . __DIR__ . "<br>";
 echo "当前文件是: " . __FILE__ . "<br>";
 echo "This is Docker PHP info page";

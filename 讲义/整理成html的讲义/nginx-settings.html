@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nginx 配置指南 - Tailwind CSS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+            /* Offset for fixed headers if any, or just some space /
+           }
+           / Adding prose styles directly for better control over code blocks etc. /
+           .prose code::before, .prose code::after { content: none !important; }
+           .prose code { background-color: #f3f4f6; color: #374151; padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.875em; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+           .prose pre { background-color: #1f2937; color: #f3f4f6; padding: 1em; border-radius: 0.375rem; overflow-x: auto; font-size: 0.875em; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; margin-top: 1.6em; margin-bottom: 1.6em; }
+           .prose pre code { background-color: transparent; color: inherit; padding: 0; font-size: inherit; white-space: pre; / Preserve whitespace strictly */
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>Nginx 配置指南</h1>
+
+    <h2>目录</h2>
+    <div class="bg-gray-50 p-4 rounded border border-gray-200 mb-6 text-base">
+        <ol class="list-decimal list-inside space-y-1">
+            <li><a href="#s1">Nginx 是什么？为什么需要它？</a></li>
+            <li><a href="#s2">配置文件在哪里？（macOS, Windows/Laragon, Linux/Ubuntu）</a>
+                <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+                    <li><a href="#s2-1">macOS (Homebrew 安装)</a></li>
+                    <li><a href="#s2-2">Windows (Laragon 环境)</a></li>
+                    <li><a href="#s2-3">Linux (Ubuntu 使用 apt 安装)</a></li>
+                </ul>
+            </li>
+            <li><a href="#s3">Nginx 配置文件的基本结构</a>
+                <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+                    <li><a href="#s3-1">指令 (Directives) 与块 (Blocks/Contexts)</a></li>
+                    <li><a href="#s3-2">主要块/上下文</a></li>
+                </ul>
+            </li>
+            <li><a href="#s4">详解一个基础的 <code>nginx.conf</code></a>
+                <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+                    <li><a href="#s4-1">全局块 (Main Context)</a></li>
+                    <li><a href="#s4-2"><code>events</code> 块</a></li>
+                    <li><a href="#s4-3"><code>http</code> 块</a>
+                        <ul class="list-circle list-inside ml-4 mt-1 space-y-1">
+                            <li><a href="#s4-3-1">基础设置与包含文件</a></li>
+                            <li><a href="#s4-3-2">日志设置</a></li>
+                            <li><a href="#s4-3-3">性能优化设置</a></li>
+                            <li><a href="#s4-3-4">Gzip 压缩 (可选)</a></li>
+                            <li><a href="#s4-3-5">包含虚拟主机配置 (重要)</a></li>
+                            <li><a href="#s4-3-6">默认 Server 块示例 (通常在包含文件中)</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+            <li><a href="#s5">配置 Nginx 处理 PHP 请求 (PHP-FPM)</a>
+                <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+                    <li><a href="#s5-1">什么是 PHP-FPM？</a></li>
+                    <li><a href="#s5-2">PHP 配置块 (<code>location ~ \.php$</code>)</a></li>
+                    <li><a href="#s5-3">关键指令 <code>fastcgi_pass</code>：连接 PHP-FPM</a>
+                        <ul class="list-circle list-inside ml-4 mt-1 space-y-1">
+                            <li><a href="#s5-3-1">方式一：TCP/IP 套接字 (<code>127.0.0.1:9000</code>)</a></li>
+                            <li><a href="#s5-3-2">方式二：Unix 域套接字 (<code>unix:/path/to/php-fpm.sock</code>)</a>
+                            </li>
+                            <li><a href="#s5-3-3">何时使用哪种方式？</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="#s5-4">其他 FastCGI 相关指令</a></li>
+                    <li><a href="#s5-5">完整 PHP-FPM 配置示例 (在 <code>server</code> 块内)</a></li>
+                </ul>
+            </li>
+            <li><a href="#s6">配置虚拟主机 (Virtual Hosts / Vhosts)</a>
+                <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+                    <li><a href="#s6-1">什么是虚拟主机？</a></li>
+                    <li><a href="#s6-2">推荐的配置方式 (<code>sites-available</code> 和 <code>sites-enabled</code>)</a>
+                    </li>
+                    <li><a href="#s6-3">创建虚拟主机配置文件</a></li>
+                    <li><a href="#s6-4">启用虚拟主机</a></li>
+                </ul>
+            </li>
+            <li><a href="#s7">常用 Nginx 命令</a></li>
+            <li><a href="#s8">常见问题与排错</a></li>
+            <li><a href="#s9">总结</a></li>
+        </ol>
+    </div>
+
+    <hr/>
+
+    <div>
+        <h2 id="s1">1. Nginx 是什么？为什么需要它？</h2>
+
+        <p>想象一下一个非常繁忙的餐厅。Nginx (发音 "engine-x") 就像是这个餐厅的总管或交通指挥员。</p>
+
+        <ul>
+            <li><strong>接待访客 (处理网络请求):</strong> 当有人（用户的浏览器）想要访问你的网站时，Nginx 是第一个接待他们的。
+            </li>
+            <li><strong>高效处理 (高性能):</strong> Nginx 非常擅长同时处理成千上万的访客请求，而不会轻易“手忙脚乱”（占用过多服务器资源）。
+            </li>
+            <li><strong>分发任务 (反向代理):</strong> 如果你的网站很复杂（比如，一部分是静态图片，一部分需要 PHP
+                程序处理），Nginx 可以智能地将请求发送给最合适的“工作人员”处理。它可以直接提供图片（因为它快），或者将需要动态处理的请求（如
+                PHP 脚本）转交给 PHP 解释器（我们稍后会讲到的 PHP-FPM）。
+            </li>
+            <li><strong>其他功能:</strong> 它还可以做很多其他事情，比如负载均衡（将请求分发给多台服务器）、SSL/TLS 加密（让网站变成
+                https）、缓存（存储常用内容以加快访问速度）等。
+            </li>
+        </ul>
+
+        <p>对于初学者来说，最常用 Nginx 的场景是：让它能够找到你的网站文件（HTML, CSS, JS, 图片等）并展示给用户，同时能够将
+            <code>.php</code> 结尾的请求交给 PHP 去处理。</p>
+
+        <hr/>
+
+        <h2 id="s2">2. 配置文件在哪里？（macOS, Windows/Laragon, Linux/Ubuntu）</h2>
+
+        <p class="warning">这是新手最容易困惑的地方，因为不同系统、不同安装方式，配置文件的位置都不同。</p>
+
+        <h3 id="s2-1">macOS (Homebrew 安装)</h3>
+
+        <p>Homebrew 是 macOS 上流行的包管理器。根据你 Mac 的芯片类型，默认路径有所不同：</p>
+
+        <ul>
+            <li><strong>Intel CPU 的 Mac:</strong>
+                <ul>
+                    <li>Nginx 安装目录: <code>/usr/local/etc/nginx/</code></li>
+                    <li>主配置文件: <code>/usr/local/etc/nginx/nginx.conf</code></li>
+                    <li>默认网站根目录 (可能): <code>/usr/local/var/www/</code></li>
+                    <li>日志文件目录: <code>/usr/local/var/log/nginx/</code></li>
+                </ul>
+            </li>
+            <li class="mt-2"><strong>Apple Silicon (M系列芯片, 如 M1, M2, M3) 的 Mac:</strong>
+                <ul>
+                    <li>Nginx 安装目录: <code>/opt/homebrew/etc/nginx/</code></li>
+                    <li>主配置文件: <code>/opt/homebrew/etc/nginx/nginx.conf</code></li>
+                    <li>默认网站根目录 (可能): <code>/opt/homebrew/var/www/</code></li>
+                    <li>日志文件目录: <code>/opt/homebrew/var/log/nginx/</code></li>
+                </ul>
+            </li>
+        </ul>
+        <p class="mt-2 note"><strong>如何确认？</strong> 在终端运行 <code>brew info nginx</code> 命令，它会显示 Nginx
+            的安装信息，包括配置文件的路径。</p>
+
+        <h3 id="s2-2">Windows (Laragon 环境)</h3>
+
+        <p>Laragon 是一个流行的 Windows 本地开发环境，它集成了 Nginx, Apache, PHP, MySQL 等。Laragon 管理 Nginx
+            配置相对直观：</p>
+
+        <ul>
+            <li><strong>查找方式:</strong>
+                <ol>
+                    <li>打开 Laragon。</li>
+                    <li>右键点击 Laragon 窗口的空白处。</li>
+                    <li>选择 <code>Nginx</code> -> <code>sites-enabled</code> -> <code>default.conf</code>
+                        (这是默认的，你可能需要编辑它或创建新的)。
+                    </li>
+                    <li><strong>或者</strong> 直接找到 Laragon 的安装目录，通常配置文件在 <code>laragon安装目录\etc\nginx\sites-enabled\</code>
+                        文件夹下。
+                    </li>
+                </ol>
+            </li>
+            <li class="mt-2"><strong>主配置文件路径 (通常不需要直接修改):</strong> <code>laragon安装目录\etc\nginx\nginx.conf</code>
+            </li>
+            <li class="mt-2 note"><strong>注意:</strong> Laragon 通常使用 <code>.conf</code>
+                文件来定义每个“网站”（虚拟主机），并且已经帮你配置好了 PHP 的连接。你主要修改的是 <code>sites-enabled</code>
+                目录下的文件，用来指定网站的根目录 (<code>root</code>) 和域名 (<code>server_name</code>)。
+            </li>
+        </ul>
+
+        <h3 id="s2-3">Linux (Ubuntu 使用 apt 安装)</h3>
+
+        <p>在 Ubuntu 系统上使用 <code>sudo apt install nginx</code> 安装后，文件路径通常是：</p>
+
+        <ul>
+            <li><strong>Nginx 配置目录:</strong> <code>/etc/nginx/</code></li>
+            <li><strong>主配置文件:</strong> <code>/etc/nginx/nginx.conf</code></li>
+            <li><strong>虚拟主机配置目录 (推荐方式):</strong>
+                <ul>
+                    <li><code>/etc/nginx/sites-available/</code>: 存放所有可用的虚拟主机配置文件（每个网站一个文件，例如
+                        <code>mywebsite.conf</code>）。
+                    </li>
+                    <li><code>/etc/nginx/sites-enabled/</code>: 存放一个符号链接（shortcut），指向
+                        <code>sites-available</code> 中你想要启用的那个网站的配置文件。
+                    </li>
+                </ul>
+            </li>
+            <li class="mt-2"><strong>默认网站配置文件:</strong> <code>/etc/nginx/sites-available/default</code> (这是一个指向
+                <code>/etc/nginx/sites-enabled/default</code> 的链接)
+            </li>
+            <li class="mt-2"><strong>默认网站根目录:</strong> <code>/var/www/html/</code></li>
+            <li class="mt-2"><strong>日志文件目录:</strong> <code>/var/log/nginx/</code></li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s3">3. Nginx 配置文件的基本结构</h2>
+
+        <p>Nginx 配置文件看起来像是由很多“规则”组成的文本文件。</p>
+
+        <h3 id="s3-1">指令 (Directives) 与块 (Blocks/Contexts)</h3>
+
+        <ul>
+            <li><strong>指令 (Directive):</strong> 一条配置规则。它由一个名称和一些参数组成，最后以分号 <code>;</code> 结尾。
+                <ul>
+                    <li>例如: <code>worker_processes 1;</code> (设置工作进程数量为 1)</li>
+                    <li>例如: <code>listen 80;</code> (监听 80 端口)</li>
+                    <li>例如: <code>root /var/www/html;</code> (指定网站文件根目录)</li>
+                </ul>
+            </li>
+            <li class="mt-2"><strong>块 (Block) / 上下文 (Context):</strong> 将一组相关的指令用花括号 <code>{}</code>
+                包裹起来，形成一个配置块或上下文。块可以嵌套。
+                <ul>
+                    <li>例如: <code>http { ... }</code>, <code>server { ... }</code>, <code>location / { ... }</code>
+                    </li>
+                    <li>块定义了指令的作用范围。比如，放在 <code>http</code> 块里的指令通常影响所有 HTTP 请求，而放在
+                        <code>server</code> 块里的指令只影响该 <code>server</code> 定义的那个网站。
+                    </li>
+                </ul>
+            </li>
+        </ul>
+
+        <p class="mt-4 warning"><strong>重要规则:</strong></p>
+        <ol>
+            <li>每条指令必须以分号 <code>;</code> 结尾。</li>
+            <li>块使用花括号 <code>{}</code> 包裹。</li>
+            <li><code>#</code> 号开头的行是注释，Nginx 会忽略它，用来给自己或其他开发者看说明。</li>
+        </ol>
+
+        <h3 id="s3-2">主要块/上下文</h3>
+
+        <p>一个典型的 <code>nginx.conf</code> 文件通常包含以下几个主要的块：</p>
+
+        <ol>
+            <li><strong>全局块 (Main Context):</strong> 文件顶层，没有任何 <code>{}</code> 包裹的指令。通常用来设置 Nginx
+                运行的用户、工作进程数、错误日志位置等。
+            </li>
+            <li><strong><code>events</code> 块:</strong> <code>events { ... }</code> 用来配置 Nginx
+                处理网络连接的方式，比如一个工作进程能同时处理多少连接 (<code>worker_connections</code>)。
+            </li>
+            <li><strong><code>http</code> 块:</strong> <code>http { ... }</code> 这是配置 Web 服务器功能最核心的部分。它包含了处理
+                HTTP 请求的所有设置，例如：
+                <ul>
+                    <li>日志格式 (<code>log_format</code>)</li>
+                    <li>默认文件类型 (<code>default_type</code>)</li>
+                    <li>是否开启 <code>gzip</code> 压缩</li>
+                    <li>可以包含一个或多个 <code>server</code> 块。</li>
+                </ul>
+            </li>
+            <li><strong><code>server</code> 块:</strong> <code>server { ... }</code> 每个 <code>server</code>
+                块定义一个虚拟主机（一个网站）。你可以有多个 <code>server</code> 块来运行多个网站。这里会定义网站监听的端口
+                (<code>listen</code>)、域名 (<code>server_name</code>)、网站文件的根目录 (<code>root</code>) 等。
+            </li>
+            <li><strong><code>location</code> 块:</strong> <code>location [modifier] /path/ { ... }</code> 它位于 <code>server</code>
+                块内部，用来匹配特定的 URL 请求路径，并定义如何处理这些请求。例如，你可以定义 <code>/</code>
+                路径如何处理，<code>/images/</code> 路径如何处理，或者 <code>.php</code> 文件如何处理。
+            </li>
+        </ol>
+        <p class="mt-2 note"><strong>层级关系:</strong> 全局 -> <code>events</code>, <code>http</code> ->
+            <code>server</code> -> <code>location</code></p>
+
+        <hr/>
+
+        <h2 id="s4">4. 详解一个基础的 <code>nginx.conf</code></h2>
+
+        <p>下面我们来看一个简化但常见的 <code>nginx.conf</code> 文件内容，并逐行解释（不同系统默认配置可能略有差异，但核心概念一致）。
+        </p>
+
+        <pre><code class="language-nginx"># 全局块 (Main Context) - 通常在文件顶部
+user www-data; # (Linux/Ubuntu 常见) Nginx 工作进程运行的用户和用户组
+
+user nobody; # (macOS Homebrew 可能的默认值)
+(Windows/Laragon 通常不需要配置这个，由 Laragon 管理)
+Nginx 启动的工作进程数量，'auto' 会尝试根据 CPU 核心数自动设置，也可以是数字如 1, 4
+对于开发环境，1 通常足够了
+worker_processes auto;
+
+错误日志文件的路径和记录级别 (debug, info, notice, warn, error, crit)
+开发时用 debug 或 info 可能有助于排查问题
+error_log /var/log/nginx/error.log warn;
+
+macOS Intel: /usr/local/var/log/nginx/error.log
+macOS M-Series: /opt/homebrew/var/log/nginx/error.log
+Laragon: 通常在 Laragon 的 logs 目录下，可以通过 Laragon 界面访问
+(Linux/macOS) Nginx 主进程的进程 ID 文件路径
+pid /run/nginx.pid;
+
+events 块 - 配置连接处理
+events {
+# 每个 worker_process 允许的最大并发连接数。
+# 这个值影响 Nginx 能同时处理多少客户端连接
+# 对于本地开发，1024 足够了
+worker_connections 1024;
+}
+
+http 块 - 配置 HTTP 服务
+http {
+# 包含其他配置文件或 MIME 类型定义
+# 告诉 Nginx 文件扩展名对应的 Content-Type (如 .html -> text/html, .jpg -> image/jpeg)
+# 这个文件路径根据你的安装方式可能不同
+include       /etc/nginx/mime.types; # Linux/Ubuntu 常见路径
+# include       /opt/homebrew/etc/nginx/mime.types; # macOS M-Series
+# include       /usr/local/etc/nginx/mime.types; # macOS Intel
+# Laragon 通常已经配置好了
+
+# 如果 Nginx 无法从 mime.types 确定文件类型，默认使用这个类型（通常表示让浏览器下载）
+default_type  application/octet-stream;
+
+# 日志格式定义 (可以自定义)
+# $remote_addr: 客户端 IP
+# $time_local: 服务器本地时间
+# $request: 请求行 (例如 "GET /index.html HTTP/1.1")
+# $status: 响应状态码 (例如 200, 404)
+# $body_bytes_sent: 发送给客户端的主体字节数
+# $http_referer: 请求来源页面的 URL
+# $http_user_agent: 客户端浏览器信息
+log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                  '$status $body_bytes_sent "$http_referer" '
+                  '"$http_user_agent" "$http_x_forwarded_for"';
+
+# 访问日志文件的路径，使用上面定义的 'main' 格式
+access_log /var/log/nginx/access.log main;
+# macOS/Laragon 日志路径参考 error_log 的说明
+
+# --- 性能相关设置 (常见优化) ---
+# 允许 Nginx 使用系统调用高效地发送文件，减少内核和用户空间切换，通常保持开启
+sendfile        on;
+
+# (通常与 sendfile 一起用) 在一个网络包里发送尽可能多的数据头信息，稍微提高效率
+tcp_nopush      on;
+
+# 客户端与服务器保持连接的超时时间（秒）
+# 允许客户端在一次连接中请求多个资源，减少建立连接的开销
+keepalive_timeout 65;
+
+# --- Gzip 压缩 (可选，能显著减少传输数据量，加快加载速度) ---
+# gzip on; # 开启 Gzip
+# # 指定哪些类型的内容需要压缩
+# gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+# # 其他 Gzip 选项可以进一步配置，如压缩级别 gzip_comp_level
+
+# --- 包含虚拟主机配置文件 (重要!) ---
+# 这是将不同网站的配置分开管理的关键
+
+# Linux/Ubuntu 的标准方式:
+# 加载 /etc/nginx/conf.d 目录下所有以 .conf 结尾的文件
+include /etc/nginx/conf.d/*.conf;
+# 加载 /etc/nginx/sites-enabled/ 目录下所有文件 (推荐存放各网站配置的地方)
+include /etc/nginx/sites-enabled/*;
+
+# macOS Homebrew 可能默认包含类似 (检查你的 nginx.conf 确认):
+# include /usr/local/etc/nginx/servers/*;
+# 或
+# include /opt/homebrew/etc/nginx/servers/*;
+
+# Windows/Laragon:
+# Laragon 的主 nginx.conf 通常已经有类似 include C:/laragon/etc/nginx/sites-enabled/*.conf; 的配置
+# 你只需要在 Laragon 指定的 sites-enabled 目录中添加或修改 .conf 文件
+
+# --- 默认的 Server 块 ---
+# 如果没有在 sites-enabled 或 conf.d 中定义任何 server，
+# Nginx 可能需要一个默认的 server 来处理未匹配到任何 server_name 的请求
+# 这个默认 server 块可能直接写在 http 块里，或者在 include 的某个文件里（比如 sites-enabled/default）
+# 下面是一个非常基础的 server 块示例，通常你应该在单独的文件里配置它
+
+# server {
+#     listen 80 default_server; # default_server 表示这是处理未匹配请求的默认服务器
+#     listen [::]:80 default_server; # IPv6
+#
+#     server_name _; # 下划线是一个特殊的、无效的主机名，常用于默认服务器
+#
+#     root /var/www/html; # 默认网站文件目录
+#
+#     index index.html index.htm;
+#
+#     location / {
+#         try_files $uri <span class="math-inline">uri/ \=404;
+#     }
+# }
+} # http 块结束
+            </span></code></pre>
+        <p class="note">注意：上述是一个示例 <code>nginx.conf</code>
+            的结构，实际内容和路径会因你的系统和安装方式而变化。<code>server</code> 块通常不直接写在主配置文件中，而是通过
+            <code>include</code> 指令加载（详见虚拟主机部分）。</p>
+        <hr/>
+        <h2 id="s5">5. 配置 Nginx 处理 PHP 请求 (PHP-FPM)</h2>
+        <p>Nginx 本身不能执行 PHP 代码。它需要将 PHP 请求传递给一个叫做 <strong>PHP-FPM (FastCGI Process
+            Manager)</strong> 的独立程序来处理。PHP-FPM 会执行 PHP 脚本，然后把结果返回给 Nginx，Nginx 再把结果发送给用户的浏览器。
+        </p>
+        <h3 id="s5-1">什么是 PHP-FPM？</h3>
+        <ul>
+            <li>它是一个 PHP 的 FastCGI 管理器。FastCGI 是一种让 Web 服务器（如 Nginx）与应用程序（如 PHP）进行通信的协议。
+            </li>
+            <li>你需要确保 PHP-FPM 服务正在运行。
+                <ul>
+                    <li><strong>Linux/Ubuntu:</strong> 通常通过 <code>sudo systemctl start php&lt;version&gt;-fpm</code>
+                        (例如 <code>php8.1-fpm</code>) 启动和管理。检查状态用 <code>sudo systemctl status php&lt;version&gt;-fpm</code>。
+                    </li>
+                    <li><strong>macOS (Homebrew):</strong> 通过 <code>brew services start php</code> 启动。PHP-FPM 会作为
+                        PHP 的一部分一起运行。检查状态用 <code>brew services list</code>。
+                    </li>
+                    <li><strong>Windows (Laragon):</strong> Laragon 会在你启动 Apache/Nginx 时自动管理 PHP-FPM
+                        的启动和停止。你通常不需要手动操作。
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        <h3 id="s5-2">PHP 配置块 (<code>location ~ \.php</code>)</h3>
+
+        <p>要在 Nginx 中配置 PHP 处理，你需要在你的 <code>server</code> 块（通常是你想启用 PHP 的那个网站的
+            <code>server</code> 块）内部添加一个 <code>location</code> 块。这个块使用正则表达式 <code>~ \.php$</code>
+            来匹配所有以 <code>.php</code> 结尾的 URL 请求。</p>
+
+        <h3 id="s5-3">关键指令 <code>fastcgi_pass</code>：连接 PHP-FPM</h3>
+        <p>这是 Nginx 将请求转发给 PHP-FPM 的核心指令。有两种主要方式连接：</p>
+
+        <h4 id="s5-3-1">方式一：TCP/IP 套接字 (<code>127.0.0.1:9000</code>)</h4>
+        <ul>
+            <li>Nginx 通过网络连接到 PHP-FPM 监听的 IP 地址和端口（通常是 <code>127.0.0.1:9000</code>）。</li>
+            <li><strong>优点：</strong> 配置简单，跨平台通用性好。</li>
+            <li><strong>缺点：</strong> 相比 Unix Socket 有微小的网络开销。</li>
+            <li><strong>配置示例 (在 <code>location ~ \.php$</code> 块内):</strong>
+                <pre><code class="language-nginx">fastcgi_pass 127.0.0.1:9000;</code></pre>
+            </li>
+            <li><strong>重要：</strong> 需确保 PHP-FPM 配置（通常在 <code>www.conf</code> 文件中）的 <code>listen</code>
+                指令设置为 <code>127.0.0.1:9000</code>。
+            </li>
+        </ul>
+
+        <h4 id="s5-3-2">方式二：Unix 域套接字 (<code>unix:/path/to/php-fpm.sock</code>)</h4>
+        <ul>
+            <li>Nginx 通过一个特殊的文件系统对象（socket 文件）与 PHP-FPM 通信。</li>
+            <li><strong>优点：</strong> 通常比 TCP 快一点点（不走网络协议栈），是 Linux/macOS 上的标准做法。</li>
+            <li><strong>缺点：</strong> 只能在同一台机器上工作；Nginx 进程需要有权限读写该 socket 文件；**必须找到并使用正确的
+                socket 文件路径**。
+            </li>
+            <li><strong>配置示例 (在 <code>location ~ \.php$</code> 块内，路径需替换):</strong>
+                <pre><code class="language-nginx">fastcgi_pass unix:/var/run/php/php8.1-fpm.sock; # Linux/Ubuntu 示例
+fastcgi_pass unix:/opt/homebrew/var/run/php-fpm.sock; # macOS M 示例</code></pre>
+            </li>
+            <li><strong>重要：</strong> 需确保 PHP-FPM 配置的 <code>listen</code> 指令指向这个 socket 文件，并检查 <code>listen.owner</code>,
+                <code>listen.group</code>, <code>listen.mode</code> 确保 Nginx 有权限访问。
+            </li>
+        </ul>
+
+        <h4 id="s5-3-3">何时使用哪种方式？</h4>
+        <ul>
+            <li><strong>Linux/macOS 本地开发：</strong> 推荐使用 Unix Socket，但**务必找对路径**。</li>
+            <li><strong>Windows 或 不确定 Socket 路径时：</strong> 使用 TCP/IP (<code>127.0.0.1:9000</code>) 通常更简单可靠。
+            </li>
+            <li><strong>Laragon：</strong> 通常默认使用 TCP 端口 <code>9000</code>，检查其配置文件确认。</li>
+            <li>性能差异在本地开发中几乎可忽略。</li>
+        </ul>
+
+
+        <h3 id="s5-4">其他 FastCGI 相关指令</h3>
+        <p>在 <code>location ~ \.php$</code> 块中，除了 <code>fastcgi_pass</code>，通常还需要包含以下指令：</p>
+        <ul>
+            <li><code>include fastcgi_params;</code> 或 <code>include fastcgi.conf;</code>: 引入标准的 FastCGI
+                环境变量定义文件（路径可能因系统而异）。这个文件包含了传递给 PHP 的大部分 <code>$_SERVER</code> 变量（如
+                <code>QUERY_STRING</code>, <code>REQUEST_METHOD</code> 等）。
+            </li>
+            <li><code>fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;</code>: **极其重要**！它告诉
+                PHP-FPM 要执行哪个 PHP 脚本文件的**完整路径**。<code>$document_root</code> 来自 <code>server</code> 块的
+                <code>root</code> 指令，<code><span class="math-inline">fastcgi\_script\_name</span></code> 是 Nginx
+                计算出的脚本路径（如
+                <code>/index\.php</code>）。
+            </li>
+            <li><code>fastcgi_index index.php;</code>: 如果请求 URI 是一个目录，并且传递给了 PHP-FPM，它会尝试执行该目录下的
+                <code>index.php</code> 文件。
+            </li>
+            <li><code>fastcgi_split_path_info ^(.+\.php)(/.+);</code> 和 <code>fastcgi_param PATH_INFO
+                $fastcgi_path_info;</code>: (可选，但常用) 用于支持像 <code>/index.php/some/path</code> 这样的 URL 结构，将
+                <code>/some/path</code> 作为 <code>PATH_INFO</code> 变量传递给 PHP，很多框架需要这个。
+            </li>
+            <li><code>try_files $uri =404;</code>: (通常放在 <code>location</code> 块开头) 在将请求传递给 PHP-FPM
+                之前，先检查对应的 <code>.php</code> 文件是否存在于文件系统中，如果不存在则直接返回 404 错误，增加安全性，避免不必要的
+                PHP-FPM 调用。
+            </li>
+        </ul>
+
+        <h3 id="s5-5">完整 PHP-FPM 配置示例 (在 <code>server</code> 块内)</h3>
+        <p>这是一个结合了上述指令的典型配置：</p>
+        <pre><code class="language-nginx">server {
+listen 80;
+server_name mywebsite.local;
+root /path/to/your/website/public; # ★★ 网站根目录 ★★
+
+index index.php index.html index.htm;
+
+location / {
+    # 对于很多框架，如果文件或目录不存在，则尝试将请求交给 index.php 处理
+    try_files $uri $uri/ /index.php?<span class="math-inline">query\_string;
+}
+# ★★ 处理 PHP 文件 ★★
+location ~ \.php {
+# 检查文件是否存在，不存在则 404
+try_files $uri =404;
+
+    # ★ 选择一种方式连接 PHP-FPM ★
+    # fastcgi_pass 127.0.0.1:9000;
+    fastcgi_pass unix:/var/run/php/php8.1-fpm.sock; # 示例路径
+
+    # 引入 FastCGI 参数 (★ 检查这个文件路径!)
+    include fastcgi_params;
+    # include /etc/nginx/fastcgi_params; # Linux 常见路径
+    # include /opt/homebrew/etc/nginx/fastcgi.conf; # macOS 可能路径
+
+    # ★ 设置 SCRIPT_FILENAME ★
+    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+
+    # (可选) 支持 PATH_INFO
+    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    fastcgi_param PATH_INFO <span class="math-inline">fastcgi\_path\_info;
+fastcgi_index index.php; # 意义相对有限，但通常会加上
+}
+# (可选) 禁止访问 .htaccess
+location ~ /\.ht {
+deny all;
+}
+# (可选) 静态文件缓存
+location ~* \.(css|js|ico|gif|jpe?g|png|svg|webp) {
+expires 7d;
+add_header Pragma public;
+add_header Cache-Control "public";
+}
+}
+                </span></span></code></pre>
+
+        <hr/>
+
+        <h2 id="s6">6. 配置虚拟主机 (Virtual Hosts / Vhosts)</h2>
+
+        <h3 id="s6-1">什么是虚拟主机？</h3>
+        <p>虚拟主机允许你在<strong>一台服务器</strong>（一个 Nginx 实例）上运行<strong>多个网站</strong>。每个网站可以有自己的域名
+            (<code>server_name</code>)、自己的网站文件目录 (<code>root</code>) 和自己的配置（包含在独立的 <code>server {
+                ... }</code> 块中）。</p>
+
+        <h3 id="s6-2">推荐的配置方式 (<code>sites-available</code> 和 <code>sites-enabled</code>)</h3>
+        <p>这种方式在 Linux (特别是 Debian/Ubuntu) 上非常普遍，也是一种很好的组织实践。</p>
+        <ol>
+            <li><strong><code>/etc/nginx/sites-available/</code> (或类似目录):</strong> 存放**所有**网站的配置文件，每个网站一个
+                <code>.conf</code> 文件（例如 <code>mywebsite.conf</code>）。这里的配置文件只是“可用”但未激活。
+            </li>
+            <li><strong><code>/etc/nginx/sites-enabled/</code> (或类似目录):</strong> 存放指向
+                <code>sites-available</code> 中你**想要激活**的配置文件的**符号链接** (symlink / 快捷方式)。
+            </li>
+            <li>Nginx 主配置文件 (<code>nginx.conf</code>) 通过 <code>include /etc/nginx/sites-enabled/*;</code>
+                加载所有启用的网站配置。
+            </li>
+        </ol>
+        <p class="note"><strong>好处:</strong> 清晰分离配置，易于通过创建/删除符号链接来启用/禁用网站。</p>
+        <p><strong>实践:</strong></p>
+        <ul>
+            <li><strong>Linux:</strong> 这是标准方式。使用 <code>sudo ln -s /etc/nginx/sites-available/site.conf
+                /etc/nginx/sites-enabled/</code> 创建链接，<code>sudo rm /etc/nginx/sites-enabled/site.conf</code> 删除链接。
+            </li>
+            <li><strong>macOS (Homebrew):</strong> 你可以仿照此方式自建目录，并在主 <code>nginx.conf</code> 中 include
+                <code>sites-enabled</code> 目录。
+            </li>
+            <li><strong>Windows (Laragon):</strong> Laragon 实际上已经采用了类似思路，你直接在 <code>laragon\etc\nginx\sites-enabled\</code>
+                目录下创建或修改 <code>.conf</code> 文件即可。
+            </li>
+        </ul>
+
+        <h3 id="s6-3">创建虚拟主机配置文件</h3>
+        <p>你需要为你的网站创建一个配置文件。以上面 PHP 配置的 <code>server</code> 块为例，将其内容保存到一个新文件中。</p>
+        <p><strong>文件名示例:</strong> <code>mywebsite.local.conf</code> (放在 <code>sites-available</code> 或 Laragon
+            的 <code>sites-enabled</code> 目录下)</p>
+        <pre><code class="language-nginx"># /etc/nginx/sites-available/mywebsite.local.conf (Linux 示例)
+server {
+listen 80;
+# listen [::]:80; # IPv6
+
+# ★★ 网站域名 (需在 hosts 文件配置: 127.0.0.1 mywebsite.local) ★★
+server_name mywebsite.local;
+
+# ★★ 网站根目录 (确保路径正确且 Nginx 有权限) ★★
+root /var/www/mywebsite/public; # Linux 示例
+# root /Users/your_user/Sites/mywebsite/public; # macOS 示例
+# root C:/laragon/www/mywebsite/public; # Windows/Laragon 示例
+
+# ★★ 默认首页文件 ★★
+index index.php index.html index.htm;
+
+# ★★ 独立日志文件 (确保 Nginx 有权限写入目录) ★★
+access_log /var/log/nginx/mywebsite.local.access.log;
+error_log /var/log/nginx/mywebsite.local.error.log;
+# Laragon 通常自动管理日志
+
+# ★★ 处理一般请求和静态文件 ★★
+location / {
+    try_files $uri $uri/ /index.php?<span class="math-inline">query\_string;
+}
+# ★★ 处理 PHP 文件 ★★
+location ~ \.php {
+try_files $uri =404;
+
+    # ★ 选择一种方式连接 PHP-FPM，并使用正确的地址/路径 ★
+    fastcgi_pass unix:/var/run/php/php8.1-fpm.sock; # 示例
+    # fastcgi_pass 127.0.0.1:9000;
+
+    # ★ 确保 include 路径正确 ★
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    # (可选) 支持 PATH_INFO
+    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    fastcgi_param PATH_INFO <span class="math-inline">fastcgi\_path\_info;
+fastcgi_index index.php;
+}
+# 其他可选配置...
+# location ~ /\.ht { deny all; }
+# location ~* \.(css|js|...) { expires 7d; ... }
+}
+                </span></span></code></pre>
+
+        <h3 id="s6-4">启用虚拟主机</h3>
+        <ol>
+            <li><strong>创建/修改配置文件:** 将上述内容保存到对应目录，**务必**替换域名、根目录、日志路径、`fastcgi_pass`
+                地址/路径、`include fastcgi_params` 路径为你的实际值。</strong></li>
+            <li>**(仅 Linux/macOS 自定义方式)** 创建符号链接到 `sites-enabled` 目录。</li>
+            <li><strong class="warning">测试配置语法:** 在应用更改前，**必须**运行测试命令！</strong>
+                <pre><code class="language-bash">sudo nginx -t # Linux
+nginx -t      # macOS/Windows (可能需在 Nginx 安装目录下)</code></pre>
+                如果看到 syntax is ok 和 test is successful 才继续。
+                <strong>重新加载 Nginx 配置 (平滑):**</strong>
+                <pre><code class="language-bash">sudo nginx -s reload # Linux / 或者 sudo systemctl reload nginx
+brew services reload nginx # macOS / 或者 nginx -s reload
+nginx -s reload # Windows (在 Nginx 安装目录下)</code></pre>
+                Laragon 通常点击 "Reload" 或重启 Nginx 服务。
+            </li>
+        </ol>
+
+        <hr/>
+
+        <h2 id="s7">7. 常用 Nginx 命令</h2>
+        <ul>
+            <li>测试配置语法: <code>sudo nginx -t</code> (Linux) / <code>nginx -t</code> (其他)</li>
+            <li>重新加载配置 (平滑): <code>sudo nginx -s reload</code> (Linux) / <code>nginx -s reload</code> (其他) /
+                <code>brew services reload nginx</code> (macOS)
+            </li>
+            <li>重启 Nginx 服务 (中断连接): <code>sudo systemctl restart nginx</code> (Linux) / <code>brew services
+                restart nginx</code> (macOS) / <code>nginx -s stop</code> 后 <code>nginx</code> (Windows)
+            </li>
+            <li>停止 Nginx 服务: <code>sudo systemctl stop nginx</code> / <code>brew services stop nginx</code> / <code>nginx
+                -s stop</code></li>
+            <li>启动 Nginx 服务: <code>sudo systemctl start nginx</code> / <code>brew services start nginx</code> /
+                <code>nginx</code></li>
+            <li>查看状态: <code>sudo systemctl status nginx</code> / <code>brew services list</code></li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s8">8. 常见问题与排错</h2>
+        <ul>
+            <li><strong>修改配置后网站没变化/502/403/404:</strong>
+                <ol>
+                    <li><strong>语法检查?</strong> (<code>nginx -t</code>)</li>
+                    <li><strong>重新加载/重启 Nginx?</strong> (<code>nginx -s reload</code> 或 restart)</li>
+                    <li><strong class="danger">检查 Nginx 错误日志?</strong> (<code>error_log</code> 指令指定的文件) -
+                        这是**最重要**的线索！
+                    </li>
+                    <li><strong>502 Bad Gateway:</strong> Nginx 连不上 PHP-FPM。PHP-FPM
+                        运行了吗？<code>fastcgi_pass</code> 地址/路径对吗？PHP-FPM 的 <code>listen</code> 配置匹配吗？
+                    </li>
+                    <li><strong>403 Forbidden:</strong> 权限问题。Nginx 用户 (如 <code>www-data</code>) 有权限读取 <code>root</code>
+                        目录及文件吗？目录权限通常 755，文件 644。<code>index</code> 指令对吗？
+                    </li>
+                    <li><strong>404 Not Found:</strong> 找不到文件。<code>root</code>
+                        路径对吗？文件名对吗？<code>try_files</code> 配置对吗 (尤其对框架)？
+                    </li>
+                    <li><strong>PHP-FPM 错误日志?</strong> (如果 Nginx 能连上 FPM，但 PHP 执行出错)</li>
+                    <li><strong>Socket 权限?</strong> (如果用 Unix Socket，Nginx 用户需要读写权限)</li>
+                    <li><strong>Hosts 文件配置?</strong> (如果用自定义本地域名)</li>
+                    <li><strong>端口冲突?</strong> (端口 80 是否被占用)</li>
+                </ol>
+            </li>
+            <li class="mt-2"><strong>"Permission denied" 错误:</strong>
+                <ul>
+                    <li>检查 Nginx 的 <code>user</code>。</li>
+                    <li>检查 <code>root</code> 目录及父目录权限。</li>
+                    <li>检查日志文件目录写入权限。</li>
+                    <li>检查 Unix Socket 文件权限。</li>
+                </ul>
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s9">9. 总结</h2>
+        <ul>
+            <li>Nginx 通过 <code>server</code> 块定义虚拟主机，通过 <code>location</code> 块处理不同请求。</li>
+            <li>使用 <code>root</code> 定义网站文件根目录，<code>index</code> 定义默认文件。</li>
+            <li>通过 <code>location ~ \.php$</code> 和 <code>fastcgi_pass</code> 将 PHP 请求转发给 PHP-FPM。</li>
+            <li><code>fastcgi_pass</code> 可以使用 TCP 或 Unix Socket 连接 PHP-FPM。</li>
+            <li><code>include fastcgi_params;</code> 和 <code>fastcgi_param SCRIPT_FILENAME ...;</code> 是 PHP 配置的关键。
+            </li>
+            <li>使用 <code>sites-available</code>/<code>sites-enabled</code> 结构管理多个网站配置。</li>
+            <li><code>nginx -t</code> 检查语法 和 查看 <code>error.log</code> 是排错的必备技能。</li>
+        </ul>
+        <p class="mt-6">对于 0 基础同学，重点是理解 <code>server</code> (<code>listen</code>, <code>server_name</code>,
+            <code>root</code>), 基础 <code>location /</code> (<code>try_files</code>), PHP 的 <code>location</code>
+            (<code>fastcgi_pass</code>, <code>include</code>, <code>fastcgi_param</code>),
+            以及如何测试和重载配置，并学会看错误日志。多练习，从简单到复杂，逐步掌握！</p>
+
+    </div>
+</div>
+</body>
+</html>

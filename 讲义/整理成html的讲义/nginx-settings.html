@@ -13,13 +13,41 @@
 
         h2[id], h3[id], h4[id] {
             scroll-margin-top: 2rem;
-            /* Offset for fixed headers if any, or just some space /
-           }
-           / Adding prose styles directly for better control over code blocks etc. /
-           .prose code::before, .prose code::after { content: none !important; }
-           .prose code { background-color: #f3f4f6; color: #374151; padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.875em; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-           .prose pre { background-color: #1f2937; color: #f3f4f6; padding: 1em; border-radius: 0.375rem; overflow-x: auto; font-size: 0.875em; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; margin-top: 1.6em; margin-bottom: 1.6em; }
-           .prose pre code { background-color: transparent; color: inherit; padding: 0; font-size: inherit; white-space: pre; / Preserve whitespace strictly */
+            /* Offset for fixed headers if any, or just some space */
+        }
+
+        /* Adding prose styles directly for better control over code blocks etc. */
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre; /* Preserve whitespace strictly */
         }
 
         .prose ul > li::marker {
@@ -397,96 +425,96 @@ pid /run/nginx.pid;
 
 events 块 - 配置连接处理
 events {
-# 每个 worker_process 允许的最大并发连接数。
-# 这个值影响 Nginx 能同时处理多少客户端连接
-# 对于本地开发，1024 足够了
-worker_connections 1024;
+    # 每个 worker_process 允许的最大并发连接数。
+    # 这个值影响 Nginx 能同时处理多少客户端连接
+    # 对于本地开发，1024 足够了
+    worker_connections 1024;
 }
 
 http 块 - 配置 HTTP 服务
 http {
-# 包含其他配置文件或 MIME 类型定义
-# 告诉 Nginx 文件扩展名对应的 Content-Type (如 .html -> text/html, .jpg -> image/jpeg)
-# 这个文件路径根据你的安装方式可能不同
-include       /etc/nginx/mime.types; # Linux/Ubuntu 常见路径
-# include       /opt/homebrew/etc/nginx/mime.types; # macOS M-Series
-# include       /usr/local/etc/nginx/mime.types; # macOS Intel
-# Laragon 通常已经配置好了
+    # 包含其他配置文件或 MIME 类型定义
+    # 告诉 Nginx 文件扩展名对应的 Content-Type (如 .html -> text/html, .jpg -> image/jpeg)
+    # 这个文件路径根据你的安装方式可能不同
+    include       /etc/nginx/mime.types; # Linux/Ubuntu 常见路径
+    # include       /opt/homebrew/etc/nginx/mime.types; # macOS M-Series
+    # include       /usr/local/etc/nginx/mime.types; # macOS Intel
+    # Laragon 通常已经配置好了
 
-# 如果 Nginx 无法从 mime.types 确定文件类型，默认使用这个类型（通常表示让浏览器下载）
-default_type  application/octet-stream;
+    # 如果 Nginx 无法从 mime.types 确定文件类型，默认使用这个类型（通常表示让浏览器下载）
+    default_type  application/octet-stream;
 
-# 日志格式定义 (可以自定义)
-# $remote_addr: 客户端 IP
-# $time_local: 服务器本地时间
-# $request: 请求行 (例如 "GET /index.html HTTP/1.1")
-# $status: 响应状态码 (例如 200, 404)
-# $body_bytes_sent: 发送给客户端的主体字节数
-# $http_referer: 请求来源页面的 URL
-# $http_user_agent: 客户端浏览器信息
-log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
-                  '$status $body_bytes_sent "$http_referer" '
-                  '"$http_user_agent" "$http_x_forwarded_for"';
+    # 日志格式定义 (可以自定义)
+    # $remote_addr: 客户端 IP
+    # $time_local: 服务器本地时间
+    # $request: 请求行 (例如 "GET /index.html HTTP/1.1")
+    # $status: 响应状态码 (例如 200, 404)
+    # $body_bytes_sent: 发送给客户端的主体字节数
+    # $http_referer: 请求来源页面的 URL
+    # $http_user_agent: 客户端浏览器信息
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
 
-# 访问日志文件的路径，使用上面定义的 'main' 格式
-access_log /var/log/nginx/access.log main;
-# macOS/Laragon 日志路径参考 error_log 的说明
+    # 访问日志文件的路径，使用上面定义的 'main' 格式
+    access_log /var/log/nginx/access.log main;
+    # macOS/Laragon 日志路径参考 error_log 的说明
 
-# --- 性能相关设置 (常见优化) ---
-# 允许 Nginx 使用系统调用高效地发送文件，减少内核和用户空间切换，通常保持开启
-sendfile        on;
+    # --- 性能相关设置 (常见优化) ---
+    # 允许 Nginx 使用系统调用高效地发送文件，减少内核和用户空间切换，通常保持开启
+    sendfile        on;
 
-# (通常与 sendfile 一起用) 在一个网络包里发送尽可能多的数据头信息，稍微提高效率
-tcp_nopush      on;
+    # (通常与 sendfile 一起用) 在一个网络包里发送尽可能多的数据头信息，稍微提高效率
+    tcp_nopush      on;
 
-# 客户端与服务器保持连接的超时时间（秒）
-# 允许客户端在一次连接中请求多个资源，减少建立连接的开销
-keepalive_timeout 65;
+    # 客户端与服务器保持连接的超时时间（秒）
+    # 允许客户端在一次连接中请求多个资源，减少建立连接的开销
+    keepalive_timeout 65;
 
-# --- Gzip 压缩 (可选，能显著减少传输数据量，加快加载速度) ---
-# gzip on; # 开启 Gzip
-# # 指定哪些类型的内容需要压缩
-# gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
-# # 其他 Gzip 选项可以进一步配置，如压缩级别 gzip_comp_level
+    # --- Gzip 压缩 (可选，能显著减少传输数据量，加快加载速度) ---
+    # gzip on; # 开启 Gzip
+    # # 指定哪些类型的内容需要压缩
+    # gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+    # # 其他 Gzip 选项可以进一步配置，如压缩级别 gzip_comp_level
 
-# --- 包含虚拟主机配置文件 (重要!) ---
-# 这是将不同网站的配置分开管理的关键
+    # --- 包含虚拟主机配置文件 (重要!) ---
+    # 这是将不同网站的配置分开管理的关键
 
-# Linux/Ubuntu 的标准方式:
-# 加载 /etc/nginx/conf.d 目录下所有以 .conf 结尾的文件
-include /etc/nginx/conf.d/*.conf;
-# 加载 /etc/nginx/sites-enabled/ 目录下所有文件 (推荐存放各网站配置的地方)
-include /etc/nginx/sites-enabled/*;
+    # Linux/Ubuntu 的标准方式:
+    # 加载 /etc/nginx/conf.d 目录下所有以 .conf 结尾的文件
+    include /etc/nginx/conf.d/*.conf;
+    # 加载 /etc/nginx/sites-enabled/ 目录下所有文件 (推荐存放各网站配置的地方)
+    include /etc/nginx/sites-enabled/*;
 
-# macOS Homebrew 可能默认包含类似 (检查你的 nginx.conf 确认):
-# include /usr/local/etc/nginx/servers/*;
-# 或
-# include /opt/homebrew/etc/nginx/servers/*;
+    # macOS Homebrew 可能默认包含类似 (检查你的 nginx.conf 确认):
+    # include /usr/local/etc/nginx/servers/*;
+    # 或
+    # include /opt/homebrew/etc/nginx/servers/*;
 
-# Windows/Laragon:
-# Laragon 的主 nginx.conf 通常已经有类似 include C:/laragon/etc/nginx/sites-enabled/*.conf; 的配置
-# 你只需要在 Laragon 指定的 sites-enabled 目录中添加或修改 .conf 文件
+    # Windows/Laragon:
+    # Laragon 的主 nginx.conf 通常已经有类似 include C:/laragon/etc/nginx/sites-enabled/*.conf; 的配置
+    # 你只需要在 Laragon 指定的 sites-enabled 目录中添加或修改 .conf 文件
 
-# --- 默认的 Server 块 ---
-# 如果没有在 sites-enabled 或 conf.d 中定义任何 server，
-# Nginx 可能需要一个默认的 server 来处理未匹配到任何 server_name 的请求
-# 这个默认 server 块可能直接写在 http 块里，或者在 include 的某个文件里（比如 sites-enabled/default）
-# 下面是一个非常基础的 server 块示例，通常你应该在单独的文件里配置它
+    # --- 默认的 Server 块 ---
+    # 如果没有在 sites-enabled 或 conf.d 中定义任何 server，
+    # Nginx 可能需要一个默认的 server 来处理未匹配到任何 server_name 的请求
+    # 这个默认 server 块可能直接写在 http 块里，或者在 include 的某个文件里（比如 sites-enabled/default）
+    # 下面是一个非常基础的 server 块示例，通常你应该在单独的文件里配置它
 
-# server {
-#     listen 80 default_server; # default_server 表示这是处理未匹配请求的默认服务器
-#     listen [::]:80 default_server; # IPv6
-#
-#     server_name _; # 下划线是一个特殊的、无效的主机名，常用于默认服务器
-#
-#     root /var/www/html; # 默认网站文件目录
-#
-#     index index.html index.htm;
-#
-#     location / {
-#         try_files $uri <span class="math-inline">uri/ \=404;
-#     }
-# }
+    # server {
+    #     listen 80 default_server; # default_server 表示这是处理未匹配请求的默认服务器
+    #     listen [::]:80 default_server; # IPv6
+    #
+    #     server_name _; # 下划线是一个特殊的、无效的主机名，常用于默认服务器
+    #
+    #     root /var/www/html; # 默认网站文件目录
+    #
+    #     index index.html index.htm;
+    #
+    #     location / {
+    #         try_files $uri <span class="math-inline">uri/ \=404;
+    #     }
+    # }
 } # http 块结束
             </span></code></pre>
         <p class="note">注意：上述是一个示例 <code>nginx.conf</code>
@@ -592,48 +620,48 @@ fastcgi_pass unix:/opt/homebrew/var/run/php-fpm.sock; # macOS M 示例</code></p
         <h3 id="s5-5">完整 PHP-FPM 配置示例 (在 <code>server</code> 块内)</h3>
         <p>这是一个结合了上述指令的典型配置：</p>
         <pre><code class="language-nginx">server {
-listen 80;
-server_name mywebsite.local;
-root /path/to/your/website/public; # ★★ 网站根目录 ★★
+    listen 80;
+    server_name mywebsite.local;
+    root /path/to/your/website/public; # ★★ 网站根目录 ★★
 
-index index.php index.html index.htm;
+    index index.php index.html index.htm;
 
-location / {
-    # 对于很多框架，如果文件或目录不存在，则尝试将请求交给 index.php 处理
-    try_files $uri $uri/ /index.php?<span class="math-inline">query\_string;
-}
-# ★★ 处理 PHP 文件 ★★
-location ~ \.php {
-# 检查文件是否存在，不存在则 404
-try_files $uri =404;
+    location / {
+        # 对于很多框架，如果文件或目录不存在，则尝试将请求交给 index.php 处理
+        try_files $uri $uri/ /index.php?<span class="math-inline">query\_string;
+    }
+    # ★★ 处理 PHP 文件 ★★
+    location ~ \.php {
+        # 检查文件是否存在，不存在则 404
+        try_files $uri =404;
 
-    # ★ 选择一种方式连接 PHP-FPM ★
-    # fastcgi_pass 127.0.0.1:9000;
-    fastcgi_pass unix:/var/run/php/php8.1-fpm.sock; # 示例路径
+        # ★ 选择一种方式连接 PHP-FPM ★
+        # fastcgi_pass 127.0.0.1:9000;
+        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock; # 示例路径
 
-    # 引入 FastCGI 参数 (★ 检查这个文件路径!)
-    include fastcgi_params;
-    # include /etc/nginx/fastcgi_params; # Linux 常见路径
-    # include /opt/homebrew/etc/nginx/fastcgi.conf; # macOS 可能路径
+        # 引入 FastCGI 参数 (★ 检查这个文件路径!)
+        include fastcgi_params;
+        # include /etc/nginx/fastcgi_params; # Linux 常见路径
+        # include /opt/homebrew/etc/nginx/fastcgi.conf; # macOS 可能路径
 
-    # ★ 设置 SCRIPT_FILENAME ★
-    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        # ★ 设置 SCRIPT_FILENAME ★
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
 
-    # (可选) 支持 PATH_INFO
-    fastcgi_split_path_info ^(.+\.php)(/.+)$;
-    fastcgi_param PATH_INFO <span class="math-inline">fastcgi\_path\_info;
-fastcgi_index index.php; # 意义相对有限，但通常会加上
-}
-# (可选) 禁止访问 .htaccess
-location ~ /\.ht {
-deny all;
-}
-# (可选) 静态文件缓存
-location ~* \.(css|js|ico|gif|jpe?g|png|svg|webp) {
-expires 7d;
-add_header Pragma public;
-add_header Cache-Control "public";
-}
+        # (可选) 支持 PATH_INFO
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_param PATH_INFO <span class="math-inline">fastcgi\_path\_info;
+        fastcgi_index index.php; # 意义相对有限，但通常会加上
+    }
+    # (可选) 禁止访问 .htaccess
+    location ~ /\.ht {
+        deny all;
+    }
+    # (可选) 静态文件缓存
+    location ~* \.(css|js|ico|gif|jpe?g|png|svg|webp) {
+        expires 7d;
+        add_header Pragma public;
+        add_header Cache-Control "public";
+    }
 }
                 </span></span></code></pre>
 
@@ -679,48 +707,48 @@ add_header Cache-Control "public";
             的 <code>sites-enabled</code> 目录下)</p>
         <pre><code class="language-nginx"># /etc/nginx/sites-available/mywebsite.local.conf (Linux 示例)
 server {
-listen 80;
-# listen [::]:80; # IPv6
+    listen 80;
+    # listen [::]:80; # IPv6
 
-# ★★ 网站域名 (需在 hosts 文件配置: 127.0.0.1 mywebsite.local) ★★
-server_name mywebsite.local;
+    # ★★ 网站域名 (需在 hosts 文件配置: 127.0.0.1 mywebsite.local) ★★
+    server_name mywebsite.local;
 
-# ★★ 网站根目录 (确保路径正确且 Nginx 有权限) ★★
-root /var/www/mywebsite/public; # Linux 示例
-# root /Users/your_user/Sites/mywebsite/public; # macOS 示例
-# root C:/laragon/www/mywebsite/public; # Windows/Laragon 示例
+    # ★★ 网站根目录 (确保路径正确且 Nginx 有权限) ★★
+    root /var/www/mywebsite/public; # Linux 示例
+    # root /Users/your_user/Sites/mywebsite/public; # macOS 示例
+    # root C:/laragon/www/mywebsite/public; # Windows/Laragon 示例
 
-# ★★ 默认首页文件 ★★
-index index.php index.html index.htm;
+    # ★★ 默认首页文件 ★★
+    index index.php index.html index.htm;
 
-# ★★ 独立日志文件 (确保 Nginx 有权限写入目录) ★★
-access_log /var/log/nginx/mywebsite.local.access.log;
-error_log /var/log/nginx/mywebsite.local.error.log;
-# Laragon 通常自动管理日志
+    # ★★ 独立日志文件 (确保 Nginx 有权限写入目录) ★★
+    access_log /var/log/nginx/mywebsite.local.access.log;
+    error_log /var/log/nginx/mywebsite.local.error.log;
+    # Laragon 通常自动管理日志
 
-# ★★ 处理一般请求和静态文件 ★★
-location / {
-    try_files $uri $uri/ /index.php?<span class="math-inline">query\_string;
-}
-# ★★ 处理 PHP 文件 ★★
-location ~ \.php {
-try_files $uri =404;
+    # ★★ 处理一般请求和静态文件 ★★
+    location / {
+        try_files $uri $uri/ /index.php?<span class="math-inline">query\_string;
+    }
+    # ★★ 处理 PHP 文件 ★★
+    location ~ \.php {
+        try_files $uri =404;
 
-    # ★ 选择一种方式连接 PHP-FPM，并使用正确的地址/路径 ★
-    fastcgi_pass unix:/var/run/php/php8.1-fpm.sock; # 示例
-    # fastcgi_pass 127.0.0.1:9000;
+        # ★ 选择一种方式连接 PHP-FPM，并使用正确的地址/路径 ★
+        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock; # 示例
+        # fastcgi_pass 127.0.0.1:9000;
 
-    # ★ 确保 include 路径正确 ★
-    include fastcgi_params;
-    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-    # (可选) 支持 PATH_INFO
-    fastcgi_split_path_info ^(.+\.php)(/.+)$;
-    fastcgi_param PATH_INFO <span class="math-inline">fastcgi\_path\_info;
-fastcgi_index index.php;
-}
-# 其他可选配置...
-# location ~ /\.ht { deny all; }
-# location ~* \.(css|js|...) { expires 7d; ... }
+        # ★ 确保 include 路径正确 ★
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        # (可选) 支持 PATH_INFO
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_param PATH_INFO <span class="math-inline">fastcgi\_path\_info;
+        fastcgi_index index.php;
+    }
+    # 其他可选配置...
+    # location ~ /\.ht { deny all; }
+    # location ~* \.(css|js|...) { expires 7d; ... }
 }
                 </span></span></code></pre>
 
@@ -729,7 +757,7 @@ fastcgi_index index.php;
             <li><strong>创建/修改配置文件:** 将上述内容保存到对应目录，**务必**替换域名、根目录、日志路径、`fastcgi_pass`
                 地址/路径、`include fastcgi_params` 路径为你的实际值。</strong></li>
             <li>**(仅 Linux/macOS 自定义方式)** 创建符号链接到 `sites-enabled` 目录。</li>
-            <li><strong class="warning">测试配置语法:** 在应用更改前，**必须**运行测试命令！</strong>
+            <li><p><strong class="warning">测试配置语法:** 在应用更改前，**必须**运行测试命令！</strong></p>
                 <pre><code class="language-bash">sudo nginx -t # Linux
 nginx -t      # macOS/Windows (可能需在 Nginx 安装目录下)</code></pre>
                 如果看到 syntax is ok 和 test is successful 才继续。
@@ -767,7 +795,7 @@ nginx -s reload # Windows (在 Nginx 安装目录下)</code></pre>
                 <ol>
                     <li><strong>语法检查?</strong> (<code>nginx -t</code>)</li>
                     <li><strong>重新加载/重启 Nginx?</strong> (<code>nginx -s reload</code> 或 restart)</li>
-                    <li><strong class="danger">检查 Nginx 错误日志?</strong> (<code>error_log</code> 指令指定的文件) -
+                    <li class="danger"><strong>检查 Nginx 错误日志?</strong> (<code>error_log</code> 指令指定的文件) -
                         这是**最重要**的线索！
                     </li>
                     <li><strong>502 Bad Gateway:</strong> Nginx 连不上 PHP-FPM。PHP-FPM

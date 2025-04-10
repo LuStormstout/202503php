@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP - Part 14: 命名空间与自动加载</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem; /* Offset for fixed headers if any, or just some space */
+        }
+
+        /* Adding prose styles directly for better control over code blocks etc. */
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        /* Enhanced <pre> style */
+        .prose pre {
+            background-color: #1f2937; /* Dark background */
+            color: #f3f4f6; /* Light text */
+            padding: 1em;
+            border-radius: 0.375rem; /* Rounded corners */
+            overflow-x: auto; /* Horizontal scroll on overflow */
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151; /* Subtle border */
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); /* Optional: subtle shadow */
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre; /* Preserve whitespace strictly */
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        /* Using <b> for bold now */
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        /* Keep strong style just in case */
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>PHP - Part 14: 命名空间与自动加载</h1>
+    <p class="text-gray-500 text-sm">这是 17 部分系列讲义的第十四部分。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="s14-1">14.1 命名空间 (Namespaces)</h2>
+
+        <h3 id="s14-1-1">问题：命名冲突 (Naming Collisions)</h3>
+        <p>
+            想象一下，随着你的项目越来越大，你开始使用自己编写的代码，同时也引入了其他人编写的库（比如一个用于发送邮件的库，一个用于处理图片的库）。这时，一个问题很可能会出现：不同的代码库可能定义了相同名称的类、函数或常量。</p>
+        <p>例如，你自己可能写了一个 <code>Logger</code> 类用来记录日志，而你引入的一个第三方框架里也有一个
+            <code>Logger</code> 类。当你尝试使用 <code>Logger</code> 时，PHP 就不知道你到底想用哪一个，这会导致**致命错误
+            (Fatal error: Cannot declare class Logger, because the name is already in use)**。</p>
+        <p>在 PHP 的早期版本中，开发者通常通过给类名、函数名加上很长的前缀来避免冲突（例如 <code>MyProject_Database_Connection</code>），但这使得代码非常冗长且不美观。
+        </p>
+
+        <h3 id="s14-1-2">解决方案：命名空间</h3>
+        <p>PHP 5.3 引入了**命名空间 (Namespace)**
+            来解决这个问题。命名空间提供了一种**封装**或**组织**代码元素（类、接口、函数、常量）的方式，将它们分组到一个特定的“空间”或“域”里。</p>
+        <ul>
+            <li><b>类比：</b> 就像电脑上的文件夹可以组织文件一样。你可以在 `Documents` 文件夹下有一个 `report.txt`，同时在
+                `Downloads` 文件夹下也有一个 `report.txt`，它们因为路径不同而不会冲突。命名空间就是 PHP 代码的“文件夹路径”。
+            </li>
+            <li><b>作用：</b>
+                <ol>
+                    <li><b>避免命名冲突：</b> 不同命名空间下的同名元素不会冲突。</li>
+                    <li><b>代码组织：</b> 可以将相关的类、函数等组织在同一个命名空间下，使代码结构更清晰。</li>
+                </ol>
+            </li>
+        </ul>
+
+        <h3 id="s14-1-3">定义命名空间: <code>namespace</code></h3>
+        <p>使用 <code>namespace</code> 关键字在 PHP 文件的<b>最顶部</b>（在除了 <code>declare(strict_types=1);</code>
+            之外的任何其他代码之前）声明该文件中的代码属于哪个命名空间。</p>
+        <p><b>语法：</b> <code>namespace VendorName\ProjectName\SubNamespace;</code></p>
+        <ul>
+            <li>命名空间的名称使用反斜杠 <code>\</code> 作为分隔符，类似于文件路径。</li>
+            <li>命名约定：通常采用 `供应商名称\项目名称\子模块名` 的结构（例如 <code>Monolog\Logger</code>, <code>Symfony\Component\HttpFoundation\Request</code>）。这通常与后面的
+                PSR-4 自动加载规范相关联，即命名空间结构会对应你的项目文件目录结构。
+            </li>
+            <li>一个文件最好只声明一个命名空间。</li>
+        </ul>
+        <p><b>示例 (文件: <code>src/MyProject/Utils/Logger.php</code>):</b></p>
+        <pre><code class="language-php">&lt;?php
+// 文件第一行声明命名空间 (declare 之后)
+declare(strict_types=1); // 可选的严格类型声明
+namespace MyProject\Utils; // 定义此文件内容属于 MyProject\Utils 命名空间
+
+// 在这个命名空间下定义类
+class Logger {
+// 注意这里类名只是 Logger，完整的名称是 MyProject\Utils\Logger
+public function log(string $message): void {
+// 注意缩进
+echo "[MyProject Log] " . $message . "\n";
+}
+}
+
+// 也可以在命名空间下定义函数
+function helperFunction(): void {
+echo "This is MyProject\Utils\helperFunction()\n";
+}
+
+// 也可以定义常量
+const LOG_LEVEL_INFO = 'INFO';
+
+?&gt;</code></pre>
+
+        <h3 id="s14-1-4">使用命名空间中的代码</h3>
+        <p>在一个文件中定义了命名空间后，如何在其他文件中使用这些代码呢？有几种方式：</p>
+
+        <h4>a) 完全限定名称 (Fully Qualified Name - FQN)</h4>
+        <p>使用包含完整命名空间路径的名称，<b>以反斜杠 <code>\</code> 开头</b>。</p>
+        <pre><code class="language-php">&lt;?php
+// 假设在另一个文件 main.php 中
+
+// 需要包含 Logger.php 文件 (后面会用自动加载替代)
+// require_once 'src/MyProject/Utils/Logger.php';
+// require_once 'src/MyProject/Utils/functions.php'; // 假设函数在另一个文件
+
+// 使用完全限定名称创建对象
+$logger = new \MyProject\Utils\Logger(); // 注意开头的
+
+$logger->log("程序启动");
+
+// 调用命名空间下的函数
+\MyProject\Utils\helperFunction();
+
+// 使用命名空间下的常量
+echo "日志级别: " . \MyProject\Utils\LOG_LEVEL_INFO . "\n";
+
+// 使用 PHP 内建的类或全局类，也需要加
+
+$date = new \DateTime(); // DateTime 类在全局命名空间
+echo $date->format('Y-m-d H:i:s') . "\n";
+
+// 调用全局函数
+\strlen("hello"); // 虽然通常可以省略全局函数前的 \，但加上更明确
+
+?&gt;</code></pre>
+        <p class="note">使用 FQN 非常明确，但如果需要多次使用，代码会显得冗长。</p>
+
+        <h4>b) 导入命名空间/类: <code>use</code> 关键字</h4>
+        <p>使用 <code>use</code> 关键字可以将其他命名空间中的类、接口、函数或常量导入到当前文件的作用域中，这样就可以使用较短的名称（别名）来引用它们。
+        </p>
+        <p><code>use</code> 语句通常放在文件顶部的 <code>namespace</code> 声明之后（或在没有 namespace 声明的文件顶部）。
+        </p>
+        <p><b>语法：</b></p>
+        <ul>
+            <li>导入类/接口/Trait: <code>use Namespace\ClassName;</code></li>
+            <li>导入并使用别名: <code>use Namespace\VeryLongClassName as ShortName;</code></li>
+            <li>导入函数: <code>use function Namespace\functionName;</code></li>
+            <li>导入常量: <code>use const Namespace\CONSTANT_NAME;</code></li>
+            <li>组合导入 (PHP 7+): <code>use Namespace\{ClassA, ClassB, function funcC, const CONST_D};</code></li>
+        </ul>
+        <p><b>示例 (文件: <code>main.php</code> 使用 <code>use</code>):</b></p>
+        <pre><code class="language-php">&lt;?php
+// 假设 main.php 自己也可能在一个命名空间下
+namespace App;
+
+// 使用 use 关键字导入需要的类、函数、常量
+// require_once ... (仍然需要加载文件，或使用自动加载)
+use MyProject\Utils\Logger; // 导入 Logger 类
+use MyProject\Utils\helperFunction; // 导入函数
+use const MyProject\Utils\LOG_LEVEL_INFO; // 导入常量
+use \DateTime; // 导入全局命名空间的 DateTime 类 (开头的 \ 可选)
+use MyProject\Utils\AnotherClass as UtilClass; // 导入并设置别名
+
+// 现在可以直接使用导入后的短名称
+$logger = new Logger(); // 不再需要 \MyProject\Utils\Logger
+$logger->log("使用 use 后的日志记录");
+
+helperFunction(); // 直接调用导入的函数
+
+echo "日志级别常量: " . LOG_LEVEL_INFO . "\n"; // 直接使用导入的常量
+
+$date = new DateTime(); // 使用导入的全局类
+echo $date->format('Y-m-d') . "\n";
+
+$util = new UtilClass(); // 使用别名
+
+// 调用全局函数，不需要导入，可以直接调用，或用
+
+strlen("test");
+// \strlen("test"); // 也可以
+
+?&gt;</code></pre>
+        <p class="note">使用 <code>use</code> 可以让代码更简洁易读。</p>
+
+        <h3 id="s14-1-5">全局命名空间 (Global Namespace)</h3>
+        <p>如果一个 PHP 文件没有声明任何 <code>namespace</code>，那么它里面的所有代码（类、函数、常量）都属于**全局命名空间**。
+        </p>
+        <p>当你**处于一个命名空间内部**时，要访问全局命名空间中的类、函数或常量，需要在其名称前加上一个反斜杠
+            <code>\</code>，例如 <code>\DateTime</code>, <code>\strlen()</code>, <code>\COUNT_NORMAL</code>。不过，对于全局函数和常量，PHP
+            通常会自动回退到全局空间查找，所以前面的 <code>\</code> 对它们来说往往可以省略。</p>
+
+        <h3 id="s14-1-6">子命名空间 (Sub-namespaces)</h3>
+        <p>命名空间可以像目录一样具有层级结构，例如 <code>namespace App\Http\Controllers;</code>。这有助于更好地组织大型项目。
+        </p>
+
+        <hr/>
+
+        <h2 id="s14-2">14.2 自动加载 (Autoloading)</h2>
+
+        <h3 id="s14-2-1">问题：繁琐的 <code>require_once</code></h3>
+        <p>随着项目增大，你会把不同的类、接口、Trait 分散到不同的文件中。在使用这些类之前，你需要确保对应的文件已经被加载。传统的方法是使用
+            <code>require_once 'path/to/ClassName.php';</code>。当项目包含几十上百个类时，在每个需要它们的文件开头写一大堆
+            <code>require_once</code> 语句会变得极其繁琐、容易出错，并且效率低下（可能加载了不需要的文件）。</p>
+
+        <h3 id="s14-2-2">解决方案：自动加载</h3>
+        <p>自动加载是一种机制：当你代码中第一次尝试使用某个尚未被定义的类（例如 <code>new MyClass()</code> 或 <code>MyClass::staticMethod()</code>）时，PHP
+            不会立即报错，而是会**自动调用**一个你预先注册好的**自动加载函数 (Autoloader Function)**。</p>
+        <p>这个自动加载函数的任务是：根据 PHP 传给它的类名（包含命名空间），按照一定的规则（通常是命名空间到文件路径的映射规则），**找到并加载**包含该类定义的
+            <code>.php</code> 文件。</p>
+
+        <h3 id="s14-2-3">如何实现自动加载</h3>
+        <ol>
+            <li><b>定义自动加载函数：</b> 这个函数接收一个参数，即需要加载的类名（包含命名空间）。函数内部需要根据类名推算出对应的文件路径。
+            </li>
+            <li><b>注册自动加载函数：</b> 使用 PHP 的 <code>spl_autoload_register()</code> 函数将你定义的加载函数注册到
+                PHP 的自动加载器队列中。你可以注册多个加载函数。
+            </li>
+        </ol>
+
+        <h3 id="s14-2-4">PSR-4 自动加载规范</h3>
+        <p>为了让自动加载具有统一、可预测的标准，PHP 社区制定了 PSR (PHP Standards Recommendations) 系列规范，其中
+            **PSR-4** 是目前最广泛使用的自动加载规范。</p>
+        <p><b>PSR-4 的核心思想：</b></p>
+        <ul>
+            <li>将**命名空间前缀**映射到一个或多个**基础目录**。</li>
+            <li>当需要加载类 <code>VendorName\Namespace\SubNamespace\ClassName</code> 时：
+                <ol>
+                    <li>找到与类名中最长匹配的命名空间前缀（例如 <code>VendorName\Namespace\</code> 映射到
+                        <code>src/</code> 目录）。
+                    </li>
+                    <li>移除类名中的命名空间前缀（剩下 <code>SubNamespace\ClassName</code>）。</li>
+                    <li>将剩余部分中的命名空间分隔符 <code>\</code> 替换为目录分隔符 <code>/</code>（变成 <code>SubNamespace/ClassName</code>）。
+                    </li>
+                    <li>在末尾加上 <code>.php</code> 文件扩展名（变成 <code>SubNamespace/ClassName.php</code>）。</li>
+                    <li>将这个相对路径附加到对应的基础目录后面，得到最终的文件路径（例如 <code>src/SubNamespace/ClassName.php</code>）。
+                    </li>
+                    <li>加载这个文件。</li>
+                </ol>
+            </li>
+        </ul>
+        <p class="note">这个规范使得只要你遵循 "命名空间结构 ≈ 目录结构" 的约定，自动加载就能精确地找到文件。</p>
+
+        <h3 id="s14-2-5">Composer 的自动加载 (推荐的标准方式！)</h3>
+        <p>手动编写和维护符合 PSR-4 规范的自动加载器仍然有些工作量。幸运的是，现代 PHP 开发几乎离不开 **Composer**
+            这个依赖管理工具。Composer 不仅帮你管理项目依赖的第三方库，还提供了一个**极其强大且高度优化**的自动加载器。</p>
+        <p><b>使用 Composer 自动加载：</b></p>
+        <ol>
+            <li><b>安装 Composer：</b> 如果你还没有安装，需要先根据 <a
+                    href="[https://getcomposer.org/](https://getcomposer.org/)" target="_blank">Composer 官网</a>
+                的说明进行安装。
+            </li>
+            <li><b>配置 <code>composer.json</code>：</b> 在你的项目根目录下创建一个 <code>composer.json</code>
+                文件。在这个文件中，你可以通过 <code>autoload</code> (针对你自己的代码) 和 <code>autoload-dev</code>
+                (针对测试代码等) 部分来配置 PSR-4 的命名空间到目录的映射。
+                <pre><code class="language-json">{
+"name": "your-vendor/your-project",
+"description": "A sample project.",
+"autoload": {
+    "psr-4": {
+        "MyProject\\": "src/",  // 将 MyProject 命名空间映射到 src/ 目录
+        "AnotherVendor\\Library\\": "libs/another-vendor/src/" // 映射其他命名空间
+    }
+},
+"require": {
+    // 在这里列出项目依赖的第三方库，例如：
+    // "monolog/monolog": "^2.0"
+}
+}</code></pre>
+            </li>
+            <li><b>运行 <code>composer install</code> 或 <code>composer dump-autoload</code>：</b> 在项目根目录下运行
+                <code>composer install</code> (如果是第一次或添加了新依赖) 或 <code>composer dump-autoload -o</code>
+                (如果只是修改了 autoload 配置，<code>-o</code> 表示优化)。Composer 会读取 <code>composer.json</code>，下载依赖（如果有），并生成
+                <code>vendor/autoload.php</code> 文件以及其他优化过的加载器文件。
+            </li>
+            <li><b>在你的应用入口文件包含 <code>vendor/autoload.php</code>：</b> 在你的项目启动文件（例如
+                <code>index.php</code> 或命令行脚本的开头）中，只需要加入这一行代码：
+                <pre><code class="language-php">&lt;?php
+// index.php (或其他入口文件)
+
+// 包含 Composer 生成的自动加载文件
+require_once DIR . '/vendor/autoload.php';
+
+// 现在你可以直接使用在 composer.json 中配置的命名空间下的类
+// 以及所有通过 Composer 安装的第三方库中的类，PHP 会自动加载它们！
+use MyProject\Utils\Logger;
+use Monolog\Logger as MonologLogger; // 假设你 install 了 monolog
+
+$myLogger = new Logger();
+$myLogger->log("Composer 自动加载成功！");
+
+$monolog = new MonologLogger('main');
+// ...
+
+?&gt;</code></pre>
+            </li>
+        </ol>
+        <p class="danger"><b>强烈推荐：</b> 在所有现代 PHP 项目中，都应该使用 Composer 来管理依赖和实现自动加载。这是行业标准，极大地简化了开发流程。
+        </p>
+
+        <h3 id="s14-2-6">手动实现自动加载 (仅供理解原理)</h3>
+        <p>虽然不推荐在实际项目中手动编写，但了解其基本原理有助于理解 Composer 在做什么。</p>
+        <pre><code class="language-php">&lt;?php
+/**
+
+一个非常简单的 PSR-4 自动加载函数示例
+
+(实际应用中 Composer 的实现要复杂和高效得多)
+
+@param string $className 完整的类名（包含命名空间）
+*/
+function mySimpleAutoloader(string $className): void
+{
+// 定义命名空间前缀到基础目录的映射
+// 注意：路径末尾需要目录分隔符 /
+$prefixes = [
+'MyProject\' => DIR . '/src/', // 'MyProject' 命名空间映射到当前目录下的 src/
+'AnotherVendor\Library\' => DIR . '/libs/another-vendor/src/',
+];
+
+// 遍历映射规则
+foreach ($prefixes as $prefix => $baseDir) {
+// 检查类名是否以该前缀开头
+$len = strlen($prefix);
+if (strncmp($prefix, $className, $len) === 0) {
+// 获取类名的剩余部分 (相对路径)
+$relativeClass = substr($className, $len);
+
+     // 将命名空间分隔符 \ 替换为目录分隔符 /，并添加 .php 后缀
+     // 注意：需要考虑操作系统的目录分隔符，DIRECTORY_SEPARATOR 常量更通用
+     $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
+
+     // 如果文件存在，则加载它
+     if (file_exists($file)) {
+         // require $file; // 使用 require 通常更好，文件不存在会报错
+         require_once $file; // 更安全，避免重复加载
+         return; // 找到并加载后即可返回
+     }
+ }
+}
+}
+
+// 注册自动加载函数
+spl_autoload_register('mySimpleAutoloader');
+
+// --- 现在可以尝试使用类了 ---
+// (假设 src/MyProject/Utils/Calculator.php 文件存在并定义了该类)
+use MyProject\Utils\Calculator;
+
+$calc = new Calculator();
+echo $calc->add(5, 3); // PHP 会自动调用 mySimpleAutoloader 来加载 Calculator 类文件
+
+?&gt;</code></pre>
+        <p class="warning">再次强调，上面只是原理演示。实际项目请务必使用 Composer。</p>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 14 部分结束 ---</p>
+
+</div>
+</body>
+</html>

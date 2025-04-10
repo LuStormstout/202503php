@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP - Part 15: 错误与异常处理详解</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+        }
+
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre;
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>PHP - Part 15: 错误与异常处理详解</h1>
+    <p class="text-gray-500 text-sm">这是 17 部分系列讲义的第十五部分。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="s15-intro">引言：为何要处理错误？</h2>
+        <p>
+            编写完美的、没有任何错误的代码几乎是不可能的。程序在运行时可能会遇到各种问题：用户输入了无效数据、连接数据库失败、文件不存在、计算结果溢出、代码逻辑错误等等。</p>
+        <p>良好的错误和异常处理机制对于构建健壮、可靠的应用程序至关重要：</p>
+        <ul>
+            <li><b>用户体验：</b> 避免向最终用户显示混乱的 PHP 错误信息，而是提供友好的提示或引导。</li>
+            <li><b>调试与维护：</b> 在开发过程中快速定位问题所在；在线上环境中记录详细的错误信息，方便排查和修复。</li>
+            <li><b>程序健壮性：</b> 优雅地处理预期或意外的错误情况，防止程序完全崩溃，尽可能恢复或给出明确反馈。</li>
+            <li><b>安全性：</b> 避免因错误信息泄露敏感数据（如文件路径、数据库凭证）。</li>
+        </ul>
+        <p>PHP 提供了多种处理错误和异常情况的方式，从传统的错误报告到现代的异常处理机制。</p>
+
+        <hr/>
+
+        <h2 id="s15-1">15.1 PHP 错误类型与报告级别回顾</h2>
+        <p>PHP 中的错误大致可以分为几类：</p>
+        <ul>
+            <li><b>Notice (通知):</b> 最轻微的级别，通常表示代码可能存在问题，但不影响脚本继续执行（例如访问未定义的变量或数组索引）。
+            </li>
+            <li><b>Warning (警告):</b> 表示运行时发生的非致命错误，脚本通常会继续执行，但可能结果不正确（例如
+                <code>include</code> 一个不存在的文件）。
+            </li>
+            <li><b>Fatal Error (致命错误):</b>
+                严重的错误，会导致脚本立即终止执行（例如调用未定义的函数、<code>require</code> 不存在的文件、内存耗尽、类型错误
+                - PHP 7+ 中很多致命错误转为 Error 异常）。
+            </li>
+            <li><b>Parse Error (解析错误 / 语法错误):</b> 代码不符合 PHP 语法规范，在脚本开始执行前就会被检测到，导致脚本无法运行（例如缺少分号、括号不匹配）。
+            </li>
+            <li><b>Deprecated (弃用警告):</b> (PHP 5+/7+/8+) 表示使用了未来版本 PHP 中可能被移除的功能或写法，提示开发者更新代码。
+            </li>
+            <li><b>Strict Standards (严格标准警告):</b> (PHP 5) 提示使用了不符合最佳实践或未来可能不兼容的写法（在 PHP 7
+                中大多并入其他错误级别或移除）。
+            </li>
+            <li><b>User Errors/Warnings/Notices:</b> 可以通过 <code>trigger_error()</code> 函数手动触发的错误，用于自定义错误报告。
+            </li>
+        </ul>
+        <p>我们在 Part 2 (PHP 配置) 中讨论过 <code>php.ini</code> 中的相关指令：</p>
+        <ul>
+            <li><code>error_reporting</code>: 控制报告哪些级别的错误（常量如 <code>E_ALL</code>, <code>E_WARNING</code>,
+                <code>E_NOTICE</code> 等，使用位运算符组合）。
+            </li>
+            <li><code>display_errors</code>: 是否将错误信息直接输出到浏览器（开发环境 <code>On</code>，生产环境<b>必须
+                <code>Off</code></b>）。
+            </li>
+            <li><code>log_errors</code>: 是否将错误信息记录到日志文件（开发和生产环境都<b>推荐 <code>On</code></b>）。</li>
+            <li><code>error_log</code>: 指定错误日志文件的路径。</li>
+        </ul>
+        <p class="note">正确配置这些指令是错误处理的基础。</p>
+
+        <hr/>
+
+        <h2 id="s15-2">15.2 错误抑制符 <code>@</code> (不推荐使用)</h2>
+        <p>在表达式（通常是函数调用）前加上 <code>@</code> 符号，可以**抑制**该表达式可能产生的**非致命**错误信息（Notices,
+            Warnings, Deprecated 等）。</p>
+        <pre><code class="language-php">&lt;?php
+// 尝试打开一个不存在的文件，通常会产生 Warning
+$handle = @fopen("non_existent_file.txt", "r");
+
+if ($handle === false) {
+// Warning 被抑制了，但我们仍然可以通过检查返回值来判断操作是否失败
+echo "文件打开失败 (错误被抑制)。\n";
+}
+
+// 访问未定义的数组键，通常会产生 Notice
+$array = [];
+$value = @$array['key']; // Notice 被抑制了，$value 会被赋予 null
+var_dump($value); // 输出: NULL
+?&gt;</code></pre>
+        <p class="danger"><b>为什么强烈不推荐使用 <code>@</code>？</b></p>
+        <ul>
+            <li><b>隐藏问题：</b> 它只是让错误信息不显示，但错误本身可能仍然发生了，这会掩盖代码中的潜在问题，使得调试极其困难。
+            </li>
+            <li><b>性能影响：</b> 使用 <code>@</code> 实际上比不使用它要慢，因为 PHP 内部仍然需要做额外的工作来处理错误的抑制。
+            </li>
+            <li><b>有更好的替代方案：</b> 对于可能出错的操作，应该通过检查函数返回值、使用 <code>try...catch</code>（对于会抛出异常的操作）或者调整错误报告级别来处理，而不是简单地抑制错误。
+            </li>
+        </ul>
+        <p><b>总之：避免使用 <code>@</code> 错误抑制符。</b></p>
+
+        <hr/>
+
+        <h2 id="s15-3">15.3 异常处理 (Exception Handling - 现代方式)</h2>
+        <p>从 PHP 5
+            开始，引入了异常处理机制。这是一种更结构化、更健壮、更灵活地处理程序运行时错误和“异常”情况（不一定是致命错误，但可能中断正常流程）的方式。</p>
+
+        <h3 id="s15-3-1">核心概念</h3>
+        <ul>
+            <li><b>异常 (Exception):</b> 当程序遇到无法正常处理的情况时，可以创建一个特殊的“异常对象”来表示这个情况。</li>
+            <li><b>抛出 (Throw):</b> 使用 <code>throw</code> 关键字将这个异常对象“抛”出去，中断当前的正常执行流程。</li>
+            <li><b>捕获 (Catch):</b> 使用 <code>try...catch</code> 语句块来“捕获”被抛出的异常对象，并执行相应的处理代码。
+            </li>
+            <li><b>未捕获异常 (Uncaught Exception):</b> 如果一个异常被抛出后，没有被任何 <code>catch</code>
+                块捕获，会导致一个致命错误，并终止脚本执行（除非设置了全局异常处理器）。
+            </li>
+        </ul>
+
+        <h3 id="s15-3-2"><code>Throwable</code>, <code>Exception</code>, <code>Error</code> 类 (PHP 7+)</h3>
+        <ul>
+            <li><b><code>Throwable</code> (接口):</b> PHP 7 引入，作为所有可以被 <code>throw</code>
+                的对象的基础接口。<code>Exception</code> 和 <code>Error</code> 都实现了它。你的 <code>catch</code> 块可以捕获
+                <code>Throwable</code> 来处理所有类型的可抛出对象。
+            </li>
+            <li><b><code>Exception</code> (类):</b> 这是**用户级**异常的基类。你应该通过继承 <code>Exception</code>
+                来创建你自己的应用程序特定的异常类。它代表了程序逻辑中可以预见并可能需要处理的异常情况（如无效输入、找不到资源等）。
+            </li>
+            <li><b><code>Error</code> (类):</b> PHP 7 引入，用于表示**内部 PHP 错误**，这些错误在旧版本中通常是致命错误（Fatal
+                Error）。例如：调用未定义的函数、参数类型错误 (Type Error)、解析错误 (Parse Error - 有时可以被捕获) 等。<b>通常不建议</b>在你的代码中直接
+                <code>catch (Error $e)</code>，除非你是在做顶层的错误日志记录或框架级的错误处理。让这些内部错误按其默认方式（通常是致命错误）报告出来，表明代码本身或环境有问题需要修复。
+            </li>
+        </ul>
+        <p class="note">在 PHP 5 中，只有继承自 <code>Exception</code> 的对象可以被 <code>throw</code> 和
+            <code>catch</code>。</p>
+
+        <h3 id="s15-3-3"><code>try...catch</code> 语句块</h3>
+        <p>这是捕获和处理异常的核心结构。</p>
+        <p><b>语法：</b></p>
+        <pre><code class="language-php">try {
+// 尝试执行的代码块，这里面的代码可能会抛出异常
+// ...
+} catch (ExceptionType1 $e1) {
+// 如果 try 块中抛出了 ExceptionType1 类型 (或其子类型) 的异常，
+// 则执行这里的代码。$e1 变量包含了异常对象。
+// ... 处理 $e1 ...
+} catch (ExceptionType2 $e2) {
+// 如果抛出的是 ExceptionType2 类型的异常，则执行这里
+// ... 处理 $e2 ...
+} catch (Throwable $e) { // 可以捕获所有 Exception 和 Error (PHP 7+)
+// 作为最后的保障，捕获所有其他未被前面 catch 块捕获的可抛出对象
+// ... 处理 $e ...
+} finally { // finally 块是可选的 (PHP 5.5+)
+// 无论 try 块是否抛出异常，也无论 catch 块是否执行，
+// finally 块中的代码 总是 会在最后执行。
+// 通常用于释放资源（如关闭文件句柄）。
+}</code></pre>
+        <p><b>执行流程：</b></p>
+        <ol>
+            <li>执行 <code>try</code> 块中的代码。</li>
+            <li>如果在 <code>try</code> 块中<b>没有</b>异常抛出，则跳过所有 <code>catch</code> 块，直接执行
+                <code>finally</code> 块（如果存在），然后继续执行 <code>try...catch...finally</code> 之后的代码。
+            </li>
+            <li>如果在 <code>try</code> 块中<b>有</b>异常抛出：
+                <ul>
+                    <li>PHP 会立即停止执行 <code>try</code> 块中发生异常那一行及之后的代码。</li>
+                    <li>PHP 会按顺序检查 <code>catch</code> 块，寻找第一个类型匹配（抛出的异常对象是 <code>catch</code>
+                        中声明的类型或其子类型）的 <code>catch</code> 块。
+                    </li>
+                    <li>一旦找到匹配的 <code>catch</code> 块，就执行该 <code>catch</code> 块中的代码。异常对象会赋值给
+                        <code>catch</code> 声明的变量（如 <code>$e1</code>）。<b>后续的其他 <code>catch</code>
+                            块会被忽略</b>。
+                    </li>
+                    <li>如果没有找到匹配的 <code>catch</code> 块，异常会继续向上传播（“冒泡”），直到被更高层的 <code>try...catch</code>
+                        捕获，或者成为未捕获异常。
+                    </li>
+                </ul>
+            </li>
+            <li>无论是否有异常被抛出或捕获，如果存在 <code>finally</code> 块，它总会在最后执行（在 <code>try</code> 或
+                <code>catch</code> 块执行完毕之后，但在整个结构结束之前）。
+            </li>
+        </ol>
+
+        <p><b>异常对象 (<code>$e</code>) 的常用方法：</b></p>
+        <ul>
+            <li><code>getMessage(): string</code>: 获取异常的描述信息。</li>
+            <li><code>getCode(): int</code>: 获取异常代码（通常是自定义的数字代码）。</li>
+            <li><code>getFile(): string</code>: 获取异常被抛出的文件名。</li>
+            <li><code>getLine(): int</code>: 获取异常被抛出的行号。</li>
+            <li><code>getTrace(): array</code>: 获取异常发生时的函数调用栈信息（一个数组）。</li>
+            <li><code>getTraceAsString(): string</code>: 获取格式化为字符串的调用栈信息。</li>
+            <li><code>getPrevious(): ?Throwable</code>: 获取导致当前异常的上一个异常（用于异常链）。</li>
+        </ul>
+
+        <p><b>示例：</b></p>
+        <pre><code class="language-php">&lt;?php
+// 引入 Part 9 的 PDO 示例（简化）
+class Database {
+private $pdo;
+public function __construct() {
+$dsn = "mysql:host=localhost;dbname=non_existent_db;charset=utf8mb4"; // 故意用一个不存在的库
+$options = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];
+try {
+$this->pdo = new PDO($dsn, 'user', 'pass', $options);
+} catch (PDOException $e) {
+// 在构造函数中捕获连接错误，并重新抛出一个更通用的应用层异常
+throw new RuntimeException("数据库连接失败，请稍后再试。", 0, $e); // 第三个参数是 $previous exception
+}
+}
+public function query(string $sql) { /* ... 可能抛出 PDOException ... */ }
+}
+
+// ---- 使用 try...catch 处理 ----
+$db = null; // 初始化为 null
+try {
+echo "尝试连接数据库...\n";
+$db = new Database(); // 这里可能抛出 RuntimeException
+
+echo "尝试查询...\n";
+// $results = $db->query("SELECT * FROM users"); // 这里可能抛出 PDOException
+
+echo "操作成功！\n"; // 如果上面没有异常，会执行到这里
+} catch (InvalidArgumentException $e) { // 捕获特定类型的参数错误 (这里不会触发)
+echo "捕获到非法参数异常: " . $e->getMessage() . "\n";
+
+} catch (RuntimeException $e) { // 捕获数据库连接失败等运行时错误
+echo "捕获到运行时异常: " . $e->getMessage() . "\n";
+// 可以检查是否有前一个异常
+if ($previous = $e->getPrevious()) {
+echo "  原始错误: " . $previous->getMessage() . "\n";
+}
+// 记录详细日志
+// error_log("DB Error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
+
+} catch (Throwable $e) { // 最后捕获所有其他未被捕获的 Throwable (PHP 7+)
+echo "捕获到未知错误/异常: " . $e->getMessage() . "\n";
+// error_log(...);
+
+} finally {
+// 无论成功还是失败，这个块总会执行
+echo "Finally 块被执行。\n";
+// 可以在这里做一些清理工作，比如关闭 $db 连接（虽然 PDO 通常会自动处理）
+// if ($db !== null) { /* $db->close(); or $db = null; */ }
+}
+
+echo "脚本继续执行 (如果异常被捕获)。\n";
+
+/*
+可能的输出 (因为数据库连接会失败):
+尝试连接数据库...
+连接到 mysql:host=localhost;dbname=non_existent_db;charset=utf8mb4...
+捕获到运行时异常: 数据库连接失败，请稍后再试。
+原始错误: SQLSTATE[HY000] [1049] Unknown database 'non_existent_db'
+Finally 块被执行。
+脚本继续执行 (如果异常被捕获)。
+*/
+?&gt;</code></pre>
+
+        <h3 id="s15-3-4">抛出异常: <code>throw</code></h3>
+        <p>你可以使用 <code>throw</code> 关键字在代码中手动抛出一个异常对象。通常在你检测到一个错误条件，并且当前函数无法处理时使用。
+        </p>
+        <pre><code class="language-php">&lt;?php
+function divide($a, $b) {
+if ($b == 0) {
+// 检测到错误条件（除数为零），抛出异常
+throw new InvalidArgumentException("除数不能为零！");
+}
+if (!is_numeric($a) || !is_numeric($b)) {
+throw new InvalidArgumentException("参数必须是数字！");
+}
+return $a / $b;
+}
+
+try {
+echo divide(10, 2) . "\n"; // 输出: 5
+echo divide(10, 0) . "\n"; // 这会抛出异常
+echo "这句不会执行\n";
+} catch (InvalidArgumentException $e) {
+echo "计算错误: " . $e->getMessage() . "\n"; // 输出: 计算错误: 除数不能为零！
+}
+?&gt;</code></pre>
+
+        <h3 id="s15-3-5">内置 SPL 异常</h3>
+        <p>PHP 的标准库 (Standard PHP Library, SPL) 提供了一系列预定义的异常类，继承自 <code>Exception</code>，用于表示更具体的错误类型。例如：
+        </p>
+        <ul>
+            <li><code>LogicException</code>: 表示代码逻辑中的错误（通常是 Bug）。
+                <ul>
+                    <li><code>InvalidArgumentException</code>: 传递给函数的参数无效。</li>
+                    <li><code>LengthException</code>: 长度无效。</li>
+                    <li><code>OutOfRangeException</code>: 索引超出有效范围。</li>
+                </ul>
+            </li>
+            <li><code>RuntimeException</code>: 表示只有在运行时才能发现的错误。
+                <ul>
+                    <li><code>OverflowException</code>: 向已满的容器添加元素。</li>
+                    <li><code>UnderflowException</code>: 对空容器执行无效操作。</li>
+                    <li><code>UnexpectedValueException</code>: 值不符合预期。</li>
+                </ul>
+            </li>
+        </ul>
+        <p class="note">优先使用这些具体的 SPL 异常或创建自己的特定异常类，而不是总是抛出通用的 <code>Exception</code>，这样可以让
+            <code>catch</code> 块更精确地处理不同类型的错误。</p>
+
+        <h3 id="s15-3-6">创建自定义异常类</h3>
+        <p>通过继承 <code>Exception</code> 或其子类，可以创建自己的异常类型，使错误处理更具语义化。</p>
+        <pre><code class="language-php">&lt;?php
+// 自定义异常类
+class UserNotFoundException extends Exception {
+// 可以添加自定义属性或方法
+protected $userId;
+
+public function __construct(int $userId, string $message = "", int $code = 0, ?Throwable $previous = null) {
+    $this->userId = $userId;
+    // 如果没有提供 message，可以生成一个默认的
+    if (empty($message)) {
+        $message = "ID 为 " . $userId . " 的用户未找到。";
+    }
+    // 调用父类的构造函数
+    parent::__construct($message, $code, $previous);
+}
+
+public function getUserId(): int {
+    return $this->userId;
+}
+}
+
+function findUser(int $id) {
+// ... 模拟查找 ...
+if ($id === 404) { // 假设 ID 404 未找到
+throw new UserNotFoundException($id); // 抛出自定义异常
+}
+return ['id' => $id, 'name' => 'Found User'];
+}
+
+try {
+$user = findUser(404);
+} catch (UserNotFoundException $e) { // 只捕获 UserNotFoundException
+echo "捕获到错误: " . $e->getMessage() . " (用户 ID: " . $e->getUserId() . ")";
+} catch (Exception $e) { // 捕获其他通用异常
+echo "捕获到其他错误: " . $e->getMessage();
+}
+?&gt;</code></pre>
+
+        <hr/>
+
+        <h2 id="s15-4">15.4 结合错误与异常：错误处理函数</h2>
+        <p>PHP 提供了一些函数，可以将传统的 PHP 错误（Notices, Warnings 等）与异常处理机制结合起来。</p>
+
+        <ul>
+            <li><b><code>set_error_handler(callable $callback, int $error_levels = E_ALL): ?callable</code></b>
+                <ul>
+                    <li>注册一个用户自定义的函数 <code>$callback</code> 来处理脚本中发生的、符合
+                        <code>$error_levels</code>（错误级别掩码）的**非致命**错误。
+                    </li>
+                    <li>一旦设置了错误处理器，PHP 内部的错误处理就会被绕过（错误不会显示或记录到默认日志，除非你在回调函数里自己做），直到调用
+                        <code>restore_error_handler()</code> 或脚本结束。
+                    </li>
+                    <li>回调函数通常接收 5 个参数：<code>int $errno</code> (错误级别), <code>string $errstr</code>
+                        (错误消息), <code>string $errfile</code> (文件名), <code>int $errline</code> (行号), <code>array
+                            $errcontext</code> (错误发生时的符号表 - 不常用)。
+                    </li>
+                    <li><b>常见用途：将 PHP 错误转换为异常抛出</b>，这样就可以用 <code>try...catch</code> 来统一处理所有问题。
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+// 定义一个错误处理函数，将错误转换为 ErrorException 抛出
+function errorsToExceptions(int $level, string $message, string $file, int $line): bool
+{
+// 如果错误报告已关闭或使用了 @ 抑制符，则不抛出
+if (!(error_reporting() & $level)) {
+return false; // 不执行 PHP 内部错误处理
+}
+// 抛出 ErrorException
+throw new ErrorException($message, 0, $level, $file, $line);
+// 返回 false 表示不执行 PHP 内部错误处理 (虽然 throw 已经中断了)
+// return false;
+}
+
+// 注册错误处理器，处理所有错误
+set_error_handler('errorsToExceptions', E_ALL);
+
+// 现在可以尝试触发一个 Notice 或 Warning
+try {
+echo $undefinedVariable; // 触发 Notice: Undefined variable
+} catch (ErrorException $e) { // Notice 被转换成了 ErrorException
+echo "捕获到错误转化的异常: [" . $e->getSeverity() . "] " . $e->getMessage() .
+" in " . $e->getFile() . " on line " . $e->getLine() . "\n";
+}
+
+try {
+$result = 10 / 0; // 触发 Warning: Division by zero (PHP 8 前) 或 DivisionByZeroError (PHP 8+)
+} catch (ErrorException $e) { // PHP 8 以前的版本会捕获 ErrorException
+echo "捕获到错误转化的异常: " . $e->getMessage() . "\n";
+} catch (DivisionByZeroError $e) { // PHP 8+ 的特定错误异常
+echo "捕获到除零错误异常: " . $e->getMessage() . "\n";
+} catch (Throwable $e) { // 捕获其他可能的错误
+echo "捕获到其他错误: " . $e->getMessage() . "\n";
+}
+
+// 恢复默认的错误处理器 (如果需要的话)
+// restore_error_handler();
+?&gt;</code></pre>
+                <p class="note">许多现代 PHP 框架都使用这种方式将传统错误整合到异常处理流程中。</p>
+            </li>
+            <li class="mt-2"><b><code>set_exception_handler(callable $callback): ?callable</code></b>
+                <ul>
+                    <li>注册一个全局的异常处理函数 <code>$callback</code>。当一个异常被抛出，并且没有被任何 <code>try...catch</code>
+                        块捕获时，这个函数会被调用。
+                    </li>
+                    <li>回调函数接收一个参数：未捕获的异常对象 (<code>Throwable $exception</code>)。</li>
+                    <li>用途： 在生产环境中，用于捕获所有未预料到的异常，记录详细错误日志，并向用户显示一个通用的、友好的错误页面，而不是让
+                        PHP 默认的致命错误信息暴露出来。
+                    </li>
+                    <li><b>注意：</b> 在这个处理器被调用后，脚本通常会终止执行。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+// 定义全局异常处理器
+function globalExceptionHandler(Throwable $exception): void
+{
+// 记录详细错误日志 (非常重要!)
+error_log(
+"Uncaught Exception: " . $exception->getMessage() . "\n" .
+"Code: " . $exception->getCode() . "\n" .
+"File: " . $exception->getFile() . "(" . $exception->getLine() . ")\n" .
+"Trace: \n" . $exception->getTraceAsString() . "\n\n",
+3, // 3 表示附加到文件
+'/var/log/php_global_errors.log' // 指定日志文件路径
+);
+
+// 向用户显示友好的错误信息 (不要暴露 $exception 的细节)
+// 可以根据 $exception 的类型判断是否需要特殊处理
+http_response_code(500); // 设置 HTTP 状态码为 500
+if (ini_get('display_errors')) { // 开发环境可以显示更多信息
+    echo "&lt;h1&gt;发生错误&lt;/h1&gt;&lt;pre&gt;" . htmlspecialchars($exception->__toString()) . "&lt;/pre&gt;";
+} else { // 生产环境显示通用信息
+    echo "&lt;h1&gt;抱歉，程序出现了一些问题&lt;/h1&gt;&lt;p&gt;我们已经记录了该错误，会尽快处理。&lt;/p&gt;";
+}
+exit; // 终止脚本
+}
+
+// 注册全局异常处理器
+set_exception_handler('globalExceptionHandler');
+
+// 模拟抛出一个未被捕获的异常
+throw new Exception("这是一个未被捕获的测试异常！");
+
+echo "这句不会被执行。";
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>register_shutdown_function(callable $callback, mixed ...$args): bool</code></b>
+                <ul>
+                    <li>注册一个函数 <code>$callback</code>，它会在脚本执行完成或意外终止（例如由于致命错误 Fatal
+                        Error，但不包括 <code>exit()</code> 主动退出）时被调用。
+                    </li>
+                    <li><b>用途：**</b> 可以用作捕获致命错误的最后一道防线（因为 <code>set_error_handler</code> 通常无法捕获致命错误，<code>set_exception_handler</code>
+                        无法捕获 PHP 7 之前的致命错误）。在关闭函数中，可以使用 <code>error_get_last()</code> 来检查是否发生了致命错误。
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+// 定义关闭时执行的函数
+function shutdownHandler(): void
+{
+$error = error_get_last(); // 获取最后一个发生的错误
+
+// 检查是否是一个致命错误
+if ($error !== null &amp;&amp; in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR])) {
+    // 记录致命错误日志
+    error_log(
+        "Fatal Error: " . $error['message'] . "\n" .
+        "File: " . $error['file'] . "(" . $error['line'] . ")\n\n",
+        3, '/var/log/php_fatal_errors.log'
+    );
+
+    // (可选) 尝试向用户显示一个极简的错误页面
+    // 注意：此时可能无法进行复杂操作或输出大量内容
+    // if (!headers_sent()) { header("HTTP/1.1 500 Internal Server Error"); }
+    // echo "系统发生严重错误，请联系管理员。";
+}
+}
+
+// 注册关闭函数
+register_shutdown_function('shutdownHandler');
+
+// 模拟一个致命错误 (调用不存在的函数)
+// nonExistentFunction(); // 这会导致脚本终止，然后 shutdownHandler 会被调用
+
+echo "脚本正常部分。";
+?&gt;</code></pre>
+            </li>
+            <li><b><code>error_get_last(): ?array</code></b>: 返回最后发生的错误信息（包含 'type', 'message', 'file',
+                'line' 的数组），如果没有错误则返回 <code>null</code>。
+            </li>
+            <li><b><code>trigger_error(string $message, int $error_type = E_USER_NOTICE): bool</code></b>: 手动触发一个指定级别的
+                PHP 错误（如 <code>E_USER_ERROR</code>, <code>E_USER_WARNING</code>, <code>E_USER_NOTICE</code>, <code>E_USER_DEPRECATED</code>）。如果设置了错误处理器，它会被调用。
+            </li>
+        </ul>
+        <p class="note">结合使用异常和错误处理函数，可以构建出非常健壮的 PHP 应用程序错误处理机制。</p>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 15 部分结束 ---</p>
+
+</div>
+</body>
+</html>

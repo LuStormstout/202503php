@@ -14,13 +14,41 @@
 
         h2[id], h3[id], h4[id] {
             scroll-margin-top: 2rem;
-            /* Offset for fixed headers if any, or just some space /
-           }
-           / Adding prose styles directly for better control over code blocks etc. /
-           .prose code::before, .prose code::after { content: none !important; }
-           .prose code { background-color: #f3f4f6; color: #374151; padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.875em; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-           .prose pre { background-color: #1f2937; color: #f3f4f6; padding: 1em; border-radius: 0.375rem; overflow-x: auto; font-size: 0.875em; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; margin-top: 1.6em; margin-bottom: 1.6em; }
-           .prose pre code { background-color: transparent; color: inherit; padding: 0; font-size: inherit; white-space: pre; / Preserve whitespace strictly */
+            /* Offset for fixed headers if any, or just some space */
+        }
+
+        /* Adding prose styles directly for better control over code blocks etc. */
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre; /* Preserve whitespace strictly */
         }
 
         .prose ul > li::marker {
@@ -407,8 +435,8 @@ session.save_path = "/tmp"</code></pre>
             <li><strong>值:</strong> <code>On</code> 或 <code>Off</code>。</li>
             <li><strong>重要:</strong>
                 <ul>
-                    <li><strong>开发环境:</strong> 设置为 <code>On</code>，方便你直接看到错误信息。</li>
-                    <li><strong>生产环境 (线上服务器):</strong> <strong class="danger">必须设置为
+                    <li class="warning"><strong>开发环境:</strong> 设置为 <code>On</code>，方便你直接看到错误信息。</li>
+                    <li class="danger"><strong>生产环境 (线上服务器):</strong> <strong>必须设置为
                         <code>Off</code>！</strong> 将错误信息暴露给用户不仅不友好，还可能泄露服务器路径、数据库信息等敏感内容，带来严重安全风险。
                     </li>
                 </ul>
@@ -641,7 +669,7 @@ session.save_path = "/tmp"</code></pre>
                     <li><code>error_reporting</code> 可以设置得稍微不那么严格（例如 <code>E_ALL & ~E_NOTICE &
                         ~E_DEPRECATED</code>），但仍需记录关键错误。
                     </li>
-                    <li><strong class="danger"><code>display_errors = Off</code> (!!! 必须关闭 !!!)</strong></li>
+                    <li class="danger"><strong><code>display_errors = Off</code> (!!! 必须关闭 !!!)</strong></li>
                     <li><strong class="text-green-700"><code>log_errors = On</code> (!!! 必须开启 !!!)</strong></li>
                     <li>确保 <code>error_log</code> 指向一个安全且可写的文件。</li>
                 </ul>

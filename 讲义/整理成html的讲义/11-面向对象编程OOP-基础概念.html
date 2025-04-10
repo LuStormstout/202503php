@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP - Part 11: 面向对象编程 (OOP) - Part 1: 基础概念</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem; /* Offset for fixed headers if any, or just some space */
+        }
+
+        /* Adding prose styles directly for better control over code blocks etc. */
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        /* Enhanced <pre> style */
+        .prose pre {
+            background-color: #1f2937; /* Dark background */
+            color: #f3f4f6; /* Light text */
+            padding: 1em;
+            border-radius: 0.375rem; /* Rounded corners */
+            overflow-x: auto; /* Horizontal scroll on overflow */
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151; /* Subtle border */
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); /* Optional: subtle shadow */
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre; /* Preserve whitespace strictly */
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        /* Using <b> for bold now */
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        /* Keep strong style just in case */
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>PHP - Part 11: 面向对象编程 (OOP) - Part 1: 基础概念</h1>
+    <p class="text-gray-500 text-sm">这是 17 部分系列讲义的第十一部分。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="s11-intro">11.1 什么是面向对象编程 (OOP)?</h2>
+        <p>面向对象编程（Object-Oriented Programming, OOP）是一种重要的**编程范式**（Programming
+            Paradigm），可以理解为一种组织和构建代码的思维方式和方法论。与我们之前主要接触的**面向过程编程**（Procedural
+            Programming，即按照步骤一步步执行函数调用）不同，OOP
+            的核心思想是**将数据和操作这些数据的行为封装在一起，形成“对象”**。</p>
+        <p><b>为什么使用 OOP?</b></p>
+        <ul>
+            <li><b>更贴近现实世界：</b> 很多现实世界的事物（比如用户、汽车、订单）都可以被抽象成对象，使得代码模型更直观。</li>
+            <li><b>代码组织性更好：</b> 将相关的数据和功能组合在一个单元（类）中，使代码结构更清晰。</li>
+            <li><b>代码重用性更高：</b> 通过继承等机制，可以方便地重用现有代码，减少重复劳动。</li>
+            <li><b>可维护性更强：</b> 当需要修改某个功能时，通常只需要关注相关的类，降低了修改带来的风险。</li>
+            <li><b>易于协作：</b> 在大型项目中，不同开发者可以负责不同的类，更好地分工合作。</li>
+        </ul>
+        <p><b>OOP 的核心概念（本部分先介绍前两个）：</b></p>
+        <ul>
+            <li><b>类 (Class):</b> 对象的蓝图或模板，定义了对象应该具有的属性（数据）和方法（行为）。</li>
+            <li><b>对象 (Object):</b> 类的具体实例。根据同一个类可以创建出多个不同的对象。</li>
+            <li><b>封装 (Encapsulation):</b> 将数据和操作数据的方法捆绑在一起，并对外部隐藏对象的内部实现细节，只暴露必要的接口。
+            </li>
+            <li><b>继承 (Inheritance):</b> 允许一个类（子类）继承另一个类（父类）的属性和方法，并可以添加或覆盖它们，实现代码重用。
+            </li>
+            <li><b>多态 (Polymorphism):</b> 允许不同类的对象对相同的消息（方法调用）做出不同的响应。</li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s11-2">11.2 类 (Class) 与 对象 (Object)</h2>
+
+        <h3 id="s11-2-1">类 - 对象的蓝图</h3>
+        <p>类是创建对象的模板。它定义了一类事物共有的**属性**（特征、状态）和**方法**（能做什么、行为）。</p>
+        <p><b>类比：</b></p>
+        <ul>
+            <li><b>类：</b> 设计一张“汽车”的图纸。图纸上规定了汽车应该有颜色、品牌、型号、当前速度等**属性**，以及能够启动、加速、刹车等**方法**。
+            </li>
+            <li><b>对象：</b> 根据这张“汽车”图纸，实际生产出来的**每一辆具体的汽车**。比如“我的红色的特斯拉 Model
+                3”、“你的白色的宝马 X5”。这些具体的汽车都是“汽车”类的实例（对象），它们都有颜色、品牌、速度等属性（具体值可能不同），也都能执行加速、刹车等方法。
+            </li>
+        </ul>
+        <p><b>定义一个类：</b></p>
+        <p>使用 <code>class</code> 关键字，后跟类名（<b>推荐使用帕斯卡命名法 PascalCase</b>，即每个单词首字母大写，如 <code>UserProfile</code>,
+            <code>ShoppingCart</code>），然后是一对花括号 <code>{}</code> 包含类的成员（属性和方法）。</p>
+        <pre><code class="language-php">&lt;?php
+// 定义一个简单的 Car 类
+class Car {
+// 这里将包含属性和方法 (稍后添加)
+}
+
+// 定义一个 User 类
+class User {
+// ... 属性和方法 ...
+}
+?></code></pre>
+
+        <h3 id="s11-2-2">对象 - 类的实例</h3>
+        <p>对象是根据类这个“模板”创建出来的具体“实体”。使用 <code>new</code> 关键字，后跟类名和一对圆括号 <code>()</code>，来创建一个类的实例（对象）。
+        </p>
+        <pre><code class="language-php">&lt;?php
+// 假设 Car 类已经定义
+
+// 创建 Car 类的两个实例（两个不同的汽车对象）
+$myCar = new Car();
+$yourCar = new Car();
+
+// $myCar 和 $yourCar 现在是两个独立的 Car 对象
+var_dump($myCar); // 输出类似: object(Car)#1 (0) { }
+echo "&lt;br>";
+var_dump($yourCar); // 输出类似: object(Car)#2 (0) { }
+echo "&lt;br>";
+
+// 可以检查一个对象是否是某个类的实例
+if ($myCar instanceof Car) {
+echo '$myCar 是 Car 类的一个实例。';
+}
+?></code></pre>
+
+        <hr/>
+
+        <h2 id="s11-3">11.3 属性 (Properties)</h2>
+        <p>属性是定义在类中的变量，用于存储对象的状态或数据。它们有时也被称为成员变量 (Member Variables) 或字段
+            (Fields)。</p>
+
+        <h3 id="s11-3-1">声明属性</h3>
+        <p>在类定义中使用**访问控制关键字**（<code>public</code>, <code>private</code>, <code>protected</code>）后跟变量名（带
+            <code>$</code>）来声明属性。可以给属性设置默认值。</p>
+        <p><b>访问控制关键字 (Visibility):</b></p>
+        <ul>
+            <li><code>public</code>: 公共属性。可以在类的内部、类的外部（通过对象实例）、子类中访问。<b>（初学先用 public）</b>
+            </li>
+            <li><code>private</code>: 私有属性。<b>只能在当前类的内部</b>访问。</li>
+            <li><code>protected</code>: 受保护属性。可以在当前类内部以及**继承**它的子类内部访问。</li>
+        </ul>
+        <p>（访问控制后面会详细解释为什么需要它们）</p>
+
+        <pre><code class="language-php">&lt;?php
+class Car {
+// 声明公共属性
+public $color = '白色'; // 带有默认值
+public $make;          // 没有默认值 (默认为 null)
+public $model;
+public $speed = 0;     // 带有默认值
+}
+?></code></pre>
+
+        <h3 id="s11-3-2">访问属性</h3>
+        <p>创建对象后，可以使用**对象运算符 <code>-&gt;</code>** 来访问（读取或修改）对象的<b>公共 (public)</b> 属性。</p>
+        <pre><code class="language-php">&lt;?php
+// 假设 Car 类已定义如上
+
+// 创建对象
+$myCar = new Car();
+$yourCar = new Car();
+
+// --- 访问和修改 $myCar 的属性 ---
+// 设置属性值
+$myCar->color = '红色';
+$myCar->make = '特斯拉';
+$myCar->model = 'Model 3';
+
+// 读取属性值
+echo "我的车：\n";
+echo "品牌: " . $myCar->make . "\n";    // 输出: 特斯拉
+echo "型号: " . $myCar->model . "\n";   // 输出: Model 3
+echo "颜色: " . $myCar->color . "\n";   // 输出: 红色
+echo "速度: " . $myCar->speed . " km/h\n"; // 输出: 0 km/h
+
+// --- 访问和修改 $yourCar 的属性 ---
+$yourCar->make = '宝马';
+$yourCar->model = 'X5';
+// $yourCar->color 保持默认值 '白色'
+// $yourCar->speed 保持默认值 0
+
+echo "\n你的车：\n";
+echo "品牌: " . $yourCar->make . "\n";    // 输出: 宝马
+echo "颜色: " . $yourCar->color . "\n";   // 输出: 白色
+
+// 注意：$myCar 和 $yourCar 是独立的对象，修改一个不影响另一个
+?></code></pre>
+        <p class="warning"><b>注意：</b>默认情况下，你只能从类的外部访问 <code>public</code> 属性。尝试访问
+            <code>private</code> 或 <code>protected</code> 属性会导致错误。</p>
+
+        <hr/>
+
+        <h2 id="s11-4">11.4 方法 (Methods)</h2>
+        <p>方法是定义在类中的函数，用于表示对象的行为或操作对象的数据（属性）。它们有时也被称为成员函数 (Member
+            Functions)。</p>
+
+        <h3 id="s11-4-1">定义方法</h3>
+        <p>在类定义中使用 <code>function</code> 关键字，通常也带有访问控制关键字（<code>public</code>,
+            <code>private</code>, <code>protected</code>）。</p>
+        <pre><code class="language-php">&lt;?php
+class Car {
+public $color = '白色';
+public $make;
+public $model;
+public $speed = 0;
+
+// 定义一个公共方法：加速
+public function accelerate($amount) {
+    // 这里需要访问对象的 $speed 属性
+    // 如何访问？使用 $this (见下节)
+    echo "加速 " . $amount . " km/h\n";
+}
+
+// 定义另一个公共方法：刹车
+public function brake($amount) {
+    // ...
+    echo "减速 " . $amount . " km/h\n";
+}
+
+// 定义一个获取车辆信息的方法
+public function getInfo() {
+    // 返回包含品牌和型号的字符串
+    return $this-&gt;make . " " . $this-&gt;model; // 使用 $this
+}
+}
+?></code></pre>
+
+        <h3 id="s11-4-2">调用方法</h3>
+        <p>同样使用对象运算符 <code>-&gt;</code> 来调用对象的<b>公共 (public)</b> 方法。</p>
+        <pre><code class="language-php">&lt;?php
+// 假设 Car 类已定义如上
+
+$myCar = new Car();
+$myCar->make = '特斯拉';
+$myCar->model = 'Model 3';
+
+// 调用方法
+$myCar->accelerate(50); // 输出: 加速 50 km/h
+$myCar->brake(20);      // 输出: 减速 20 km/h
+
+$info = $myCar->getInfo();
+echo "车辆信息: " . $info; // 输出: 车辆信息: 特斯拉 Model 3
+?></code></pre>
+        <p class="warning"><b>注意：</b>同样，你只能从类的外部调用 <code>public</code> 方法。</p>
+
+        <hr/>
+
+        <h2 id="s11-5">11.5 <code>$this</code> 关键字</h2>
+        <p>在**类的内部**（即在类的方法中），你需要一种方式来引用**当前正在操作的对象**本身，以便访问该对象的属性或调用该对象的其他方法。这就是
+            <code>$this</code> 关键字的作用。</p>
+        <p><code>$this</code> 指代调用该方法的那个**具体的对象实例**。</p>
+        <p><b>用法：</b></p>
+        <ul>
+            <li>访问当前对象的属性：<code>$this-&gt;propertyName</code></li>
+            <li>调用当前对象的其他方法：<code>$this-&gt;methodName()</code></li>
+        </ul>
+        <p><b>示例：完善 Car 类的方法</b></p>
+        <pre><code class="language-php">&lt;?php
+class Car {
+public $color = '白色';
+public $make;
+public $model;
+public $speed = 0; // 初始速度为 0
+
+// 加速方法，修改当前对象的 $speed 属性
+public function accelerate($amount) {
+    // 使用 $this 访问当前对象的 speed 属性
+    $this-&gt;speed += $amount;
+    echo $this-&gt;getInfo() . " 加速了 " . $amount . " km/h，当前速度: " . $this-&gt;speed . " km/h\n";
+    // 调用了下面的 getInfo() 方法
+}
+
+// 刹车方法
+public function brake($amount) {
+    // 确保速度不会低于 0
+    $this-&gt;speed -= $amount;
+    if ($this-&gt;speed &lt; 0) {
+        $this-&gt;speed = 0;
+    }
+    echo $this-&gt;getInfo() . " 减速了 " . $amount . " km/h，当前速度: " . $this-&gt;speed . " km/h\n";
+}
+
+// 获取车辆信息的方法
+public function getInfo() {
+    // 使用 $this 访问当前对象的属性
+    // 如果 make 或 model 未设置，给个默认值避免错误
+    $make = $this-&gt;make ?? '未知品牌';
+    $model = $this-&gt;model ?? '未知型号';
+    return $make . " " . $model;
+}
+}
+
+$myCar = new Car();
+$myCar->make = '比亚迪';
+$myCar->model = '汉';
+
+$myCar->accelerate(60); // 输出: 比亚迪 汉 加速了 60 km/h，当前速度: 60 km/h
+$myCar->brake(30);      // 输出: 比亚迪 汉 减速了 30 km/h，当前速度: 30 km/h
+$myCar->brake(40);      // 输出: 比亚迪 汉 减速了 40 km/h，当前速度: 0 km/h
+?></code></pre>
+        <p class="note"><code>$this</code> 只能在类的非静态方法内部使用。在静态方法或类外部使用 <code>$this</code> 是错误的。
+        </p>
+
+        <hr/>
+
+        <h2 id="s11-6">11.6 构造函数 (Constructor) - 魔术方法之一</h2>
+        <p>构造函数是一种**特殊**的类方法，它的名字固定为 <code>__construct</code> (两个下划线开头)。</p>
+        <p>当使用 <code>new</code> 关键字创建一个对象时，如果这个类定义了构造函数，它会**自动被调用**。</p>
+        <p><b>主要用途：</b> 在对象创建时执行必要的**初始化**操作，例如设置属性的初始值。</p>
+        <p><b>语法：</b></p>
+        <pre><code class="language-php">class MyClass {
+public function __construct(参数1, 参数2, ...) {
+    // 初始化代码，通常是给属性赋值
+    // $this->property = 参数1;
+}
+}</code></pre>
+        <p><b>示例：为 Car 类添加构造函数</b></p>
+        <pre><code class="language-php">&lt;?php
+class Car {
+public $color; // 不再需要默认值 '白色'
+public $make;
+public $model;
+public $speed = 0;
+
+// 构造函数，接收品牌、型号和颜色作为参数
+public function __construct(string $make, string $model, string $color = '银色') {
+    echo "一辆新的 " . $make . " " . $model . " 被创建了！\n";
+    // 使用 $this 将传入的参数值赋给对象的属性
+    $this-&gt;make = $make;
+    $this-&gt;model = $model;
+    $this-&gt;color = $color; // 如果不传 color，会使用默认值 '银色'
+    // speed 属性使用类定义中的默认值 0
+}
+
+// ... 其他方法 (accelerate, brake, getInfo) ...
+public function getInfo() {
+    return $this-&gt;make . " " . $this-&gt;model . " (" . $this-&gt;color . ")";
+}
+ public function accelerate($amount) { /* ... */ echo $this->getInfo() . " 加速 " . $amount . "\n"; $this->speed+=$amount; }
+ public function brake($amount) { /* ... */ echo $this->getInfo() . " 减速 " . $amount . "\n"; $this->speed-=$amount; if($this->speed<0) $this->speed = 0;}
+}
+
+// 创建对象时，在 new 类名后面的括号里传入构造函数需要的参数
+$car1 = new Car('丰田', '凯美瑞', '黑色'); // 输出: 一辆新的 丰田 凯美瑞 被创建了！
+$car2 = new Car('本田', '思域');         // 输出: 一辆新的 本田 思域 被创建了！ (颜色使用默认值 '银色')
+
+echo $car1->getInfo(); // 输出: 丰田 凯美瑞 (黑色)
+echo "\n";
+echo $car2->getInfo(); // 输出: 本田 思域 (银色)
+?></code></pre>
+        <p class="note">构造函数是 OOP 中非常重要的部分，确保对象在创建时就处于一个有效的初始状态。</p>
+        <p><b>PHP 8.0+ 构造函数属性提升 (Constructor Property Promotion):</b> PHP 8.0
+            引入了一种更简洁的语法，可以在构造函数的参数列表中直接声明并初始化属性：</p>
+        <pre><code class="language-php">&lt;?php
+// PHP 8.0+
+class Product {
+// 在构造函数参数前加上访问控制关键字 (public, private, protected)
+// PHP 会自动创建同名属性并将参数值赋给它
+public function __construct(
+public string $name,
+private float $price, // price 属性是 private
+protected int $stock = 0 // stock 属性是 protected，默认值为 0
+) {
+echo "Product {$this->name} created.\n";
+// 不需要写 $this->name = $name; 等代码了！
+}
+
+public function getPrice(): float {
+    return $this->price;
+}
+}
+
+$product1 = new Product("笔记本电脑", 7999.99); // stock 使用默认值 0
+echo "价格: " . $product1->getPrice(); // 输出: 价格: 7999.99
+// echo $product1->price; // 错误！因为 price 是 private
+?></code></pre>
+
+        <hr/>
+
+        <h2 id="s11-7">11.7 析构函数 (Destructor) - 另一个魔术方法</h2>
+        <p>析构函数的名字固定为 <code>__destruct</code> (两个下划线开头)。</p>
+        <p>它会在到某个对象的所有引用都被删除（例如变量被 <code>unset()</code> 或赋值为其他值）或者脚本执行结束**之前**自动调用。
+        </p>
+        <p><b>主要用途：</b> 在对象销毁前执行一些清理操作，例如关闭文件句柄、释放数据库连接（虽然 PHP 的资源管理通常会自动处理这些）。在现代
+            PHP 中，需要手动定义析构函数的场景相对较少。</p>
+        <p><b>语法：</b></p>
+        <pre><code class="language-php">class MyClass {
+public function __destruct() {
+    // 清理代码
+    echo "对象正在被销毁...\n";
+}
+}</code></pre>
+        <p><b>示例：</b></p>
+        <pre><code class="language-php">&lt;?php
+class FileManager {
+private $fileHandle;
+private $filename;
+
+public function __construct($filename, $mode = 'r') {
+    $this->filename = $filename;
+    $this->fileHandle = fopen($filename, $mode);
+    if (!$this->fileHandle) {
+        throw new Exception("无法打开文件: {$filename}");
+    }
+    echo "文件 {$filename} 已打开。\n";
+}
+
+// 析构函数，确保文件句柄被关闭
+public function __destruct() {
+    if ($this->fileHandle) {
+        fclose($this->fileHandle);
+        echo "文件 {$this->filename} 已关闭。\n";
+    }
+}
+
+// ... 其他读写文件的方法 ...
+public function readLine() {
+    if ($this->fileHandle) {
+        return fgets($this->fileHandle);
+    }
+    return false;
+}
+}
+
+// 创建对象，构造函数被调用，文件打开
+$reader = new FileManager('example.txt', 'w'); // 假设 example.txt 可写
+
+// 当 $reader 变量超出作用域（如函数结束）或脚本结束时，
+// 或者手动 unset($reader) 时，析构函数会被调用，文件关闭。
+// unset($reader); // 手动触发析构
+
+echo "脚本即将结束...\n";
+// 在这里脚本结束，会自动调用 $reader 的析构函数
+?></code></pre>
+
+        <hr/>
+
+        <h2 id="s11-8">11.8 访问控制 (Visibility) 再探 - 封装</h2>
+        <p>我们之前提到了 <code>public</code>, <code>private</code>, <code>protected</code>
+            这三个关键字，它们用来控制对类属性和方法的访问权限。这是实现**封装 (Encapsulation)** 的关键机制。</p>
+        <p><b>封装的核心思想：</b></p>
+        <ul>
+            <li>将数据（属性）和操作数据的代码（方法）捆绑在对象内部。</li>
+            <li>向外部隐藏对象的内部实现细节。</li>
+            <li>只通过定义好的公共接口（public 方法）与对象交互。</li>
+        </ul>
+        <p><b>为什么需要封装？</b></p>
+        <ul>
+            <li><b>保护数据：</b> 通过将属性设为 <code>private</code> 或 <code>protected</code>，可以防止外部代码随意修改对象的状态，只能通过类提供的（<code>public</code>）方法来修改，确保数据的有效性和一致性。例如，你可能希望
+                <code>Car</code> 的 <code>$speed</code> 不能被直接设为一个负数。
+            </li>
+            <li><b>隐藏实现细节：</b> 类的使用者只需要知道如何调用 <code>public</code>
+                方法，而不需要关心这些方法内部是如何实现的。这使得类的内部实现可以在未来被修改或优化，而不会影响到使用它的代码（只要公共接口不变）。
+            </li>
+            <li><b>降低耦合度：</b> 代码的不同部分之间依赖性降低，使得系统更灵活、更易于维护。</li>
+        </ul>
+
+        <p><b>回顾访问权限：</b></p>
+        <ul>
+            <li><code>public</code>: 哪里都可以访问（类内部、子类、类外部）。</li>
+            <li><code>protected</code>: 只能在**当前类**或**其子类**（继承它的类）内部访问。</li>
+            <li><code>private</code>: 只能在**定义它**的那个**当前类**内部访问（即使是子类也不能直接访问父类的私有成员）。
+            </li>
+        </ul>
+        <p><b>示例：改进 User 类，使用访问控制</b></p>
+        <pre><code class="language-php">&lt;?php
+class UserProfile {
+// 使用 private 保护内部数据
+private string $email;
+private ?DateTime $birthday = null; // 生日可能是 null
+
+// 公共属性
+public string $username;
+
+// 构造函数仍然是 public
+public function __construct(string $username, string $email) {
+    $this->username = $username;
+    // 在构造函数内部设置 email，可以进行验证
+    if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $this->email = $email;
+    } else {
+        throw new InvalidArgumentException("无效的 Email 地址");
+    }
+}
+
+// 提供一个公共方法来获取 email (Getter)
+public function getEmail(): string {
+    // 可以在这里添加权限检查等逻辑
+    return $this->email;
+}
+
+// 提供一个公共方法来设置生日 (Setter)，可以进行验证
+public function setBirthday(string $dateString): void {
+    // 尝试将字符串转换为 DateTime 对象
+    $date = DateTime::createFromFormat('Y-m-d', $dateString);
+    if ($date &amp;&amp; $date->format('Y-m-d') === $dateString) {
+         // 验证日期是否有效，例如不能是未来日期
+        if ($date > new DateTime()) {
+             throw new InvalidArgumentException("生日不能是未来日期");
+        }
+        $this->birthday = $date;
+    } else {
+        throw new InvalidArgumentException("无效的日期格式，请使用 YYYY-MM-DD");
+    }
+}
+
+// 公共方法获取年龄
+public function getAge(): ?int {
+    if ($this->birthday === null) {
+        return null; // 如果生日未设置，返回 null
+    }
+    // 计算当前日期与生日的差值
+    return $this->birthday->diff(new DateTime())->y;
+}
+
+// 私有方法，只能在类内部调用
+private function logAccess(string $message): void {
+    // 假设这里记录日志
+    // echo "[Log] " . $message . "\n";
+}
+
+// 公共方法调用私有方法
+public function displayProfile(): void {
+    $this->logAccess("正在显示用户 " . $this->username . " 的资料");
+    echo "用户名: " . htmlspecialchars($this->username) . "\n";
+    echo "邮箱: " . htmlspecialchars($this->getEmail()) . "\n"; // 通过 getter 获取
+    $age = $this->getAge();
+    echo "年龄: " . ($age !== null ? $age : '未设置') . "\n";
+}
+}
+
+try {
+$user = new UserProfile('johndoe', '[移除了电子邮件地址]');
+
+// 可以访问 public 属性
+echo "用户名: " . $user->username . "\n";
+
+// 不能直接访问 private 属性
+// echo $user->email; // 错误！Fatal error: Uncaught Error: Cannot access private property
+
+// 必须通过 public getter 方法访问
+echo "邮箱: " . $user->getEmail() . "\n";
+
+// 通过 public setter 方法设置属性，包含验证
+$user->setBirthday('1990-05-15');
+// $user->setBirthday('invalid-date'); // 这会抛出异常
+// $user->birthday = null; // 错误！不能从外部直接设置 private 属性
+
+echo "年龄: " . $user->getAge() . "\n";
+
+$user->displayProfile();
+} catch (Exception $e) {
+echo "出错了: " . $e->getMessage();
+}
+?></code></pre>
+        <p class="note">通过将属性设为 <code>private</code> 或 <code>protected</code>，并提供 <code>public</code> 的
+            Getter 和 Setter 方法（如 <code>getEmail()</code>, <code>setBirthday()</code>），我们可以更好地控制数据的访问和修改，确保数据的有效性，这就是封装的核心实践。
+        </p>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 11 部分结束 ---</p>
+
+</div>
+</body>
+</html>

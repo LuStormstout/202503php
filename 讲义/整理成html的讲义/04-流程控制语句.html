@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP - Part 4: 流程控制语句详解</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+            /* Offset for fixed headers if any, or just some space */
+        }
+
+        /* Adding prose styles directly for better control over code blocks etc. */
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre; /* Preserve whitespace strictly */
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        /* Using <b> for bold now */
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        /* Keep strong style just in case */
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>PHP - Part 4: 流程控制语句详解</h1>
+    <p class="text-gray-500 text-sm">这是 17 部分系列讲义的第四部分。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="s4-intro">引言：控制程序的流程</h2>
+        <p>默认情况下，PHP
+            代码是按照从上到下的顺序一行一行执行的。但我们经常需要根据不同的条件执行不同的代码，或者重复执行某段代码。这就是**流程控制语句**的作用：它们允许我们改变代码的默认执行顺序。</p>
+        <p>PHP 主要提供两大类流程控制语句：</p>
+        <ol>
+            <li><b>条件语句 (Conditional Statements):</b> 根据条件的真假来决定执行哪部分代码 (如 <code>if</code>, <code>switch</code>)。
+            </li>
+            <li><b>循环语句 (Looping Statements):</b> 重复执行一段代码，直到某个条件不再满足 (如 <code>for</code>, <code>while</code>,
+                <code>do...while</code>, <code>foreach</code>)。
+            </li>
+        </ol>
+
+        <hr/>
+
+        <h2 id="s4-1">4.1 条件语句 (Conditional Statements)</h2>
+
+        <h3 id="s4-1-1"><code>if</code> 语句</h3>
+        <p><code>if</code> 语句是最基本的条件判断。如果指定的条件计算结果为 <code>true</code>（或者能自动转换为
+            <code>true</code>，即所谓的 "truthy" 值），则执行紧跟其后的代码块。</p>
+        <p><b>语法：</b></p>
+        <pre><code class="language-php">if (条件表达式) {
+    // 条件为真时执行的代码
+}
+
+// 或者，如果只有一条语句，可以省略花括号（但不推荐，易读性差且易出错）
+if (条件表达式) // 条件为真时执行的一条语句;
+</code></pre>
+        <p><b>条件表达式 (Condition Expression):</b> 这是一个最终会计算出布尔值 (<code>true</code> 或 <code>false</code>)
+            的表达式。我们在 Part 2 讲过哪些值会被认为是 <code>false</code>（<code>false</code>, <code>0</code>,
+            <code>0.0</code>, <code>""</code>, <code>"0"</code>, <code>[]</code>, <code>null</code>），其他大部分值被认为是
+            <code>true</code>。</p>
+        <p><b>示例：</b></p>
+        <pre><code class="language-php">&lt;?php
+$age = 20;
+
+if ($age >= 18) {
+    echo "你已经是成年人了。\n";
+}
+
+$is_logged_in = true;
+if ($is_logged_in) { // 直接判断布尔变量
+    echo "用户已登录。\n";
+}
+
+$username = "Alice";
+if ($username) { // 非空字符串被认为是 true
+    echo "用户名存在。\n";
+}
+
+$count = 0;
+if ($count) { // 整数 0 被认为是 false，所以这块代码不会执行
+    echo "计数大于零。\n";
+}
+?&gt;</code></pre>
+
+        <h3 id="s4-1-2"><code>if...else</code> 语句</h3>
+        <p><code>if...else</code> 语句提供了一种在条件为真时执行一段代码，在条件为假时执行另一段代码的方式。</p>
+        <p><b>语法：</b></p>
+        <pre><code class="language-php">if (条件表达式) {
+    // 条件为真时执行的代码
+} else {
+    // 条件为假时执行的代码
+}</code></pre>
+        <p><b>示例：</b></p>
+        <pre><code class="language-php">&lt;?php
+$score = 75;
+
+if ($score >= 60) {
+    echo "成绩及格！";
+} else {
+    echo "成绩不及格。";
+}
+?&gt;</code></pre>
+
+        <h3 id="s4-1-3"><code>if...elseif...else</code> 语句</h3>
+        <p>当有多个互斥的条件需要判断时，可以使用 <code>if...elseif...else</code> 结构。PHP 会从上到下依次检查每个条件：
+        </p>
+        <ul>
+            <li>第一个为 <code>true</code> 的 <code>if</code> 或 <code>elseif</code> 条件对应的代码块会被执行。</li>
+            <li>一旦有一个条件满足并执行了代码块，后面的所有 <code>elseif</code> 和 <code>else</code> 块都会被**跳过**。
+            </li>
+            <li>如果所有的 <code>if</code> 和 <code>elseif</code> 条件都为 <code>false</code>，则执行可选的
+                <code>else</code> 块中的代码。
+            </li>
+        </ul>
+        <p><b>语法：</b></p>
+        <pre><code class="language-php">if (条件1) {
+    // 条件1为真时执行
+} elseif (条件2) { // 注意是 elseif，也可以写作 else if (有空格)
+    // 条件1为假，且条件2为真时执行
+} elseif (条件3) {
+    // 条件1、2为假，且条件3为真时执行
+} else {
+    // 以上所有条件都为假时执行 (else 是可选的)
+}</code></pre>
+        <p><b>示例：根据分数评级</b></p>
+        <pre><code class="language-php">&lt;?php
+$score = 85;
+
+if ($score >= 90) {
+    echo "优秀 (A)";
+} elseif ($score >= 80) { // 到这里时，$score >= 90 肯定是 false 了
+    echo "良好 (B)"; // 因为 85 >= 80，执行这句，然后跳出整个结构
+} elseif ($score >= 70) {
+    echo "中等 (C)";
+} elseif ($score >= 60) {
+    echo "及格 (D)";
+} else {
+    echo "不及格 (F)";
+}
+// 输出: 良好 (B)
+?&gt;</code></pre>
+
+        <h3 id="s4-1-4">替代语法 (Alternative Syntax)</h3>
+        <p>PHP 为 <code>if</code>, <code>elseif</code>, <code>else</code>（以及后面的 <code>switch</code>,
+            <code>for</code>, <code>while</code>, <code>foreach</code>）提供了一种替代语法，主要用在 HTML 模板中嵌入 PHP
+            代码时，可以提高可读性。</p>
+        <p><b>语法：</b></p>
+        <pre><code class="language-php">&lt;p&gt;
+            <?php if ($is_admin): ?>
+欢迎回来，管理员！
+&lt;a href="/admin"&gt;进入管理后台&lt;/a&gt;
+&lt;?php elseif ($is_logged_in): ?>
+    &lt;?php echo htmlspecialchars($username); ?>！
+&lt;?php else: ?>
+    请 &lt;a href="/login"&gt;登录&lt;/a&gt; 或 &lt;a href="/register"&gt;注册&lt;/a&gt;。
+&lt;?php endif; ?>
+&lt;/p&gt;</code></pre>
+        <p>注意：使用冒号 <code>:</code> 替代左花括号 <code>{</code>，并使用 <code>endif;</code>, <code>endswitch;</code>,
+            <code>endfor;</code>, <code>endwhile;</code>, <code>endforeach;</code> 替代右花括号 <code>}</code>。</p>
+
+        <hr/>
+
+        <h2 id="s4-2">4.2 <code>switch</code> 语句</h2>
+        <p><code>switch</code> 语句适用于**根据一个变量或表达式的多个可能取值**来执行不同的代码块。它通常比写一长串的
+            <code>if...elseif...else</code> 语句更清晰（但并不总是）。</p>
+        <p><b>语法：</b></p>
+        <pre><code class="language-php">switch (表达式) {
+case 值1:
+    // 如果表达式的值 等于 值1，执行这里的代码
+    break; // 非常重要！跳出 switch 语句
+
+case 值2:
+    // 如果表达式的值 等于 值2，执行这里的代码
+    break;
+
+case 值3:
+case 值4: // 可以将多个 case 合并，如果它们执行相同的代码
+    // 如果表达式的值 等于 值3 或 值4，执行这里的代码
+    break;
+
+default: // 可选的
+    // 如果表达式的值不匹配上面任何一个 case，执行这里的代码
+}</code></pre>
+
+        <p><b>工作方式：</b></p>
+        <ul>
+            <li>首先计算 <code>switch</code> 后面括号里的**表达式**的值。</li>
+            <li>然后将这个值与每个 <code>case</code> 后面的值进行**比较**。<b>注意：默认情况下，这里使用的是松散比较 <code>==</code>！</b>这意味着会发生类型转换，可能导致意外匹配（比如
+                <code>switch(0)</code> 会匹配 <code>case "a":</code>，因为 <code>"a"</code> 转成整数是 0！）。
+            </li>
+            <li>如果找到匹配的 <code>case</code>，就从那里开始执行代码。</li>
+            <li>遇到 <code>break;</code> 语句时，程序会跳出整个 <code>switch</code> 结构。</li>
+            <li><b>如果没有写 <code>break;</code>，程序会继续执行下一个 <code>case</code> 的代码块，无论下一个
+                <code>case</code> 的值是否匹配！</b> 这种行为称为“贯穿 (Fallthrough)”，通常是错误的来源，除非你是有意为之。
+            </li>
+            <li><code>default</code> 块是可选的，用于处理所有其他 <code>case</code> 都不匹配的情况。</li>
+        </ul>
+
+        <p><b>示例：根据用户角色显示不同菜单</b></p>
+        <pre><code class="language-php">&lt;?php
+$role = 'editor'; // 假设用户角色是编辑
+
+switch ($role) {
+case 'admin':
+echo "显示：用户管理、文章管理、系统设置\n";
+break; // 执行完 admin 的就跳出
+
+case 'editor':
+    echo "显示：文章管理\n";
+    // 注意这里故意没有 break! 会继续执行下面的 case
+
+case 'author':
+    echo "显示：写新文章\n";
+    break; // 执行完 author 的就跳出 (editor 角色也会执行到这里)
+
+case 'subscriber':
+    echo "显示：查看文章\n";
+    break;
+
+default:
+    echo "无效的角色或未登录用户。\n";
+}
+
+/*
+输出会是：
+显示：文章管理
+显示：写新文章
+*/
+?&gt;</code></pre>
+        <p class="warning">由于 <code>switch</code> 默认使用 <code>==</code> 比较且容易忘记 <code>break</code>，在处理需要精确匹配或类型敏感的情况时，使用
+            <code>if...elseif...else</code> 配合 <code>===</code> 可能更安全、更清晰。</p>
+
+        <hr/>
+
+        <h2 id="s4-3">4.3 循环语句 (Looping Statements)</h2>
+        <p>循环语句用于重复执行一段代码，直到满足某个退出条件。</p>
+
+        <h3 id="s4-3-1"><code>for</code> 循环</h3>
+        <p><code>for</code> 循环通常用于**已知重复次数**（或可以通过计数器控制次数）的情况。</p>
+        <p><b>语法：</b></p>
+        <pre><code class="language-php">for (初始化表达式; 条件表达式; 迭代表达式) {
+    // 循环体：重复执行的代码
+}</code></pre>
+        <p><b>执行流程：</b></p>
+        <ol>
+            <li><b>初始化表达式 (Initialization):</b> 在循环开始前仅执行一次。通常用来设置计数器变量（如 <code>$i =
+                0</code>）。
+            </li>
+            <li><b>条件表达式 (Condition):</b> 在每次循环迭代开始前进行判断。如果为 <code>true</code>，则执行循环体；如果为
+                <code>false</code>，则退出循环。
+            </li>
+            <li><b>循环体 (Loop Body):</b> 如果条件为 <code>true</code>，则执行花括号 <code>{}</code> 内的代码。</li>
+            <li><b>迭代表达式 (Increment/Decrement):</b> 在每次循环体执行之后执行。通常用来更新计数器（如
+                <code>$i++</code>）。
+            </li>
+            <li>然后回到第 2 步，再次检查条件。</li>
+        </ol>
+        <p><b>示例：输出数字 0 到 4</b></p>
+        <pre><code class="language-php">&lt;?php
+for ($i = 0; $i < 5; $i++) {
+    echo "当前数字是: " . $i . "\n";
+}
+/*
+输出:
+    当前数字是: 0
+    当前数字是: 1
+    当前数字是: 2
+    当前数字是: 3
+    当前数字是: 4
+*/
+?&gt;</code></pre>
+        <p><b>示例：倒数</b></p>
+        <pre><code class="language-php">&lt;?php
+for ($j = 3; $j > 0; $j--) {
+    echo $j . "... ";
+}
+echo "发射！\n";
+// 输出: 3... 2... 1... 发射！
+?&gt;</code></pre>
+        <p class="note"><code>for</code> 循环的三个部分都可以是空的，或者包含多个用逗号分隔的表达式，非常灵活，但也可能让代码难懂。
+        </p>
+
+        <h3 id="s4-3-2"><code>while</code> 循环</h3>
+        <p><code>while</code> 循环用于在**指定条件为真期间**重复执行代码块。它适用于**不知道具体要循环多少次**，只知道循环继续的条件的情况。
+        </p>
+        <p><b>语法：</b></p>
+        <pre><code class="language-php">while (条件表达式) {
+    // 循环体：条件为真时重复执行的代码
+    // ！！！ 必须确保循环体内部有某种机制能最终让条件变为 false，否则会造成无限循环 ！！！
+}</code></pre>
+        <p><b>执行流程：</b></p>
+        <ol>
+            <li>先判断条件表达式。</li>
+            <li>如果为 <code>true</code>，执行循环体。</li>
+            <li>执行完循环体后，再次回到第 1 步判断条件。</li>
+            <li>如果为 <code>false</code>，则跳出循环，执行循环后面的代码。</li>
+        </ol>
+        <p><b>示例：使用 while 模拟 for 循环输出 0 到 4</b></p>
+        <pre><code class="language-php">&lt;?php
+$i = 0; // 初始化在循环外
+while ($i < 5) { // 条件判断在循环开始前
+    echo "当前数字是: " . $i . "\n";
+    $i++; // 更新计数器在循环体内
+}
+?&gt;</code></pre>
+        <p><b>示例：处理文件直到末尾</b>（假设有函数 <code>read_next_line()</code> 能读取一行，到末尾返回
+            <code>false</code>）</p>
+        <pre><code class="language-php">&lt;?php
+/*
+while (($line = read_next_line()) !== false) {
+    // 处理 $line ...
+    echo "读取到: " . $line . "\n";
+}
+*/
+?&gt;</code></pre>
+        <p class="danger"><b>无限循环警告：</b> 如果 <code>while</code>
+            的条件永远为真（例如忘记在循环体内更新相关变量），程序会卡死，这称为无限循环。务必确保循环有明确的退出条件。</p>
+
+        <h3 id="s4-3-3"><code>do...while</code> 循环</h3>
+        <p><code>do...while</code> 循环与 <code>while</code> 类似，但它保证循环体内的代码**至少会执行一次**，因为条件判断是在循环体**执行之后**才进行的。
+        </p>
+        <p><b>语法：</b></p>
+        <pre><code class="language-php">do {
+    // 循环体：先执行这里的代码（至少一次）
+    // 同样需要确保能最终改变条件
+} while (条件表达式); // 注意这里最后有个分号！</code></pre>
+        <p><b>执行流程：</b></p>
+        <ol>
+            <li>先执行一次循环体内的代码。</li>
+            <li>然后判断条件表达式。</li>
+            <li>如果为 <code>true</code>，回到第 1 步再次执行循环体。</li>
+            <li>如果为 <code>false</code>，退出循环。</li>
+        </ol>
+        <p><b>示例：至少尝试一次操作，然后根据结果决定是否重试</b></p>
+        <pre><code class="language-php">&lt;?php
+$attempts = 0;
+$success = false;
+
+do {
+    $attempts++;
+    echo "尝试第 " . $attempts . " 次连接...\n";
+    // 假设 connection_attempt() 返回 true 或 false
+    // $success = connection_attempt();
+    if ($attempts >= 3) { // 模拟连接成功或达到最大次数
+        if(rand(0,1)){ // 模拟随机成功
+            $success = true;
+            echo "连接成功！\n";
+        } else if ($attempts >= 3) {
+            echo "尝试次数过多，放弃。\n";
+            break; // 可以用 break 提前跳出循环
+        }
+    }
+    // if (!$success) sleep(1); // 如果失败，可以等待一下再试
+
+} while (!$success); // 只要 $success 是 false 就继续循环
+
+echo "总共尝试了 " . $attempts . " 次。\n";
+?&gt;</code></pre>
+        <p class="note"><code>do...while</code> 使用场景相对 <code>while</code> 和 <code>for</code> 较少，主要是在需要先执行再判断的逻辑中。
+        </p>
+
+        <h3 id="s4-3-4"><code>foreach</code> 循环</h3>
+        <p><code>foreach</code> 循环是专门用来**遍历数组（Array）或对象（Object）**中所有元素的便捷方式。是处理数组最常用的循环。
+        </p>
+        <p><b>语法：</b></p>
+        <pre><code class="language-php">// 语法 1: 只获取值
+foreach (数组或对象 as $value) {
+    // 对每个元素的值 $value 执行代码
+}
+
+// 语法 2: 获取键和值
+foreach (数组或对象 as $key => $value) {
+    // 对每个元素的键 $key 和值 $value 执行代码
+}</code></pre>
+        <p><b>工作方式：</b></p>
+        <ul>
+            <li>在每次循环迭代中，<code>foreach</code> 会自动将数组（或对象）的下一个元素的值赋给 <code>$value</code> 变量。
+            </li>
+            <li>如果使用了 <code>$key => $value</code> 语法，它还会将当前元素的**键（或索引）**赋给 <code>$key</code> 变量。
+            </li>
+            <li>循环会自动进行，直到遍历完所有元素。</li>
+        </ul>
+        <p><b>示例：遍历索引数组</b></p>
+        <pre><code class="language-php">&lt;?php
+$colors = ['red', 'green', 'blue'];
+
+echo "颜色列表 (只有值):\n";
+foreach ($colors as $color) {
+    echo "- " . $color . "\n";
+}
+
+echo "\n颜色列表 (包含索引):\n";
+foreach ($colors as $index => $color) {
+    echo "索引 " . $index . " 是颜色 " . $color . "\n";
+}
+?&gt;</code></pre>
+        <p><b>示例：遍历关联数组</b></p>
+        <pre><code class="language-php">&lt;?php
+$user = [
+    'name' => 'Alice',
+    'age' => 30,
+    'city' => 'New York'
+];
+
+echo "\n用户信息:\n";
+foreach ($user as $key => $value) {
+    echo $key . ": " . $value . "\n";
+}
+?&gt;</code></pre>
+        <p><b>通过引用修改数组元素：</b> 你可以在 <code>$value</code> 前加上 <code>&</code>，这样 <code>$value</code>
+            就成了对原数组元素的引用，修改 <code>$value</code> 会直接修改原数组（使用时需小心）。</p>
+        <pre><code class="language-php">&lt;?php
+$numbers = [1, 2, 3];
+foreach ($numbers as &amp;$num) { // 注意这里的 &
+    $num = $num * 2; // 将数组中的每个元素乘以 2
+}
+unset($num); // 重要： 循环结束后，建议 unset(&$value) 或 unset(&$num)，断开引用关系，避免后续意外修改最后一个元素。
+var_dump($numbers); // 输出: array(3) { [0]=> int(2) [1]=> int(4) [2]=> int(6) }
+?&gt;</code></pre>
+        <p class="note"><code>foreach</code> 非常方便易用，是处理数组数据的首选循环方式。</p>
+
+        <hr/>
+
+        <h2 id="s4-4">4.4 循环控制：<code>break</code> 和 <code>continue</code></h2>
+        <p>有时我们需要在循环正常结束前改变其行为。</p>
+
+        <ul>
+            <li><strong><code>break;</code>:**</strong> 用于**完全终止**当前的循环（<code>for</code>, <code>while</code>,
+                <code>do...while</code>,
+                <code>foreach</code>）或 <code>switch</code> 语句。程序会跳出循环体，执行循环后面的第一条语句。
+                <pre><code class="language-php">&lt;?php
+for ($i = 0; $i < 10; $i++) {
+ if ($i == 5) {
+     echo "找到 5 了，停止循环！\n";
+     break; // 跳出 for 循环
+ }
+ echo "当前数字: " . $i . "\n";
+}
+echo "循环结束。\n";
+// 输出会是 0, 1, 2, 3, 4 以及 "找到 5..." 和 "循环结束。"
+?&gt;</code></pre>
+                <p><code>break</code> 还可以接受一个可选的数字参数（如 <code>break 2;</code>），表示跳出**嵌套**的几层循环。但这种用法容易让代码混乱，不推荐。
+                </p>
+            </li>
+            <li class="mt-2"><strong><code>continue;</code>:**</strong> 用于**跳过当前循环的剩余部分**，并立即开始**下一次迭代**。
+                <ul>
+                    <li>在 <code>for</code> 循环中，它会跳到迭代表达式（<code>$i++</code> 等）。</li>
+                    <li>在 <code>while</code> 和 <code>do...while</code> 循环中，它会跳到条件判断部分。</li>
+                    <li>在 <code>foreach</code> 循环中，它会处理下一个元素。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+for ($i = 0; $i < 5; $i++) {
+    if ($i == 2) {
+        echo "(跳过数字 2)\n";
+        continue; // 当 $i=2 时，跳过下面的 echo，直接进行 $i++ 并开始下一次迭代
+    }
+    echo "处理数字: " . $i . "\n";
+}
+// 输出会是 0, 1, "(跳过数字 2)", 3, 4
+?&gt;</code></pre>
+                <p><code>continue</code> 同样可以接受数字参数（如 <code>continue 2;</code>）来影响嵌套循环，同样不推荐。</p>
+            </li>
+        </ul>
+
+        <hr/>
+        <h2 id="s4-5">4.5 其他流程控制 (了解即可)</h2>
+        <ul>
+            <li><strong><code>declare(ticks=...)</code>:**</strong> 用于配合 <code>register_tick_function()</code>
+                实现低级别的事件触发，在
+                Web 开发中极少使用。
+            </li>
+            <li><strong><code>goto</code>:**</strong> 允许在程序中创建一个标签 (<code>myLabel:</code>)，然后使用 <code>goto
+                myLabel;</code> 跳转到该标签处执行。<b>强烈不推荐使用 <code>goto</code></b>，因为它会破坏代码的结构化，使得代码难以阅读、理解和维护（俗称“意大利面条代码”）。现代
+                PHP 有更好的流程控制方式（函数、循环、条件、异常）来替代它。
+            </li>
+        </ul>
+
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 4 部分结束 ---</p>
+
+</div>
+</body>
+</html>

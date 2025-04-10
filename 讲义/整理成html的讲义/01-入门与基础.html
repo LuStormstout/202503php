@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP - Part 1: PHP 入门与基础</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+            /* Offset for fixed headers if any, or just some space */
+        }
+
+        /* Adding prose styles directly for better control over code blocks etc. */
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre; /* Preserve whitespace strictly */
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>PHP - Part 1: PHP 入门与基础</h1>
+    <p class="text-gray-500 text-sm">这是 17 部分系列讲义的第一部分，专为零基础学习者设计，目标是成为 PHP
+        工程师。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="s1-1">1.1 PHP 是什么？它如何工作？</h2>
+
+        <p>想象一下你去餐厅点餐。你（浏览器）向服务员（Web 服务器，如 Nginx 或 Apache）提交了订单（HTTP
+            请求）。服务员自己可能不会做菜，他需要把订单交给厨房里的大厨（PHP 解释器）。大厨根据订单（PHP
+            脚本代码）做好菜（生成动态内容，比如包含你用户名的欢迎语或从数据库里查出的商品列表），然后把做好的菜（HTML
+            页面）交给服务员，服务员再端给你看。</p>
+
+        <p>在这个过程中：</p>
+        <ul>
+            <li><strong>PHP</strong> 就是那个“大厨”，它是一种 **服务器端脚本语言 (Server-side Scripting Language)**。
+                "服务器端"意味着 PHP 代码是在网站的服务器上运行的，而不是在用户的浏览器里运行。
+            </li>
+            <li>它的主要工作是处理数据、与数据库交互、根据不同的条件生成**动态**的网页内容。没有
+                PHP（或其他服务器端语言），大多数网站只能显示静态的、一成不变的 HTML 页面。
+            </li>
+            <li>最终用户通过浏览器看到的是 PHP 处理后生成的 **HTML**，他们看不到 PHP 源代码本身（这是一种安全机制）。</li>
+        </ul>
+
+        <h3 class="mt-4">请求-响应流程（简化版）</h3>
+        <ol>
+            <li>你的**浏览器**向服务器地址发送一个请求 (Request)，比如访问 `http://example.com/index.php`。</li>
+            <li>网站的**Web 服务器** (如 Nginx, Apache) 接收到这个请求。</li>
+            <li>Web 服务器发现请求的是一个 <code>.php</code> 文件，它知道这个文件需要交给 PHP 处理，于是将请求转给 **PHP
+                解释器**。
+            </li>
+            <li>**PHP 解释器**执行 <code>index.php</code> 文件中的代码。代码可能会连接数据库、进行计算、处理表单数据等。
+            </li>
+            <li>PHP 代码执行完毕后，通常会生成一堆 HTML 代码（也可能包含 CSS 和 JavaScript 的引用）。</li>
+            <li>PHP 解释器将生成的 HTML **响应 (Response)** 交还给 Web 服务器。</li>
+            <li>Web 服务器再将这个 HTML 响应发送回你的**浏览器**。</li>
+            <li>浏览器解析 HTML，并显示出你看到的网页。</li>
+        </ol>
+        <p class="note">这个流程是动态网站工作的核心，理解它非常重要！</p>
+
+        <hr/>
+
+        <h2 id="s1-2">1.2 搭建开发环境</h2>
+
+        <p>要在你的电脑上编写和运行 PHP 代码，你需要一个“开发环境”。这通常包括：</p>
+        <ul>
+            <li><strong>PHP 解释器:**</strong> 真正执行 PHP 代码的核心程序。</li>
+            <li><strong>Web 服务器:**</strong> 如 Nginx 或 Apache，用来模拟网站服务器接收浏览器请求并调用 PHP。</li>
+            <li><strong>数据库 (可选但常用):**</strong> 如 MySQL 或 MariaDB，用来存储和管理数据。</li>
+        </ul>
+
+        <p>对于零基础的初学者，手动分别安装和配置这些组件可能非常复杂。因此，强烈推荐使用**集成开发环境包 (Integrated
+            Package)**，它们把所有需要的软件都打包好了，一键安装，非常方便。</p>
+
+        <h3 class="mt-4">推荐的集成环境包</h3>
+        <ul>
+            <li><strong>Laragon (Windows):**</strong> <strong class="text-green-700">强烈推荐给 Windows 用户</strong>。现代、快速、灵活、易用，支持多种
+                PHP、数据库版本切换，自动创建虚拟主机等。访问 <a href="[https://laragon.org/](https://laragon.org/)"
+                                                              target="_blank">laragon.org</a> 下载安装即可。
+            </li>
+            <li><strong>XAMPP (跨平台: Windows, macOS, Linux):**</strong> 非常老牌和流行，包含了 Apache, MariaDB (MySQL
+                的一个分支),
+                PHP, Perl。安装简单直接。访问 <a href="[https://www.apachefriends.org/](https://www.apachefriends.org/)"
+                                               target="_blank">apachefriends.org</a> 下载。
+            </li>
+            <li><strong>MAMP (macOS, 也有 Windows 版):**</strong> 类似于 XAMPP，在 macOS 上很受欢迎。有免费版和付费 Pro
+                版。访问 <a
+                        href="[https://www.mamp.info/](https://www.mamp.info/)" target="_blank">mamp.info</a> 下载。
+            </li>
+        </ul>
+        <p class="note">对于初学者，以上三者选一个即可。推荐顺序：Windows 用户首选 Laragon；macOS 用户可选 MAMP 或
+            XAMPP；Linux 用户可选 XAMPP 或后面会提到的更原生的安装方式。</p>
+
+        <h3 class="mt-4">其他方式 (现阶段了解即可)</h3>
+        <ul>
+            <li><strong>macOS + Homebrew:**</strong> macOS 用户可以通过包管理器 Homebrew 单独安装 PHP, Nginx/Apache,
+                MySQL，更灵活但配置稍复杂。
+            </li>
+            <li><strong>Linux 发行版包管理器:**</strong> Linux 用户通常使用系统的包管理器（如 Ubuntu/Debian 的
+                `apt`，CentOS/Fedora
+                的 `yum`/`dnf`）来安装 PHP 及相关软件。
+            </li>
+            <li><strong>Docker:**</strong> 一种容器化技术，可以创建隔离的、包含完整环境的开发容器。非常强大和流行，但对初学者有一定学习曲线。
+            </li>
+        </ul>
+
+        <h3 class="mt-4">验证 PHP 安装</h3>
+        <p>无论你用哪种方式安装，验证 PHP 是否成功安装并可用的基本方法是打开**命令行终端**并输入命令：</p>
+        <ol>
+            <li><strong>打开终端/命令提示符：</strong>
+                <ul>
+                    <li>**Windows:** 按 Win键，输入 `cmd` 或 `powershell`，然后回车。</li>
+                    <li>**macOS:** 在“应用程序” -> “实用工具”里找到“终端 (Terminal)”，或者直接用 Spotlight
+                        搜索“终端”。
+                    </li>
+                    <li>**Linux:** 通常可以在应用程序菜单里找到“终端”或类似程序，或者使用快捷键（如
+                        Ctrl+Alt+T）。
+                    </li>
+                </ul>
+            </li>
+            <li><strong>输入命令：</strong> 在打开的黑色窗口（或类似界面）中，输入以下命令，然后按回车键：
+                <pre><code class="language-bash">php -v</code></pre>
+            </li>
+            <li><strong>查看输出：</strong> 如果 PHP 安装成功并被添加到了系统的 PATH
+                环境变量（大多数集成包会自动做这件事），你应该能看到类似下面的输出（版本号会不同）：
+                <pre><code>PHP 8.1.10 (cli) (built: Aug 30 2022 18:58:15) (NTS)
+Copyright (c) The PHP Group
+Zend Engine v4.1.10, Copyright (c) Zend Technologies</code></pre>
+                如果看到 "command not found" 或类似的错误，说明 PHP 没有被正确安装或环境变量没有配置好。对于集成包，通常重启电脑或查看其文档解决；对于手动安装，需要检查
+                PATH 设置。
+            </li>
+        </ol>
+        <p class="warning">电脑不熟练提示：
+            命令行是开发者常用的工具，用来执行各种命令。不用害怕它，把它想象成一个用文字和电脑对话的窗口就好。我们会逐步学习常用的命令。</p>
+
+        <hr/>
+
+        <h2 id="s1-3">1.3 你的第一个 PHP 脚本 ("Hello, World!")</h2>
+
+        <p>让我们来编写并运行第一个简单的 PHP 程序。</p>
+
+        <ol>
+            <li><strong>创建文件：**</strong> 打开你的文本编辑器（Windows 的记事本，macOS 的 TextEdit（设为纯文本！），或者推荐使用
+                VS
+                Code 这样的代码编辑器），新建一个文件。
+            </li>
+            <li><strong>输入代码：**</strong> 在文件中输入以下内容：
+                <pre><code class="language-php">&lt;?php
+echo 'Hello, World!';
+
+?&gt;</code></pre>
+            </li>
+            <li><strong>保存文件：**</strong>
+                <ul>
+                    <li>将文件保存到一个特定的位置，这个位置必须是你的 Web 服务器能够访问到的地方。这个地方通常被称为文档根目录
+                        (Document Root) 或 Web 根目录。
+                        <ul>
+                            <li>Laragon 用户： 通常保存在 Laragon 安装目录下的 www 文件夹内，例如 C:\laragon\www\。</li>
+                            <li>XAMPP 用户： 通常保存在 XAMPP 安装目录下的 htdocs 文件夹内，例如 C:\xampp\htdocs\ 或
+                                /Applications/XAMPP/htdocs/。
+                            </li>
+                            <li>MAMP 用户： 通常保存在 MAMP 安装目录下的 htdocs 文件夹内。</li>
+                        </ul>
+                    </li>
+                    <li>给文件命名，必须以 .php 结尾，例如，我们把它命名为 hello.php。所以完整路径可能是
+                        C:\laragon\www\hello.php。
+                    </li>
+                </ul>
+            </li>
+            <li><strong>启动 Web 服务器：**</strong> 确保你的集成环境（Laragon, XAMPP, MAMP）已经启动了 Web 服务器（Apache 或
+                Nginx）和
+                PHP 服务。通常它们的主控制面板上有“启动(Start)”按钮。
+            </li>
+            <li><strong>通过浏览器运行：**</strong> 打开你的网页浏览器（Chrome, Firefox 等），在地址栏输入访问这个文件的
+                URL。通常是
+                http://localhost/你的文件名。对于我们保存的 hello.php，地址就是：
+                <pre><code>http://localhost/hello.php</code></pre>
+                按下回车，如果一切正常，你应该会在浏览器页面上看到：
+                <pre><code>Hello, World!</code></pre>
+                <p class="note">如果看到 404 Not Found 错误，检查你的文件名和保存路径是否正确，Web
+                    服务器是否已启动。如果看到代码原文或者提示下载文件，说明 Web 服务器没有正确配置 PHP
+                    处理，检查集成环境的设置。</p>
+            </li>
+            <li><strong>(可选) 通过命令行运行：**</strong> 你也可以直接在命令行终端运行这个脚本。
+                <ul>
+                    <li>首先，使用 cd 命令切换到你保存 hello.php 的目录，例如：
+                        <pre><code class="language-bash">cd C:\laragon\www</code></pre>
+                        (Windows: 注意路径分隔符是 \，可能需要 cd /d C:\... 来切换驱动器)
+                        <pre><code class="language-bash">cd /Applications/XAMPP/htdocs/</code></pre>
+                        (macOS/Linux: 路径分隔符是 /)
+                    </li>
+                    <li>然后运行：
+                        <pre><code class="language-bash">php hello.php</code></pre>
+                    </li>
+                    <li>你应该会在终端直接看到输出：
+                        <pre><code>Hello, World!</code></pre>
+                    </li>
+                </ul>
+                <p class="note">命令行运行 PHP 对于执行维护脚本、工具类程序非常有用，不依赖 Web 服务器。</p>
+            </li>
+        </ol>
+
+        <h3 class="mt-4">代码解释：</h3>
+        <ul>
+            <li><code>&lt;?php</code>: 这是 PHP 代码块的**开始标记**。告诉服务器，从这里开始是 PHP 代码。</li>
+            <li><code>echo</code>: 这是 PHP 的一个**语言结构 (Language
+                Construct)**（可以看作一个特殊的命令），用于**输出**一个或多个字符串到响应中（对于网页，就是输出到
+                HTML；对于命令行，就是输出到终端）。
+            </li>
+            <li><code>'Hello, World!'</code>: 这是一个**字符串 (String)**，用单引号 <code>'</code> 包裹起来的文本。</li>
+            <li><code>;</code>: **分号**表示一个 PHP 语句的结束。**非常重要，几乎每个语句后面都要加分号！**
+                忘记分号是初学者最常见的错误之一。
+            </li>
+            <li><code>?&gt;</code>: 这是 PHP 代码块的**结束标记**。如果文件末尾就是 PHP 代码块结束，这个标记可以省略（在纯
+                PHP 文件中推荐省略）。
+            </li>
+        </ul>
+
+
+        <hr/>
+
+        <h2 id="s1-4">1.4 基础语法规则</h2>
+
+        <ul>
+            <li><strong>PHP 标记:**</strong> PHP 代码必须包含在标记之间：<code>&lt;?php ... ?&gt;</code>。还有一种短标记
+                <code>&lt;?=
+                    ... ?&gt;</code>，它等同于 <code>&lt;?php echo ... ?&gt;</code>，用于快速输出变量或表达式的值（需要确保
+                short_open_tag 配置开启或 PHP 5.4+）。但初学建议坚持使用标准的长标记 <code>&lt;?php</code>。
+            </li>
+            <li><strong>语句与分号:**</strong> PHP 代码由一条条语句组成，每条语句通常以分号 <code>;</code> 结束。</li>
+            <li><strong>注释:**</strong>
+                <ul>
+                    <li>单行注释: 使用 <code>//</code> 或 <code>#</code>，从它开始到行尾的内容都会被忽略。</li>
+                    <li>多行注释: 使用 <code>/*</code> 开始，<code>*/</code> 结束，可以跨越多行。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+// 这是单行注释
+
+这也是单行注释
+/*
+这是一个
+多行注释
+*/
+
+echo '代码中的注释会被 PHP 忽略'; // 行末也可以加注释
+?&gt;</code></pre>
+                <p class="note">写注释是个好习惯，可以帮助你和他人理解代码的意图。</p>
+            </li>
+            <li><strong>大小写敏感性 (Case Sensitivity):**</strong>
+                <ul>
+                    <li>变量名是区分大小写的！<code>$name</code> 和 <code>Name</code>是两个不同的变量。</li>
+                    <li>∗∗常量名默认是区分大小写∗∗的，但<code>define()</code>可以定义不区分大小写的常量（不推荐）。</li>
+                    <li>
+                        ∗∗函数名、类名、方法名、PHP关键字（如<code>echo</code>,<code>if</code>,<code>else</code>,<code>while</code>,<code>class</code>等）通常是不区分大小写∗∗的。但为了代码风格统一和可读性，∗∗强烈建议∗∗遵循通用的大小写规范（例如，函数和变量用小写或驼峰式<code>myFunction</code>，类名用帕斯卡式<code>MyClass</code>）。
+                    </li>
+                </ul>
+            </li>
+            <li><strong>空白符:∗∗</strong>PHP会忽略代码中多余的空格、制表符（Tab）和换行符（除了字符串内部）。良好的缩进和空行可以大大提高代码的可读性。
+            </li>
+        </ul>
+        <hr/>
+        <h2 id="s1−5">1.5变量(Variables)</h2>
+        <p>
+            变量就像一个带标签的“盒子”，你可以往里面放数据，并且之后可以通过标签（变量名）找到和使用这些数据。</p>
+        <ul>
+            <li><strong>声明与赋值:∗∗</strong>
+                <ul>
+                    <li>在PHP中，变量名前必须有一个美元符号<code></code>。</li>
+                    <li>变量不需要在使用前显式声明类型，第一次给它赋值时就自动创建了。</li>
+                    <li>使用赋值运算符 <code>=</code> 来给变量赋值。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$name = 'Alice'; // 创建一个名为 name 的变量，并把字符串 'Alice' 放进去
+$age = 30;      // 创建一个名为 age 的变量，并把整数 30 放进去
+
+echo $name;      // 输出变量 $name 的值: Alice
+echo $age;       // 输出变量 $age 的值: 30
+
+$age = 31;      // 可以改变变量的值
+echo $age;       // 输出: 31
+?&gt;</code></pre>
+            </li>
+            <li><strong>命名规则:**</strong>
+                <ul>
+                    <li>必须以字母或下划线 <code>_</code> 开头。</li>
+                    <li>后面可以跟字母、数字或下划线。</li>
+                    <li>不能包含空格或特殊字符（除了下划线）。</li>
+                    <li>区分大小写！ <code>$myVar</code> 和 <code>$myvar</code> 是不同的变量。</li>
+                    <li>约定俗成：通常使用小写字母开头的驼峰式命名法（如 <code>$firstName</code>）或下划线分隔（如 <code>$first_name</code>）。保持一致性很重要。
+                    </li>
+                </ul>
+                <p class="note">例如：<code>$userName</code>, <code>$_count</code>, <code>$max_value</code>
+                    是有效的；<code>$1var</code>, <code>$user name</code>, <code>$user-name</code> 是无效的。</p>
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s1-6">1.6 数据类型初探 (Data Types Introduction)</h2>
+
+        <p>变量可以存储不同种类的数据。PHP 支持多种数据类型，我们先认识最基础的几种：</p>
+
+        <ul>
+            <li><strong>字符串 (String):**</strong> 表示文本。用单引号 <code>'</code> 或双引号 <code>"</code> 包裹。
+                <pre><code class="language-php">$greeting = "Hello";
+$place = 'World';</code></pre>
+                <p class="note">单引号和双引号有细微区别，后面字符串章节会详细讲。</p>
+            </li>
+            <li><strong>整型 (Integer / int):**</strong> 表示没有小数部分的整数。可以是正数、负数或零。
+                <pre><code class="language-php">$count = 10;
+$temperature = -5;</code></pre>
+            </li>
+            <li><strong>浮点型 (Float / double):**</strong> 表示带小数部分的数字，也叫双精度数或实数。
+                <pre><code class="language-php">$price = 99.95;
+$pi = 3.14159;</code></pre>
+            </li>
+            <li><strong>布尔型 (Boolean / bool):**</strong> 表示真或假，只有两个可能的值：<code>true</code> 或
+                <code>false</code>（不区分大小写）。常用于条件判断。
+                <pre><code class="language-php">$is_active = true;
+$has_error = false;</code></pre>
+            </li>
+            <li><strong>空类型 (NULL):**</strong> 表示一个变量没有值。只有一个特殊值 <code>null</code>（不区分大小写）。变量被赋值为
+                <code>null</code>、尚未被赋值、或者被 <code>unset()</code> 之后，其值就是 NULL。
+                <pre><code class="language-php">$no_value = null;</code></pre>
+            </li>
+        </ul>
+
+        <p>我们可以使用 <code>var_dump()</code> 函数来查看一个变量的类型和值，这在调试时非常有用：</p>
+        <pre><code class="language-php">&lt;?php
+$name = "Bob";
+$items = 15;
+$total = 120.75;
+$logged_in = true;
+$user_data = null;
+
+var_dump($name);      // 输出: string(3) "Bob"
+var_dump($items);     // 输出: int(15)
+var_dump($total);     // 输出: float(120.75)
+var_dump($logged_in); // 输出: bool(true)
+var_dump($user_data); // 输出: NULL
+?&gt;</code></pre>
+        <p class="note"><code>var_dump()</code> 的输出包含了类型、长度（对字符串）或数量（对数组），以及值本身，比
+            <code>echo</code> 提供更多信息。</p>
+
+        <hr/>
+
+        <h2 id="s1-7">1.7 常量 (Constants)</h2>
+
+        <p>
+            常量和变量类似，也用于存储值，但常量一旦被定义，它的值在脚本运行期间就**不能被改变**了。常量名通常使用全大写字母，用下划线分隔单词，这是一种约定俗成的规范。</p>
+
+        <p>定义常量主要有两种方式：</p>
+
+        <ol>
+            <li><strong>使用 <code>define()</code> 函数:**</strong>
+                <ul>
+                    <li>可以在任何地方定义，包括在 <code>if</code> 语句或函数内部。</li>
+                    <li>第一个参数是常量名（字符串），第二个参数是常量的值。</li>
+                    <li>第三个参数（可选，默认为 <code>false</code>）可以设置常量名是否不区分大小写（**强烈不推荐**设为
+                        <code>true</code>）。
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+// 定义常量
+define('PI', 3.14159);
+define('SITE_NAME', 'My Awesome Website');
+
+// 使用常量 (注意常量名前没有 $ 符号)
+echo PI;         // 输出: 3.14159
+echo SITE_NAME;  // 输出: My Awesome Website
+
+// 尝试修改常量的值会导致错误
+// PI = 3.14; // 这会产生错误！
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><strong>使用 <code>const</code> 关键字:**</strong>
+                <ul>
+                    <li>必须在顶层作用域（不能在函数或 <code>if</code> 语句块内部）或类定义内部声明。</li>
+                    <li>在编译时定义，可能比 <code>define()</code> 略快一点点（通常可忽略）。</li>
+                    <li>语法更像变量赋值。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+const EARTH_GRAVITY = 9.8;
+const DEFAULT_USER_ROLE = 'guest';
+
+echo EARTH_GRAVITY;     // 输出: 9.8
+echo DEFAULT_USER_ROLE; // 输出: guest
+?&gt;</code></pre>
+            </li>
+        </ol>
+
+        <p class="note">
+            何时使用常量？当你有一个值，你知道它在程序运行期间不应该改变时，比如数学常数、配置信息（如数据库连接参数，虽然更推荐用配置文件）、固定的状态码等。使用常量可以提高代码的可读性和可维护性。</p>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 1 部分结束 ---</p>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP - Part 9: 数据库交互入门 (PDO)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+            /* Offset for fixed headers if any, or just some space */
+        }
+
+        /* Adding prose styles directly for better control over code blocks etc. */
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        /* Enhanced <pre> style */
+        .prose pre {
+            background-color: #1f2937; /* Dark background */
+            color: #f3f4f6; /* Light text */
+            padding: 1em;
+            border-radius: 0.375rem; /* Rounded corners */
+            overflow-x: auto; /* Horizontal scroll on overflow */
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151; /* Subtle border */
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); /* Optional: subtle shadow */
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre;
+        / Preserve whitespace strictly /
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        /* Using <b> for bold now */
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        /* Keep strong style just in case */
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>PHP - Part 9: 数据库交互入门 (PDO)</h1>
+    <p class="text-gray-500 text-sm">这是 17 部分系列讲义的第九部分。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="s9-intro">引言：为什么与数据库交互？</h2>
+        <p>绝大多数动态网站都需要存储和检索数据，例如用户信息、文章、产品、订单等。这些数据通常存储在**数据库**中。PHP
+            需要一种方式来连接数据库、发送查询指令（SQL 语句）并处理返回的结果。</p>
+        <p>PHP 提供了多种与数据库交互的方式，目前最推荐和最常用的是 <b>PDO (PHP Data Objects)</b> 扩展。</p>
+
+        <h3 id="s9-1">为什么使用 PDO？</h3>
+        <ul>
+            <li><b>数据库抽象层:</b> PDO 提供了一个统一的接口来访问多种不同的数据库（如 MySQL, PostgreSQL, SQLite, SQL
+                Server 等）。这意味着如果你更换数据库类型，大部分 PHP 代码（除了连接字符串和某些特定 SQL 语法）可能不需要修改。
+            </li>
+            <li><b>安全性 - 预处理语句:</b> PDO 强烈推荐并简化了**预处理语句 (Prepared Statements)** 的使用，这是防止
+                **SQL 注入攻击**的最有效方法。
+            </li>
+            <li><b>面向对象接口:</b> 提供了一致的、面向对象的 API。</li>
+            <li><b>异常处理:</b> 可以配置为在数据库操作出错时抛出异常，方便进行统一的错误处理。</li>
+        </ul>
+        <p class="note">除了 PDO，另一个常见的选择是 <b>MySQLi</b> (MySQL Improved Extension)。它<b>只支持
+            MySQL/MariaDB</b> 数据库，也支持预处理语句，并且提供了面向对象和面向过程两种风格的 API。如果你确定你的应用只会使用
+            MySQL，并且更喜欢它的 API 风格，也可以选择 MySQLi。但 PDO 的数据库无关性通常使其成为更通用的选择。</p>
+
+        <hr/>
+
+        <h2 id="s9-2">9.1 启用 PDO 扩展</h2>
+        <p>在使用 PDO 之前，你需要确保对应的 PHP 扩展已经启用。</p>
+        <ol>
+            <li><b>检查是否已启用：</b> 运行包含 <code>&lt;?php phpinfo(); ?&gt;</code> 的脚本，在页面上搜索 "PDO"。你应该能看到
+                "PDO support => enabled" 以及 "PDO drivers" 列表。
+            </li>
+            <li><b>启用 PDO 及驱动：</b> 如果未启用，你需要编辑你的 <code>php.ini</code> 文件（参考 Part 2 如何找到它）：
+                <ul>
+                    <li>确保基础的 PDO 扩展已启用（通常是 <code>extension=pdo</code> 或类似，但这通常是内置的，无需显式启用）。
+                    </li>
+                    <li>启用你需要的**数据库驱动**扩展。例如，对于 MySQL：
+                        <pre><code class="language-ini">extension=pdo_mysql</code></pre>
+                        对于 PostgreSQL:
+                        <pre><code class="language-ini">extension=pdo_pgsql</code></pre>
+                        对于 SQLite:
+                        <pre><code class="language-ini">extension=pdo_sqlite</code></pre>
+                        找到对应的行，去掉行首的分号 <code>;</code>。如果行不存在，则添加它。
+                    </li>
+                </ul>
+            </li>
+            <li><b>重启服务：</b> 修改 <code>php.ini</code> 后，<b>必须重启 PHP-FPM 或 Apache</b> 才能生效。</li>
+        </ol>
+
+        <hr/>
+
+        <h2 id="s9-3">9.2 连接到数据库</h2>
+        <p>使用 PDO 连接数据库通常涉及以下步骤：</p>
+
+        <h3 id="s9-3-1">构建 DSN (Data Source Name)</h3>
+        <p>DSN 是一个字符串，包含了连接数据库所需的信息，格式通常是：<code>驱动名:驱动相关信息</code>。</p>
+        <ul>
+            <li><b>MySQL/MariaDB:</b> <code>mysql:host=服务器地址;dbname=数据库名;port=端口号;charset=字符集</code>
+                <ul>
+                    <li><code>host</code>: 数据库服务器地址（通常是 <code>localhost</code> 或 <code>127.0.0.1</code>）。
+                    </li>
+                    <li><code>dbname</code>: 要连接的数据库名称。</li>
+                    <li><code>port</code> (可选): 端口号（MySQL/MariaDB 默认是 <code>3306</code>）。</li>
+                    <li><code>charset</code> (<b>强烈推荐</b>): 指定连接使用的字符集，应设为 <code>utf8mb4</code> 以支持中文和
+                        Emoji。
+                    </li>
+                </ul>
+                <b>示例：</b> <code>mysql:host=localhost;dbname=mydatabase;charset=utf8mb4</code>
+            </li>
+            <li><b>SQLite:</b> <code>sqlite:/path/to/your/database/file.sqlite</code>
+                <ul>
+                    <li>直接指定 SQLite 数据库文件的路径。</li>
+                </ul>
+                <b>示例：</b> <code>sqlite:/var/www/mydata.sqlite</code> 或 <code>sqlite:C:/Data/mydb.db</code>
+            </li>
+            <li><b>PostgreSQL:</b>
+                <code>pgsql:host=服务器地址;port=端口号;dbname=数据库名;user=用户名;password=密码</code>
+                <ul>
+                    <li>注意：PgSQL 的 DSN 可以直接包含用户名和密码（但不推荐）。</li>
+                </ul>
+                <b>示例：</b> <code>pgsql:host=localhost;port=5432;dbname=mypgdb</code>
+            </li>
+        </ul>
+
+        <h3 id="s9-3-2">创建 PDO 对象</h3>
+        <p>使用 <code>new PDO(...)</code> 构造函数来创建连接。它通常需要 DSN、数据库用户名、密码和可选的连接选项数组。</p>
+        <pre><code class="language-php">&lt;?php
+// --- 连接信息 ---
+// MySQL DSN
+$dsn = "mysql:host=localhost;dbname=test_db;charset=utf8mb4";
+// 数据库用户名
+$username = "root";
+// 数据库密码 (!!! 不应硬编码在代码中，应使用配置文件或环境变量 !!!)
+$password = "your_password"; // 替换成你的密码
+
+// --- PDO 连接选项 (推荐设置) ---
+$options = [
+// 1. 设置错误处理模式为抛出异常 (强烈推荐!)
+// 这样数据库操作出错时会抛出 PDOException，方便用 try...catch 处理
+PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+
+// 2. 设置默认的获取模式为关联数组 (可选, 方便)
+// 这样 fetch() 和 fetchAll() 默认返回关联数组，而不是包含数字索引和关联索引的混合数组
+PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+
+// 3. 禁用模拟预处理语句 (对于支持的驱动, 推荐)
+// 确保预处理语句真正由数据库执行，更安全高效
+PDO::ATTR_EMULATE_PREPARES   => false,
+];
+
+// --- 尝试连接数据库 ---
+try {
+// 创建 PDO 连接实例
+$pdo = new PDO($dsn, $username, $password, $options);
+
+echo "数据库连接成功!";
+// 现在 $pdo 变量就代表了数据库连接，可以用它来执行查询等操作
+} catch (PDOException $e) {
+// 如果连接失败，PDO 会抛出 PDOException 异常
+echo "数据库连接失败: " . $e->getMessage();
+// 在实际应用中，这里应该记录错误日志，并显示用户友好的错误信息，而不是直接暴露错误详情
+// die(); // 终止脚本执行
+}
+
+// 脚本结束时，PHP 会自动关闭数据库连接。
+// 如果需要手动关闭，可以 $pdo = null;
+?></code></pre>
+        <p class="danger"><b>安全提示：</b>切勿将数据库密码等敏感信息直接硬编码在 PHP
+            源代码中！应该使用配置文件、环境变量或其他安全的方式来存储和加载这些凭证。</p>
+        <p class="warning"><b>错误处理模式：</b>设置 <code>PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION</code>
+            至关重要。它让错误处理更规范、更可靠。默认的 <code>PDO::ERRMODE_SILENT</code> 模式下，你需要手动检查每个操作的返回值（通常是
+            <code>false</code>）并调用 <code>$pdo->errorCode()</code> 和 <code>$pdo->errorInfo()</code>
+            来获取错误信息，非常繁琐且容易遗漏。</p>
+
+        <hr/>
+
+        <h2 id="s9-4">9.4 执行 SQL 查询</h2>
+        <p>连接成功后，就可以通过 PDO 对象执行 SQL 语句了。</p>
+
+        <h3 id="s9-4-1">简单查询 (<code>query</code> 和 <code>exec</code> - 仅用于无用户输入的场景！)</h3>
+        <p>对于<b>绝对不包含</b>任何用户输入或动态数据的、固定的 SQL 语句，可以使用 <code>query()</code> 和
+            <code>exec()</code>。</p>
+        <ul>
+            <li><b><code>$pdo-&gt;query(string $statement): PDOStatement|false</code></b>
+                <ul>
+                    <li>主要用于执行 <code>SELECT</code> 查询。</li>
+                    <li>成功时返回一个 <code>PDOStatement</code> 对象，你可以用它来获取结果。</li>
+                    <li>失败时返回 <code>false</code>（如果错误模式不是 Exception）。</li>
+                </ul>
+            </li>
+            <li><b><code>$pdo-&gt;exec(string $statement): int|false</code></b>
+                <ul>
+                    <li>主要用于执行没有结果集返回的语句，如 <code>INSERT</code>, <code>UPDATE</code>,
+                        <code>DELETE</code>, <code>CREATE TABLE</code> 等。
+                    </li>
+                    <li>成功时返回受影响的行数（对于某些数据库或语句可能不准确或为 0）。</li>
+                    <li>失败时返回 <code>false</code>（如果错误模式不是 Exception）。</li>
+                </ul>
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+// !!! 假设 $pdo 连接已建立，并设置为 ERRMODE_EXCEPTION !!!
+
+// --- 使用 query() 执行 SELECT ---
+try {
+// 这个查询是固定的，没有用户输入，所以用 query() 相对安全
+$sql = "SELECT name, email FROM users WHERE status = 'active'";
+$stmt = $pdo->query($sql); // 返回 PDOStatement 对象
+
+echo "&lt;h4&gt;Active Users:&lt;/h4&gt;";
+echo "&lt;ul&gt;";
+// 遍历 PDOStatement 对象获取结果 (稍后详细讲 fetch)
+foreach ($stmt as $row) {
+    echo "&lt;li&gt;" . htmlspecialchars($row['name']) . " (" . htmlspecialchars($row['email']) . ")&lt;/li&gt;";
+}
+echo "&lt;/ul&gt;";
+} catch (PDOException $e) {
+echo "查询失败: " . $e->getMessage();
+}
+
+// --- 使用 exec() 执行 UPDATE ---
+try {
+// 这个 UPDATE 也是固定的
+$sql = "UPDATE products SET price = price * 1.1 WHERE category = 'books'";
+$affectedRows = $pdo->exec($sql); // 返回受影响的行数
+
+echo "更新了 " . $affectedRows . " 本书的价格。";
+} catch (PDOException $e) {
+echo "更新失败: " . $e-\>getMessage();
+}
+?>
+        </code></pre>
+
+        安全警告：绝对不要将任何来自用户（如 $
+
+        SQL 注入
+        <h3 id="s9-4-2">预处理语句 (Prepared Statements - 推荐且安全的方式)</h3>
+        <p>预处理语句是执行 SQL 查询的**首选方法**，尤其是在查询需要包含动态数据（如用户输入）时。它能有效防止 SQL
+            注入攻击。</p>
+        <p><b>工作原理：</b></p>
+        <ol>
+            <li><b>准备 (Prepare):</b> 将包含占位符（而不是实际值）的 SQL 语句模板发送给数据库服务器进行预编译和语法分析。
+            </li>
+            <li><b>绑定 (Bind):</b> 告诉数据库用哪些变量或值来替换 SQL 模板中的占位符。</li>
+            <li><b>执行 (Execute):</b> 执行预编译好的语句，此时传入的数据会被数据库**安全地处理**，不会被当作 SQL
+                代码的一部分执行。
+            </li>
+        </ol>
+        <p><b>占位符 (Placeholders):</b></p>
+        <ul>
+            <li><b>命名占位符 (Named Placeholders):</b> 以冒号 <code>:</code> 开头，后跟一个标识符（如
+                <code>:username</code>, <code>:email</code>）。更易读，顺序无关。<b>(推荐)</b></li>
+            <li><b>位置占位符 (Positional Placeholders):</b> 使用问号 <code>?</code>。绑定值时需要按照问号出现的顺序提供。
+            </li>
+        </ul>
+
+        <p><b>主要步骤和函数：</b></p>
+        <ol>
+            <li><b><code>$pdo-&gt;prepare(string $statement): PDOStatement|false</code></b>
+                <ul>
+                    <li>准备 SQL 语句模板，返回一个 <code>PDOStatement</code> 对象。</li>
+                    <li>示例（命名占位符）: <code>$stmt = $pdo-&gt;prepare("SELECT * FROM users WHERE email =
+                        :email");</code></li>
+                    <li>示例（位置占位符）: <code>$stmt = $pdo-&gt;prepare("SELECT * FROM products WHERE category = ? AND
+                        price &lt; ?");</code></li>
+                </ul>
+            </li>
+            <li><b>绑定参数 (可选，更推荐在 execute 中传递数组)</b>
+                <ul>
+                    <li><code>$stmt-&gt;bindParam(string|int $param, mixed &amp;$variable, int $data_type =
+                        PDO::PARAM_STR, ...): bool</code>
+                        <ul>
+                            <li>将一个**变量** <code>$variable</code> **引用**绑定到占位符 <code>$param</code>（可以是
+                                <code>:name</code> 或 <code>1</code>, <code>2</code>,... 代表第几个问号）。变量的值在
+                                <code>execute()</code> 时才被读取。
+                            </li>
+                        </ul>
+                    </li>
+                    <li><code>$stmt-&gt;bindValue(string|int $param, mixed $value, int $data_type = PDO::PARAM_STR):
+                        bool</code>
+                        <ul>
+                            <li>将一个**值** <code>$value</code> 绑定到占位符 <code>$param</code>。值在绑定时就被固定了。
+                            </li>
+                        </ul>
+                    </li>
+                    <li><code>$data_type</code> (可选): 指定绑定值的 PDO 数据类型，如 <code>PDO::PARAM_INT</code>, <code>PDO::PARAM_STR</code>,
+                        <code>PDO::PARAM_BOOL</code>, <code>PDO::PARAM_NULL</code>。有助于确保类型正确。
+                    </li>
+                    <li class="note"><b>注意：</b>虽然可以手动绑定，但更常见、更简洁的做法是直接在 <code>execute()</code>
+                        时传递一个包含所有参数的数组。
+                    </li>
+                </ul>
+            </li>
+            <li><b><code>$stmt-&gt;execute(?array $params = null): bool</code></b>
+                <ul>
+                    <li>执行预处理语句。</li>
+                    <li><b>推荐方式：</b>传递一个数组 <code>$params</code> 给 <code>execute()</code> 方法来直接提供所有占位符的值。
+                        <ul>
+                            <li>对于<b>命名占位符</b>，传递一个**关联数组**：<code>[':placeholder1' => $value1,
+                                ':placeholder2' => $value2]</code> (冒号可选，写 <code>'placeholder1'</code> 也通常可以)。
+                            </li>
+                            <li>对于<b>位置占位符 (?)</b>，传递一个**索引数组**，值的顺序必须与 <code>?</code> 的顺序一致：<code>[$value1,
+                                $value2]</code>。
+                            </li>
+                        </ul>
+                    </li>
+                    <li>如果之前已经用 <code>bindParam</code>/<code>bindValue</code> 绑定了所有参数，则可以不传参数调用
+                        <code>execute()</code>。
+                    </li>
+                    <li>执行成功返回 <code>true</code>，失败返回 <code>false</code>（如果错误模式不是 Exception）。</li>
+                </ul>
+            </li>
+        </ol>
+
+        <p><b>示例：使用预处理语句进行查询和操作</b></p>
+        <pre><code class="language-php">&lt;?php
+// !!! 假设 $pdo 连接已建立，并设置为 ERRMODE_EXCEPTION !!!
+
+// --- 查询：使用命名占位符 ---
+try {
+$user_email = "[移除了电子邮件地址]"; // 假设这是来自用户输入
+
+// 1. 准备 SQL 语句
+$sql = "SELECT user_id, name FROM users WHERE email = :email";
+$stmt = $pdo->prepare($sql);
+
+// 2. 执行 (直接在 execute 中传递数组)
+$stmt->execute([':email' => $user_email]); // 冒号可选: ['email' => $user_email] 也可
+
+// 3. 获取结果 (后面详细讲)
+$user = $stmt->fetch(); // 获取一行
+
+if ($user) {
+    echo "找到用户: ID = " . $user['user_id'] . ", Name = " . htmlspecialchars($user['name']);
+} else {
+    echo "未找到邮箱为 " . htmlspecialchars($user_email) . " 的用户。";
+}
+} catch (PDOException $e) {
+echo "查询失败: " . $e->getMessage();
+}
+
+echo "\n&lt;hr>\n";
+
+// --- 插入：使用位置占位符 (?) ---
+try {
+$new_username = "Charlie"; // 来自用户输入
+$new_email = "[移除了电子邮件地址]"; // 来自用户输入
+$status = "active"; // 固定值
+
+// 1. 准备 SQL
+$sql = "INSERT INTO users (name, email, status, registration_date) VALUES (?, ?, ?, NOW())";
+$stmt = $pdo->prepare($sql);
+
+// 2. 执行，按顺序传递值的数组
+$stmt->execute([$new_username, $new_email, $status]);
+
+// 3. 获取最后插入的 ID (如果主键是自增的)
+$lastId = $pdo->lastInsertId();
+echo "新用户已插入，ID 为: " . $lastId;
+} catch (PDOException $e) {
+echo "插入失败: " . $e->getMessage();
+}
+
+echo "\n&lt;hr>\n";
+
+// --- 更新：混合使用 bindParam 和 execute 数组 (演示 bindParam) ---
+try {
+$userIdToUpdate = $lastId; // 假设更新刚插入的用户
+$newStatus = "inactive";
+
+// 1. 准备
+$sql = "UPDATE users SET status = :status WHERE user_id = :id";
+$stmt = $pdo->prepare($sql);
+
+// 2. 绑定参数 (演示 bindParam，通常直接在 execute 传数组更方便)
+// bindParam 绑定的是变量的引用
+$stmt->bindParam(':status', $newStatus, PDO::PARAM_STR);
+$stmt->bindParam(':id', $userIdToUpdate, PDO::PARAM_INT);
+
+// 3. 执行 (不传参数，因为已绑定)
+$stmt->execute();
+
+// 获取受影响行数
+$affectedRows = $stmt->rowCount(); // 对 UPDATE/DELETE 通常返回受影响行数
+echo "更新了 " . $affectedRows . " 行。";
+} catch (PDOException $e) {
+echo "更新失败: " . $e->getMessage();
+}
+
+?></code></pre>
+        <p class="danger"><b>始终优先使用预处理语句来处理包含任何动态数据的 SQL 查询，这是防止 SQL
+            注入攻击的最佳实践！</b></p>
+
+        <hr/>
+
+        <h2 id="s9-5">9.5 获取查询结果</h2>
+        <p>当执行 <code>SELECT</code> 查询（无论是通过 <code>$pdo->query()</code> 还是预处理语句
+            <code>$stmt->execute()</code>）后，你需要从返回的 <code>PDOStatement</code> 对象 (<code>$stmt</code>) 中获取数据行。
+        </p>
+
+        <ul>
+            <li><b><code>$stmt-&gt;fetch(int $fetch_style = PDO::FETCH_DEFAULT, ...): mixed</code></b>
+                <ul>
+                    <li>从结果集中获取**下一行**。</li>
+                    <li>返回行的格式取决于 <code>$fetch_style</code> 参数（或连接时设置的 <code>PDO::ATTR_DEFAULT_FETCH_MODE</code>）。常用模式：
+                        <ul>
+                            <li><code>PDO::FETCH_ASSOC</code>: 返回关联数组（列名 => 值）。<b>最常用</b>。</li>
+                            <li><code>PDO::FETCH_NUM</code>: 返回索引数组（0 => 列1值, 1 => 列2值...）。</li>
+                            <li><code>PDO::FETCH_BOTH</code> (默认): 返回同时包含关联和索引键的数组（冗余）。</li>
+                            <li><code>PDO::FETCH_OBJ</code>: 返回一个匿名对象，属性名对应列名
+                                (<code>$row-&gt;column_name</code>)。
+                            </li>
+                            <li><code>PDO::FETCH_CLASS</code>: 获取结果并填充到一个指定类的新实例或现有实例中。</li>
+                        </ul>
+                    </li>
+                    <li>如果结果集中没有更多行，则返回 <code>false</code>。</li>
+                    <li>常用于在 <code>while</code> 循环中逐行处理结果。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+// 假设 $stmt 是一个执行了 SELECT 查询后的 PDOStatement 对象
+try {
+echo "&lt;h4>逐行获取 (关联数组):&lt;/h4>";
+echo "&lt;ul>";
+// 使用 while 循环和 fetch() 逐行读取
+while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) { // 明确指定 FETCH_ASSOC
+echo "&lt;li>Name: " . htmlspecialchars($row['name']) . ", Email: " . htmlspecialchars($row['email']) . "&lt;/li>";
+}
+echo "&lt;/ul>";
+
+// 注意：上面的循环结束后，结果集的内部指针已经到了末尾。
+// 如果想再次获取，需要重新执行 execute()
+} catch (PDOException $e) {
+echo "获取数据失败: " . $e->getMessage();
+}
+?></code></pre>
+            </li>
+            <li class="mt-2"><b><code>$stmt->fetchAll(int $fetch_style = PDO::FETCH_DEFAULT, ...): array</code></b>
+                <ul>
+                    <li>获取结果集中所有剩余的行，并返回一个包含这些行的数组。</li>
+                    <li>返回数组的结构取决于 <code>$fetch_style</code>。如果使用 <code>PDO::FETCH_ASSOC</code>，它会返回一个二维数组（数组的数组）。
+                    </li>
+                    <li class="warning"><b>内存警告：</b> 如果查询结果集非常大，<code>fetchAll()</code>
+                        会尝试将所有数据一次性读入内存，可能导致内存耗尽。对于大数据量，优先使用 <code>fetch()</code> 逐行处理。
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+// 假设 $stmt 是一个新的执行了 SELECT 查询后的 PDOStatement 对象
+try {
+echo "&lt;h4>一次性获取所有行 (关联数组):&lt;/h4>";
+$allUsers = $stmt->fetchAll(PDO::FETCH_ASSOC); // 获取所有行
+
+if ($allUsers) {
+    echo "&lt;pre&gt;";
+    print_r($allUsers); // 打印整个结果数组
+    echo "&lt;/pre&gt;";
+} else {
+    echo "没有找到用户。";
+}
+} catch (PDOException $e) {
+echo "获取数据失败: " . $e->getMessage();
+}
+?></code></pre>
+            </li>
+            <li class="mt-2"><b><code>$stmt->fetchColumn(int $column_number = 0): mixed</code></b>
+                <ul>
+                    <li>只获取结果集中下一行的单个列的值。默认获取第一列 (索引 0)。返回该列的值，或 <code>false</code>
+                        如果没有更多行。
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+// 假设准备了查询： "SELECT COUNT() FROM users"
+try {
+    $stmt = $pdo->prepare("SELECT COUNT() FROM users");
+    $stmt->execute();
+    $userCount = $stmt->fetchColumn(); // 获取第一列（也是唯一一列）的值
+    echo "用户总数: " . $userCount;
+} catch (PDOException $e) { /* ... / }
+?></code></pre>
+            </li>
+            <li class="mt-2"><b><code>$stmt->rowCount(): int</code></b>
+                <ul>
+                    <li>对于 <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code> 语句，通常返回受影响的行数。
+                    </li>
+                    <li class="warning"><b>对于 <code>SELECT</code> 语句，其返回值在不同数据库驱动下行为可能不同，不保证能准确返回结果集中的行数。</b>
+                        不要依赖它来获取 <code>SELECT</code> 结果的数量，应该使用 <code>SELECT COUNT()</code> 查询。
+                    </li>
+                </ul>
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s9-6">9.6 获取最后插入的 ID</h2>
+        <ul>
+            <li><b><code>$pdo-&gt;lastInsertId(?string $name = null): string|false</code></b>
+                <ul>
+                    <li>获取**当前数据库连接**上，**最后一次**执行 <code>INSERT</code> 操作所产生的自增 ID（通常是主键
+                        ID）。
+                    </li>
+                    <li>对于不支持自增 ID 或序列的表/数据库，或者上一个操作不是 INSERT，行为可能未定义或返回 0 或 '0' 或
+                        false。
+                    </li>
+                    <li><code>$name</code> 参数主要用于像 PostgreSQL 这样需要指定序列名称的数据库。对于 MySQL 通常不需要。
+                    </li>
+                    <li>在执行 <code>INSERT</code> 语句**之后**立即调用。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+// 假设 $pdo 连接已建立，并且 users 表有自增主键 user_id
+try {
+$sql = "INSERT INTO users (name, email) VALUES (:name, :email)";
+$stmt = $pdo->prepare($sql);
+$stmt->execute([':name' => 'Frank', ':email' => '[移除了电子邮件地址]']);
+
+$newUserId = $pdo->lastInsertId();
+echo "新插入的用户 ID 是: " . $newUserId;
+} catch (PDOException $e) {
+echo "插入失败: " . $e->getMessage();
+}
+?></code></pre>
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s9-7">9.7 数据库事务 (Transactions)</h2>
+        <p>事务是一系列数据库操作（如多个 INSERT, UPDATE,
+            DELETE）的集合，这些操作被视为一个**原子**工作单元：要么**全部成功**执行，要么在任何一步出错时**全部回滚**（撤销），以保证数据的**一致性**。</p>
+        <p><b>ACID 属性简介：</b></p>
+        <ul>
+            <li><b>原子性 (Atomicity):</b> 事务中的所有操作要么全部完成，要么全部不执行。</li>
+            <li><b>一致性 (Consistency):</b> 事务必须使数据库从一个有效状态转变到另一个有效状态。</li>
+            <li><b>隔离性 (Isolation):</b> 并发执行的事务之间应该相互隔离，一个事务的中间状态不应被其他事务看到（有不同的隔离级别）。
+            </li>
+            <li><b>持久性 (Durability):</b> 一旦事务被提交，其结果就是永久性的，即使系统崩溃也不会丢失。</li>
+        </ul>
+        <p><b>使用场景：</b> 当你需要执行多个相互依赖的数据库操作时，例如银行转账（从账户 A 扣款，向账户 B
+            存款，这两个操作必须同时成功或失败）。</p>
+        <p><b>PDO 中的事务操作：</b>（需要数据库和表类型支持事务，例如 MySQL 的 InnoDB 引擎支持，MyISAM 不支持）</p>
+        <ul>
+            <li><b><code>$pdo-&gt;beginTransaction(): bool</code></b>: 开始一个新事务。这会关闭自动提交模式 (autocommit)。
+            </li>
+            <li><b><code>$pdo-&gt;commit(): bool</code></b>: 提交事务，将事务开始后的所有数据库更改永久保存。</li>
+            <li><b><code>$pdo-&gt;rollBack(): bool</code></b>: 回滚事务，撤销事务开始后的所有数据库更改。</li>
+            <li><b><code>$pdo-&gt;inTransaction(): bool</code></b>: 检查当前是否在一个事务内。</li>
+        </ul>
+
+        <p><b>标准模式：使用 <code>try...catch</code> 块</b></p>
+        <pre><code class="language-php">&lt;?php
+// !!! 假设 $pdo 连接已建立，并设置为 ERRMODE_EXCEPTION !!!
+// 假设有 accounts 表 (id, name, balance)
+
+$fromAccountId = 1;
+$toAccountId = 2;
+$amount = 100.00;
+
+try {
+    // 1. 开始事务
+    $pdo->beginTransaction();
+    echo "开始事务...&lt;br>";
+
+    // 2. 操作 1：从账户 A 扣款
+    $sql1 = "UPDATE accounts SET balance = balance - :amount WHERE id = :id AND balance >= :amount";
+    $stmt1 = $pdo->prepare($sql1);
+    $stmt1->execute([':amount' => $amount, ':id' => $fromAccountId]);
+
+    // 检查扣款是否成功（如果余额不足，受影响行数可能为 0）
+    if ($stmt1->rowCount() === 0) {
+        // 如果扣款失败，抛出异常以触发回滚
+        throw new Exception("账户 " . $fromAccountId . " 余额不足或账户不存在。");
+    }
+    echo "账户 " . $fromAccountId . " 扣款 " . $amount . " 成功。&lt;br&gt;";
+
+
+    // 3. 操作 2：向账户 B 存款
+    $sql2 = "UPDATE accounts SET balance = balance + :amount WHERE id = :id";
+    $stmt2 = $pdo->prepare($sql2);
+    $stmt2->execute([':amount' => $amount, ':id' => $toAccountId]);
+
+     // 检查存款是否成功（如果账户不存在，受影响行数可能为 0）
+    if ($stmt2->rowCount() === 0) {
+        throw new Exception("账户 " . $toAccountId . " 不存在。");
+    }
+    echo "账户 " . $toAccountId . " 存款 " . $amount . " 成功。&lt;br&gt;";
+
+
+    // 4. 如果所有操作都成功，提交事务
+    $pdo->commit();
+    echo "事务成功提交！";
+} catch (Exception $e) { // 这里捕获我们自己抛出的异常和 PDOException
+    // 5. 如果任何一步出错，回滚事务
+    echo "&lt;b class='text-red-600'>错误发生，事务回滚：&lt;/b> " . $e->getMessage() . "&lt;br>";
+    // 检查是否在事务中，如果在则回滚
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+        echo "事务已回滚。";
+    }
+}
+?></code></pre>
+        <p class="note">使用事务可以确保一系列相关数据库操作的原子性和一致性，是编写健壮数据库应用的重要部分。</p>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 9 部分结束 ---</p>
+
+</div>
+</body>
+</html>

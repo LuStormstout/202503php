@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP - Part 3: 运算符详解</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+            /* Offset for fixed headers if any, or just some space */
+        }
+
+        /* Adding prose styles directly for better control over code blocks etc. */
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre; /* Preserve whitespace strictly */
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        /* Using <b> for bold now */
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        /* Keep strong style just in case */
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>PHP - Part 3: 运算符详解</h1>
+    <p class="text-gray-500 text-sm">这是 17 部分系列讲义的第三部分。</p>
+    <p class="warning"><b>注意：</b>从本部分开始，为了解决之前的标签闭合问题，所有加粗文本将使用 <code>&lt;b&gt;...&lt;/b&gt;</code>
+        标签，而不是 <code>&lt;strong&gt;...&lt;/strong&gt;</code>。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="s3-intro">引言：什么是运算符？</h2>
+        <p>运算符是用来对变量和值执行操作的特殊符号。比如，加号 <code>+</code> 是一个运算符，用来执行加法操作。PHP
+            拥有丰富的运算符，涵盖了算术、赋值、比较、逻辑等多个方面。</p>
+
+        <hr/>
+
+        <h2 id="s3-1">3.1 算术运算符 (Arithmetic Operators)</h2>
+        <p>用于执行基本的数学运算。</p>
+        <ul>
+            <li><code>+</code> : 加法 (Addition)</li>
+            <li><code>-</code> : 减法 (Subtraction)</li>
+            <li><code>*</code> : 乘法 (Multiplication)</li>
+            <li><code>/</code> : 除法 (Division)</li>
+            <li><code>%</code> : 取模 / 求余数 (Modulo)</li>
+            <li><code>**</code> : 幂 / 指数 (Exponentiation) (PHP 5.6+)</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+$a = 10;
+$b = 3;
+
+$sum = $a + $b;   // 13
+$diff = $a - $b;  // 7
+$prod = $a * $b;  // 30
+$quot = $a / $b;  // 3.333... (结果是浮点数)
+$mod = $a % $b;   // 1 (10 除以 3 余 1)
+$pow = $a ** $b;  // 1000 (10 的 3 次方)
+
+var_dump($sum, $diff, $prod, $quot, $mod, $pow);
+?&gt;</code></pre>
+        <p class="note"><b>注意：</b>除法 <code>/</code> 总是返回浮点数，即使结果是整数（如 <code>10 / 2</code> 结果是
+            <code>float(5.0)</code>）。取模 <code>%</code> 的结果符号与被除数（<code>$a</code>）相同。</p>
+
+        <hr/>
+
+        <h2 id="s3-2">3.2 赋值运算符 (Assignment Operators)</h2>
+        <p>用于给变量赋值。</p>
+        <ul>
+            <li><code>=</code> : 基本赋值 (将右边的值赋给左边的变量)</li>
+            <li><code>+=</code> : 加后赋值 (<code>$a += $b</code> 等同于 <code>$a = $a + $b</code>)</li>
+            <li><code>-=</code> : 减后赋值</li>
+            <li><code>*=</code> : 乘后赋值</li>
+            <li><code>/=</code> : 除后赋值</li>
+            <li><code>%=</code> : 取模后赋值</li>
+            <li><code>**=</code>: 幂运算后赋值</li>
+            <li><code>.=</code> : 字符串连接后赋值 (后面字符串部分会讲)</li>
+            <li><code>??=</code>: Null 合并赋值 (PHP 7.4+) (后面条件运算符部分会讲)</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+$x = 10;
+
+$x += 5; // $x 现在是 15
+$x -= 3; // $x 现在是 12
+$x *= 2; // $x 现在是 24
+$x /= 6; // $x 现在是 4
+$x %= 3; // $x 现在是 1 (4 除以 3 余 1)
+
+$str = "Hello";
+$str .= " World"; // $str 现在是 "Hello World"
+
+var_dump($x, $str);
+?&gt;</code></pre>
+
+        <hr/>
+
+        <h2 id="s3-3">3.3 比较运算符 (Comparison Operators)</h2>
+        <p>用于比较两个值，并返回一个布尔值（<code>true</code> 或 <code>false</code>）。</p>
+        <ul>
+            <li><code>==</code> : 等于 (Equal) - <b>只比较值</b>，会进行类型转换（类型杂耍）。<b>(不推荐，易出错!)</b></li>
+            <li><code>===</code> : 全等于 / 恒等于 (Identical) - <b>比较值和类型</b>，类型不同直接返回 <code>false</code>。<b>(强烈推荐使用!)</b>
+            </li>
+            <li><code>!=</code> 或 <code>&lt;&gt;</code> : 不等于 (Not equal) - 只比较值，会进行类型转换。</li>
+            <li><code>!==</code> : 不全等于 / 不恒等于 (Not identical) - 比较值和类型。<b>(推荐使用!)</b></li>
+            <li><code>&lt;</code> : 小于 (Less than)</li>
+            <li><code>&gt;</code> : 大于 (Greater than)</li>
+            <li><code>&lt;=</code> : 小于等于 (Less than or equal to)</li>
+            <li><code>&gt;=</code> : 大于等于 (Greater than or equal to)</li>
+            <li><code>&lt;=&gt;</code> : 太空船运算符 / 组合比较符 (Spaceship operator) (PHP 7+)
+                <ul>
+                    <li>如果 <code>$a &lt; $b</code>，返回 <code>-1</code>。</li>
+                    <li>如果 <code>$a == $b</code>，返回 <code>0</code>。</li>
+                    <li>如果 <code>$a &gt; $b</code>，返回 <code>1</code>。</li>
+                    <li>它也进行类型转换比较。</li>
+                </ul>
+            </li>
+        </ul>
+        <p class="danger"><b>再次强调 <code>==</code> vs <code>===</code> 的重要性：</b></p>
+        <pre><code class="language-php">&lt;?php
+$num = 5;
+$str = "5";
+
+var_dump($num == $str);  // 输出: bool(true)  <- 值相等，类型转换后比较
+var_dump($num === $str); // 输出: bool(false) <- 类型不同 (int vs string)
+
+var_dump(0 == false);    // 输出: bool(true)
+var_dump(0 === false);   // 输出: bool(false)
+
+var_dump("" == null);    // 输出: bool(true)
+var_dump("" === null);   // 输出: bool(false)
+
+$a = 10; $b = 20;
+var_dump($a &lt;=&gt; $b); // 输出: int(-1)
+var_dump($a &lt;=&gt; 10); // 输出: int(0)
+var_dump($b &lt;=&gt; $a); // 输出: int(1)
+?&gt;</code></pre>
+        <p><b>结论：</b>为了避免因隐式类型转换带来的意外结果和潜在错误，请养成优先使用 <code>===</code> 和
+            <code>!==</code> 进行比较的习惯。</p>
+
+        <hr/>
+
+        <h2 id="s3-4">3.4 递增/递减运算符 (Increment/Decrement Operators)</h2>
+        <p>用于将变量的值增加或减少 1。</p>
+        <ul>
+            <li><code>++$a</code> (前置递增): 先将 <code>$a</code> 的值加 1，然后返回 <code>$a</code> <b>增加后</b>的值。
+            </li>
+            <li><code>$a++</code> (后置递增): 先返回 <code>$a</code> <b>当前</b>的值，然后将 <code>$a</code> 的值加 1。
+            </li>
+            <li><code>--$a</code> (前置递减): 先将 <code>$a</code> 的值减 1，然后返回 <code>$a</code> <b>减少后</b>的值。
+            </li>
+            <li><code>$a--</code> (后置递减): 先返回 <code>$a</code> <b>当前</b>的值，然后将 <code>$a</code> 的值减 1。
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+$x = 5;
+echo ++$x; // 输出: 6 ($x 变为 6)
+echo $x;   // 输出: 6
+
+$y = 5;
+echo $y++; // 输出: 5 ($y 变为 6)
+echo $y;   // 输出: 6
+
+$m = 5;
+echo --$m; // 输出: 4 ($m 变为 4)
+echo $m;   // 输出: 4
+
+$n = 5;
+echo $n--; // 输出: 5 ($n 变为 4)
+echo $n;   // 输出: 4
+?&gt;</code></pre>
+
+        <hr/>
+
+        <h2 id="s3-5">3.5 逻辑运算符 (Logical Operators)</h2>
+        <p>用于组合条件表达式，通常返回布尔值 <code>true</code> 或 <code>false</code>。</p>
+        <ul>
+            <li><code>and</code> 或 <code>&&</code> : 逻辑与 (And) - 如果两边的操作数都为 <code>true</code>，则结果为
+                <code>true</code>。
+            </li>
+            <li><code>or</code> 或 <code>||</code> : 逻辑或 (Or) - 如果两边的操作数至少有一个为 <code>true</code>，则结果为
+                <code>true</code>。
+            </li>
+            <li><code>xor</code> : 逻辑异或 (Xor) - 如果两边的操作数有且只有一个为 <code>true</code>，则结果为
+                <code>true</code>。
+            </li>
+            <li><code>!</code> : 逻辑非 (Not) - 将操作数的值取反（<code>true</code> 变
+                <code>false</code>，<code>false</code> 变 <code>true</code>）。
+            </li>
+        </ul>
+        <p class="note"><b><code>and</code> vs <code>&&</code> / <code>or</code> vs <code>||</code> 的区别：</b>
+            它们的逻辑功能相同，但**运算符优先级不同**。<code>&&</code> 和 <code>||</code> 的优先级高于 <code>and</code> 和
+            <code>or</code>，也高于赋值运算符 <code>=</code>。而 <code>and</code> 和 <code>or</code> 的优先级低于
+            <code>=</code>。</p>
+        <pre><code class="language-php">&lt;?php
+$result1 = true && false; // false
+$result2 = true || false; // true
+$result3 = true xor false;// true
+$result4 = !true;        // false
+
+// 优先级示例
+$e = false || true; // $e 会被赋值为 (false || true) 的结果，即 true
+var_dump($e); // bool(true)
+
+$f = false or true; // 等号 = 的优先级高于 or，所以先执行 $f = false，然后才计算 false or true (结果被丢弃)
+var_dump($f); // bool(false) <-- 容易出错！
+
+// 要达到 || 的效果，需要加括号
+$g = (false or true);
+var_dump($g); // bool(true)
+?&gt;</code></pre>
+        <p class="warning"><b>建议：</b>为了避免优先级混淆，建议始终使用 <code>&&</code> 和 <code>||</code> 进行逻辑与和或运算。
+        </p>
+        <p><b>短路求值 (Short-circuiting):</b> 逻辑运算符 <code>&&</code> 和 <code>||</code> 具有短路特性。
+        <ul>
+            <li>对于 <code>A && B</code>，如果 <code>A</code> 为 <code>false</code>，那么整个表达式结果必定为
+                <code>false</code>，<b>PHP 就不会再去计算或执行 B</b>。
+            </li>
+            <li>对于 <code>A || B</code>，如果 <code>A</code> 为 <code>true</code>，那么整个表达式结果必定为
+                <code>true</code>，<b>PHP 就不会再去计算或执行 B</b>。
+            </li>
+        </ul>
+        <p>这在某些情况下可以用来优化代码或避免不必要的函数调用。</p>
+        <pre><code class="language-php">&lt;?php
+function check() {
+    echo "检查函数被调用了! ";
+    return true;
+}
+
+$result_and = false && check(); // 因为第一个是 false，check() 不会被调用
+echo "\n";
+$result_or = true || check();   // 因为第一个是 true，check() 不会被调用
+?&gt;</code></pre>
+
+        <hr/>
+
+        <h2 id="s3-6">3.6 字符串连接运算符 (String Concatenation Operator)</h2>
+        <ul>
+            <li><code>.</code> : 连接运算符 (Concatenation) - 将两个字符串连接起来。</li>
+            <li><code>.=</code> : 连接后赋值 (Concatenating assignment) - 将右边的字符串附加到左边字符串变量的末尾。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+$firstName = "张";
+$lastName = "三";
+$fullName = $firstName . $lastName; // $fullName 变为 "张三"
+
+$greeting = "你好, ";
+$greeting .= $fullName; // $greeting 变为 "你好, 张三"
+
+echo $greeting;
+?&gt;</code></pre>
+
+        <hr/>
+
+        <h2 id="s3-7">3.7 数组运算符 (Array Operators)</h2>
+        <p>用于处理数组。</p>
+        <ul>
+            <li><code>+</code> : 联合 (Union) - 将右边数组中<b>不存在于</b>左边数组的键值对合并到左边数组。<b>注意：</b>对于相同的数字键，它<b>不会</b>覆盖；对于相同的字符串键，左边数组的值优先。
+            </li>
+            <li><code>==</code> : 等于 (Equal) - 如果两个数组拥有相同的键值对（顺序无关），则为 <code>true</code>。会进行类型转换比较值。
+            </li>
+            <li><code>===</code> : 全等于 (Identical) - 如果两个数组拥有相同的键值对，<b>并且顺序和类型都相同</b>，则为
+                <code>true</code>。
+            </li>
+            <li><code>!=</code> 或 <code>&lt;&gt;</code> : 不等于</li>
+            <li><code>!==</code> : 不全等于</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+$arr1 = ['a' => 1, 'b' => 2];
+$arr2 = ['b' => 20, 'c' => 3];
+$union = $arr1 + $arr2; // $union 会是 ['a' => 1, 'b' => 2, 'c' => 3] ('b' => 20 被忽略)
+var_dump($union);
+
+$arr3 = ['a' => 1, 'b' => '2']; // 注意 '2' 是字符串
+$arr4 = ['b' => 2, 'a' => 1]; // 顺序不同，'b' 的值是整数
+
+var_dump($arr1 == $arr3); // 输出: bool(true)  (类型转换后比较)
+var_dump($arr1 === $arr3); // 输出: bool(false) (类型不同)
+var_dump($arr1 == $arr4); // 输出: bool(true)  (顺序无关)
+var_dump($arr1 === $arr4); // 输出: bool(false) (顺序不同)
+?&gt;</code></pre>
+        <p class="note">数组的联合运算符 <code>+</code> 的行为比较特殊，通常使用 <code>array_merge()</code>
+            函数来进行数组合并更符合预期。</p>
+
+        <hr/>
+
+        <h2 id="s3-8">3.8 条件赋值运算符 (Conditional Assignment Operators)</h2>
+
+        <h4 id="s3-8-1">三元运算符 (Ternary Operator) <code>?:</code></h4>
+        <p><code>(条件) ? (条件为真时的值) : (条件为假时的值)</code></p>
+        <p>它是 <code>if...else...</code> 语句的一个简洁写法，用于根据条件赋不同的值。</p>
+        <pre><code class="language-php">&lt;?php
+$age = 20;
+$status = ($age >= 18) ? '成年' : '未成年'; // 如果 $age >= 18，$status = '成年'，否则为 '未成年'
+echo $status; // 输出: 成年
+
+// PHP 5.3+ 支持省略中间部分: (表达式1) ?: (表达式2)
+// 如果表达式1的值为 true (转换后)，则结果是表达式1的值，否则是表达式2的值。
+$username = $_GET['user'] ?: 'guest'; // 如果 $_GET['user'] 存在且不为空/0/false，则 $username = $_GET['user']，否则为 'guest'
+// 这类似于 $username = isset($_GET['user']) && $_GET['user'] ? $_GET['user'] : 'guest'; 但更简洁
+
+echo $username; // (取决于 URL 中是否有 ?user=... 参数)
+?&gt;</code></pre>
+
+        <h4 id="s3-8-2">Null 合并运算符 (Null Coalescing Operator) <code>??</code> (PHP 7+)</h4>
+        <p><code>(表达式1) ?? (表达式2)</code></p>
+        <p>用于简化“检查变量是否存在且不为 NULL，如果不是则使用默认值”的常见模式。</p>
+        <ul>
+            <li>如果 <code>表达式1</code> **存在且值不是 <code>null</code>**，则结果是 <code>表达式1</code> 的值。</li>
+            <li>否则（<code>表达式1</code> 不存在或值为 <code>null</code>），结果是 <code>表达式2</code> 的值。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+// 假设 $_GET['username'] 未设置或为 null
+$name = $_GET['username'] ?? '默认用户'; // $name 将被赋值为 '默认用户'
+echo $name;
+
+// 可以链式使用
+$preferred_name = $user_nickname ?? $user_realname ?? '访客';
+// 它会依次检查 $user_nickname, $user_realname 是否存在且不为 null，
+// 返回第一个不为 null 的值，如果都为 null 或不存在，则返回 '访客'
+?&gt;</code></pre>
+        <p class="note"><code>??</code> 比起用三元运算符配合 <code>isset()</code> (<code>isset($var) ? $var :
+            'default'</code>) 要简洁得多，并且不会因为变量未定义而产生 Notice 级别的错误。</p>
+
+        <h4 id="s3-8-3">Null 合并赋值运算符 (Null Coalescing Assignment Operator) <code>??=</code> (PHP 7.4+)</h4>
+        <p><code>$variable ??= $default_value;</code></p>
+        <p>这是 Null 合并运算符的赋值版本。它等同于：</p>
+        <pre><code class="language-php">if (!isset($variable) || is_null($variable)) {
+    $variable = $default_value;
+}
+// 或者更简洁地理解为：
+$variable = $variable ?? $default_value;</code></pre>
+        <p>如果 <code>$variable</code> 不存在或为 <code>null</code>，则将 <code>$default_value</code> 赋给它。</p>
+        <pre><code class="language-php">&lt;?php
+$config['timeout'] = null;
+
+$config['timeout'] ??= 30; // 因为 $config['timeout'] 是 null，所以赋值为 30
+var_dump($config['timeout']); // 输出: int(30)
+
+$config['retry'] = 5;
+$config['retry'] ??= 3;   // 因为 $config['retry'] 不是 null，所以不赋值
+var_dump($config['retry']); // 输出: int(5)
+
+// $config['new_option'] ??= 'default'; // 如果 $config['new_option'] 未设置，则赋值为 'default'
+?&gt;</code></pre>
+
+        <hr/>
+
+        <h2 id="s3-9">3.9 其他运算符</h2>
+
+        <ul>
+            <li><strong>位运算符 (Bitwise Operators):**</strong> <code>&</code> (按位与), <code>|</code> (按位或),
+                <code>^</code>
+                (按位异或), <code>~</code> (按位取反), <code>&lt;&lt;</code> (左移), <code>&gt;&gt;</code>
+                (右移)。用于直接操作变量的二进制位。在常规 Web 开发中不常用，但在底层编程、加密、标志位操作等场景可能用到。初学者可以暂时跳过。
+            </li>
+            <li class="danger"><strong>错误控制运算符 (Error Control Operator):**</strong> <code>@</code>。放在表达式（如函数调用）前面，可以抑制该表达式产生的**非致命**错误信息（注意：它不能抑制致命错误
+                Fatal Error）。<b>强烈不推荐使用！</b>因为它让错误静默，使得调试变得非常困难。正确的做法是配置好错误报告级别
+                (<code>error_reporting</code>) 并处理可能发生的错误（例如用 <code>try...catch</code> 或检查函数返回值）。
+            </li>
+            <li><strong>执行运算符 (Execution Operator):**</strong> 反引号 `` ` `` `` (注意不是单引号！)。PHP
+                会尝试将反引号之间的内容作为
+                shell 命令来执行，并返回命令的输出。
+                <pre><code class="language-php">&lt;?php
+// 假设在 Linux/macOS 系统
+// $output = `ls -la`; // 执行 ls -la 命令
+// echo "&lt;pre&gt;$output&lt;/pre&gt;"; // 输出命令结果
+
+// $who = `whoami`; // 获取当前用户名
+?&gt;</code></pre>
+                <p class="danger"><b>极度危险！</b>这个运算符非常容易引入**命令注入安全漏洞**，如果反引号中的内容受到用户输入的影响，攻击者可能执行任意服务器命令！<b>强烈建议禁用或永不使用它</b>。应使用更安全的函数如
+                    <code>shell_exec()</code>, <code>exec()</code>, <code>system()</code>, <code>passthru()</code>
+                    并对输入进行严格的过滤和转义，或者最好使用专门的库来与外部程序交互。</p></li>
+            <li><strong>类型运算符 (Type Operator):**</strong> <code>instanceof</code>。用于判断一个对象是否是某个类的实例，或者是继承自该类，或者是实现了某个接口。将在
+                OOP 章节讲解。
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s3-10">3.10 运算符优先级与结合性 (Precedence & Associativity)</h2>
+        <p>当一个表达式中包含多个不同的运算符时，哪个先计算？这就是**优先级**。例如，乘法 <code>*</code> 的优先级高于加法
+            <code>+</code>，所以 <code>2 + 3 * 4</code> 的结果是 <code>14</code> (先算 <code>3 * 4</code>) 而不是 <code>20</code>。
+        </p>
+        <p>
+            如果运算符优先级相同，计算顺序则由**结合性**决定。大多数运算符是左结合的（从左到右计算），但有些（如三元运算符、赋值运算符）是右结合的。</p>
+        <p class="warning"><b>不要死记硬背优先级！</b>虽然了解基本的优先级（算术 > 比较 > 逻辑 >
+            赋值）有帮助，但最清晰、最不易出错的方法是：**在复杂的表达式中使用圆括号 <code>()</code> 来明确指定计算顺序！**
+        </p>
+        <pre><code class="language-php">&lt;?php
+$result = 2 + 3 * 4; // 14 (乘法优先)
+$result_grouped = (2 + 3) * 4; // 20 (括号优先)
+
+$a = 5; $b = 10; $c = 15;
+// $check = $a < $b && $b < $c; // true (逻辑运算符优先级低于比较运算符)
+$check = ($a < $b) && ($b < $c); // 加括号更清晰
+
+$x = $y = $z = 10; // 赋值运算符是右结合，等同于 $x = ($y = ($z = 10));
+?&gt;</code></pre>
+        <p>完整的运算符优先级和结合性表可以在 PHP 官方文档中找到，建议在遇到疑问时查阅：<a
+                href="https://www.php.net/manual/zh/language.operators.precedence.php" target="_blank"
+                class="text-blue-600 hover:text-blue-800 hover:underline">PHP Manual: Operator Precedence</a></p>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 3 部分结束 ---</p>
+
+</div>
+</body>
+</html>

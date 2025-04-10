@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP - Part 10: Cookie 与 Session</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+            /* Offset for fixed headers if any, or just some space */
+        }
+
+        /* Adding prose styles directly for better control over code blocks etc. */
+
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        /* Enhanced <pre> style */
+
+        .prose pre {
+            background-color: #1f2937; /* Dark background */
+            color: #f3f4f6; /* Light text */
+            padding: 1em;
+            border-radius: 0.375rem; /* Rounded corners */
+            overflow-x: auto; /* Horizontal scroll on overflow */
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151; /* Subtle border */
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); /* Optional: subtle shadow */
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre; /* Preserve whitespace strictly */
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        /* Using <b> for bold now */
+
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        /* Keep strong style just in case */
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>PHP - Part 10: Cookie 与 Session</h1>
+    <p class="text-gray-500 text-sm">这是 17 部分系列讲义的第十部分。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="s10-intro">引言：HTTP 的无状态性与状态保持</h2>
+        <p>HTTP 协议本身是<b>无状态 (Stateless)</b> 的。这意味着，对于 Web 服务器来说，每个来自用户的 HTTP
+            请求都是完全独立的，它默认不知道这些请求是否来自同一个用户，也不知道用户之前的操作历史。这就好比一个记忆力只有几秒钟的服务员，你每次跟他说话都得重新介绍自己。
+        </p>
+        <p>但在实际的 Web 应用中，我们通常需要“记住”用户，比如：</p>
+        <ul>
+            <li>用户登录后，在访问其他页面时保持登录状态。</li>
+            <li>记录用户的偏好设置（如语言、主题）。</li>
+            <li>跟踪用户在购物车中添加的商品。</li>
+        </ul>
+        <p>为了解决 HTTP 无状态的问题，人们发明了主要两种技术来**保持状态 (State Management)**：<b>Cookie</b> 和 <b>Session</b>。
+        </p>
+
+        <hr/>
+
+        <h2 id="s10-1">10.1 Cookie</h2>
+
+        <h3 id="s10-1-1">什么是 Cookie？</h3>
+        <ul>
+            <li>Cookie 是服务器发送到用户浏览器并保存在**用户本地计算机**上的一小块数据（通常是文本文件）。</li>
+            <li>当浏览器下次向<b>同一个服务器</b>（或在指定域名和路径范围内）发送请求时，会自动**携带**这些 Cookie
+                数据一并发送给服务器。
+            </li>
+            <li>服务器可以通过读取请求中的 Cookie 数据来识别用户或获取之前的状态信息。</li>
+            <li><b>类比：</b> 就像你去存包处存包，服务员给了你一张写着号码的**小票
+                (Cookie)**。下次你拿着小票回来，服务员就知道该给你哪个包，而不需要记住你这个人。
+            </li>
+        </ul>
+
+        <h3 id="s10-1-2">用途</h3>
+        <ul>
+            <li><b>会话管理：</b> 存储登录令牌、用户标识等（虽然 Session 更常用于此）。</li>
+            <li><b>个性化：</b> 存储用户偏好，如网站主题、语言选择等。</li>
+            <li><b>追踪：</b> 记录用户行为，用于网站分析或广告投放（例如 Google Analytics 就使用了 Cookie）。</li>
+        </ul>
+
+        <h3 id="s10-1-3">在 PHP 中设置 Cookie: <code>setcookie()</code></h3>
+        <p>使用 <code>setcookie()</code> 函数来发送一个 <code>Set-Cookie</code> HTTP 标头给浏览器，指示浏览器存储一个
+            Cookie。</p>
+        <p><b>语法：</b></p>
+        <pre><code class="language-php">setcookie(
+string $name,                // Cookie 的名称
+string $value = "",          // Cookie 的值 (会被自动 URL 编码)
+int $expires_or_options = 0, // 过期时间 (Unix 时间戳) 或 选项数组 (PHP 7.3+)
+string $path = "",           // 有效路径 (默认当前目录, '/' 表示整个域名)
+string $domain = "",         // 有效域名 (默认当前域名, '.example.com' 可用于子域名)
+bool $secure = false,         // true 表示仅通过 HTTPS 发送
+bool $httponly = false        // true 表示禁止 JavaScript 访问 (提高安全性)
+): bool</code></pre>
+        <p class="danger"><b>重要规则：</b><code>setcookie()</code> 函数必须在任何实际输出 (HTML, echo, PHP 块外的空格等)
+            发送到浏览器之前调用，因为它需要修改 HTTP 标头。</p>
+        <p><b>参数详解：</b></p>
+        <ul>
+            <li><code>name</code>:Cookie的名字，会作为<code>_COOKIE</code> 数组的键。</li>
+            <li><code>$value</code>: Cookie 的值。存储前最好进行适当的编码或加密（如果包含敏感信息）。</li>
+            <li><code>$expires_or_options</code>:
+                <ul>
+                    <li><b>过期时间戳 (int):</b> 一个 Unix 时间戳（从 1970年1月1日 00:00:00 GMT 起的秒数）。通常用 <code>time()
+                        + 秒数</code> 来设置。例如 <code>time() + 3600</code> 表示一小时后过期。
+                    </li>
+                    <li><b><code>0</code> (默认):</b> 表示这是一个会话 Cookie，当用户关闭浏览器时，这个 Cookie 会被删除。
+                    </li>
+                    <li><b>过去的时间戳:</b> (例如 <code>time() - 3600</code>) 用于删除一个已存在的 Cookie。</li>
+                    <li><b>选项数组 (PHP 7.3+):</b> 可以用一个关联数组传递所有选项，更清晰：<code>['expires' => time() +
+                        3600, 'path' => '/', 'secure' => true, 'httponly' => true, 'samesite' => 'Strict']</code>。<code>samesite</code>
+                        属性（<code>'Strict'</code>, <code>'Lax'</code>, <code>'None'</code>）用于控制跨站请求时 Cookie
+                        的发送策略，增强 CSRF 防护。
+                    </li>
+                </ul>
+            </li>
+            <li><code>$path</code>: Cookie 在服务器上的有效路径。设为 <code>'/'</code> 通常意味着 Cookie 对整个网站都有效。
+            </li>
+            <li><code>$domain</code>: Cookie 有效的域名。如果设为 <code>'https://www.google.com/url?sa=E&amp;source=gmail&amp;q=.example.com'</code>（注意前面的点），则该
+                Cookie 对 <code>example.com</code> 及其所有子域名（如 <code>www.example.com</code>, <code>apihttps://www.google.com/url?sa=E&amp;source=gmail&amp;q=.example.com</code>）都有效。
+            </li>
+            <li><code>$secure</code>: 如果设为 <code>true</code>，该 Cookie 只会在通过安全的 HTTPS
+                连接发送时才会被传输。<b>强烈推荐对包含敏感信息的 Cookie 设置为 true。</b></li>
+            <li><code>$httponly</code>: 如果设为 <code>true</code>，该 Cookie 将不能通过客户端脚本（如 JavaScript 的
+                <code>document.cookie</code>）访问。这有助于防范 XSS 攻击窃取 Cookie。<b>强烈推荐设置为 true。</b></li>
+        </ul>
+
+        <p><b>示例：设置一个用户偏好 Cookie</b></p>
+        <pre><code class="language-php">&lt;?php
+// 设置一个名为 "theme" 的 Cookie，值为 "dark"，有效期为 30 天
+$cookie_name = "theme";
+$cookie_value = "dark";
+$expiry_time = time() + (86400 * 30); // 86400 秒 = 1 天
+
+// 调用 setcookie()，在所有 HTML 输出之前
+setcookie($cookie_name, $cookie_value, $expiry_time, "/", "", true, true); // 路径设为'/', 开启 secure 和 httponly
+
+// PHP 7.3+ 的选项数组方式:
+/*
+setcookie($cookie_name, $cookie_value, [
+'expires' => $expiry_time,
+'path' => '/',
+'domain' => '', // 默认当前域名
+'secure' => true,
+'httponly' => true,
+'samesite' => 'Lax' // Lax 或 Strict 通常比 None 更安全
+]);
+*/
+
+?>
+&lt;!DOCTYPE html>
+&lt;html>
+&lt;head>&lt;title>设置 Cookie&lt;/title>&lt;/head>
+&lt;body>
+&lt;p>Cookie "theme" 已设置 (或尝试设置)。&lt;/p>
+&lt;p>下次访问时，浏览器会自动带上这个 Cookie。&lt;/p>
+&lt;/body>
+&lt;/html>
+</code></pre>
+
+        <h3 id="s10-1-4">在 PHP 中读取 Cookie: <code>$_COOKIE</code></h3>
+        <p>浏览器发送回来的 Cookie 数据存储在 <code>$_COOKIE</code> 超全局数组中。这是一个关联数组，键是 Cookie 的名称，值是
+            Cookie 的值。</p>
+        <p class="note"><b>注意：</b><code>$_COOKIE</code> 只包含当前请求**已经**发送过来的 Cookie。你在当前脚本中使用
+            <code>setcookie()</code> 设置的 Cookie，要到**下一次**浏览器请求时才能在 <code>$_COOKIE</code> 中读取到。</p>
+        <pre><code class="language-php">&lt;?php
+// 检查名为 "theme" 的 Cookie 是否存在
+if (isset($_COOKIE['theme'])) {
+// 获取 Cookie 值 (注意安全输出)
+user_theme=htmlspecialchars(_COOKIE['theme']);
+echo "检测到用户偏好主题: " . $user_theme;
+
+// 可以根据 $user_theme 的值来应用不同的 CSS 样式等
+// if ($user_theme === 'dark') { ... }
+} else {
+echo "未检测到 'theme' Cookie。可能需要设置默认主题。";
+}
+?></code></pre>
+
+        <h3 id="s10-1-5">修改和删除 Cookie</h3>
+        <ul>
+            <li><b>修改：</b> 再次调用 <code>setcookie()</code>，使用相同的 <code>$name</code>, <code>$path</code>, <code>$domain</code>，但提供新的
+                <code>$value</code> 或 <code>$expires</code>。
+            </li>
+            <li><b>删除：</b> 调用 <code>setcookie()</code>，使用相同的 <code>$name</code>, <code>$path</code>, <code>$domain</code>，并将
+                <code>$expires</code> 设置为一个**过去的时间戳**。同时将 <code>$value</code> 设为空字符串 <code>""</code>
+                通常是好习惯。
+                <pre><code class="language-php">&lt;?php
+// 删除名为 "theme" 的 Cookie
+// 必须使用与设置时相同的 path 和 domain (如果设置过)
+setcookie("theme", "", time() - 3600, "/"); // 设置过期时间为1小时前
+?>
+&lt;p>尝试删除 Cookie "theme"。下次请求时应该就不存在了。&lt;/p></code></pre>
+            </li>
+        </ul>
+
+        <h3 id="s10-1-6">Cookie 的局限与安全</h3>
+        <ul>
+            <li><b>大小和数量限制：</b> 每个域名下存储的 Cookie 总大小和数量有限制（通常每个 Cookie 约 4KB，每个域名几十个）。
+            </li>
+            <li><b>性能开销：</b> Cookie 会在每次 HTTP 请求中被发送，即使请求的是图片、CSS 等静态资源，也可能增加请求头的大小。
+            </li>
+            <li><b>用户可控：</b> 用户可以查看、修改、删除甚至禁用 Cookie。<b>永远不要完全信任 Cookie 中的数据！</b></li>
+            <li><b>安全性：</b>
+                <ul>
+                    <li><b>传输安全：</b> 如果网站不是 HTTPS，Cookie 在传输过程中可能被窃听。务必对敏感 Cookie 使用 <code>secure</code>
+                        标志。
+                    </li>
+                    <li><b>存储安全：</b> 不要在 Cookie 中直接存储密码、用户 ID 等高度敏感信息。如果必须存储标识，应使用难以猜测、有过期时间的随机令牌。
+                    </li>
+                    <li><b>XSS 攻击：</b> 如果网站存在 XSS 漏洞，攻击者的 JavaScript 代码可能读取到非 HttpOnly 的
+                        Cookie。务必设置 <code>httponly</code> 标志。
+                    </li>
+                    <li><b>CSRF 攻击：</b> Cookie 会被自动发送，可能被用于 CSRF 攻击。使用 <code>samesite</code> 属性（Lax 或
+                        Strict）可以提供一定程度的防护。
+                    </li>
+                </ul>
+            </li>
+        </ul>
+
+
+        <hr/>
+
+        <h2 id="s10-2">10.2 Session (会话)</h2>
+
+        <h3 id="s10-2-1">什么是 Session？</h3>
+        <ul>
+            <li>Session 提供了一种在**服务器端**存储用户相关信息的方式，以跨越多个页面请求。</li>
+            <li>当一个会话开始时，PHP 会为该用户生成一个唯一的**会话 ID (Session ID)**。</li>
+            <li>这个 Session ID 通常通过 Cookie (默认名为 <code>PHPSESSID</code>) 发送给用户的浏览器。</li>
+            <li>浏览器在后续请求中会带上这个 Session ID Cookie。</li>
+            <li>服务器端的 PHP 根据接收到的 Session ID，找到对应的**会话数据存储**（通常是服务器上的一个文件），并恢复该用户的数据到
+                <code>$_SESSION</code> 超全局数组中。
+            </li>
+            <li><b>类比：</b> 服务器为每个访客分配了一个带锁的**临时储物柜 (Session 文件)**，并给了访客一把**钥匙 (Session
+                ID Cookie)**。访客每次来访时出示钥匙，服务器就能找到对应的储物柜，存取物品（会话数据）。
+            </li>
+        </ul>
+        <p><b>与 Cookie 的主要区别：</b></p>
+        <ul>
+            <li><b>存储位置：</b> Session 数据存储在**服务器端**，Cookie 存储在**客户端浏览器**。</li>
+            <li><b>安全性：</b> Session 通常比 Cookie 更安全，因为实际数据不在客户端，客户端只有 Session ID。</li>
+            <li><b>存储容量：</b> Session 能存储的数据量远大于 Cookie（主要受服务器磁盘/内存限制）。</li>
+            <li><b>依赖关系：</b> Session 通常依赖 Cookie 来存储和传递 Session ID（虽然也可以通过 URL 参数传递，但不推荐）。
+            </li>
+        </ul>
+
+        <h3 id="s10-2-2">使用 Session</h3>
+
+        <p class="danger"><b>第一步，也是最重要的一步：<code>session_start()</code></b></p>
+        <ul>
+            <li><b>必须</b>在脚本中**任何输出被发送到浏览器之前**调用 <code>session_start()</code> 函数。</li>
+            <li>它的作用是启动或恢复会话。它会检查请求中是否包含有效的 Session ID Cookie，如果是，则加载对应的会话数据到
+                <code>$_SESSION</code> 数组；如果没有或无效，则创建一个新的 Session ID 并发送给浏览器。
+            </li>
+            <li>**每个需要访问会话数据的 PHP 脚本，都必须在其开头调用 <code>session_start()</code>。**</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+// 必须在脚本顶部，任何输出之前调用！
+session_start();
+
+// 现在可以访问 $_SESSION 数组了
+
+// ... 后续代码 ...
+?>
+&lt;!DOCTYPE html>
+&lt;!-- ... --></code></pre>
+
+        <p><b>存储和读取 Session 数据：<code>$_SESSION</code></b></p>
+        <ul>
+            <li><code>$_SESSION</code> 是一个超全局关联数组。你可以像操作普通数组一样读写它。</li>
+            <li>PHP 会在脚本执行结束时，自动将 <code>$_SESSION</code> 数组的内容序列化并保存到服务器端的会话存储中。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+session_start(); // 开启或恢复会话
+
+// --- 存储数据 ---
+// 假设用户登录成功
+$_SESSION['user_id'] = 123;
+$_SESSION['username'] = 'Alice';
+$_SESSION['login_time'] = time();
+$\_SESSION['preferences'] = ['theme' =\> 'dark', 'lang' =\> 'zh'];
+echo "Session 数据已设置。\_SESSION['username'])) {
+echo "欢迎回来, " . htmlspecialchars($_SESSION['username']) . "!&lt;br>";
+} else {
+echo "用户未登录。&lt;br>";
+}
+
+// 使用 ?? 提供默认值
+$lang = $_SESSION['preferences']['lang'] ?? 'en';
+echo "用户语言设置: " . htmlspecialchars($lang) . "&lt;br>";
+
+// --- 修改数据 ---
+_SESSION[
+′
+ preferences
+′
+ ][
+′
+ lang
+′
+ ]=
+′
+ en_US
+′
+ ;//−−−删除单个session变量−−−unset(_SESSION['login_time']);
+
+?></code></pre>
+
+        <h3 id="s10-2-3">销毁 Session (Logout / 退出登录)</h3>
+        <p>当用户退出登录或需要完全结束一个会话时，需要执行以下步骤来彻底销毁 Session：</p>
+        <ol>
+            <li><b><code>session_start();</code></b>: 必须先启动会话才能操作它。</li>
+            <li><b>清空 <code>$_SESSION</code> 数组:</b> 将当前脚本中的 <code>$_SESSION</code> 变量清空。可以使用 <code>$_SESSION
+                = array();</code> 或 <code>session_unset();</code> (旧方法，效果类似)。
+            </li>
+            <li><b>销毁 Session Cookie:</b> 向浏览器发送指令，让其删除存储 Session ID 的 Cookie。这通常通过调用 <code>setcookie()</code>
+                并设置一个过去的过期时间来实现。需要获取当前的 Session Cookie 名称（通常是 'PHPSESSID'，可以通过 <code>session_name()</code>
+                获取）和参数。
+            </li>
+            <li><b>销毁服务器端的 Session 数据:</b> 调用 <code>session_destroy();</code> 函数。这会删除服务器上存储该
+                Session ID 对应数据的物理文件（或其他存储介质中的数据）。
+            </li>
+        </ol>
+        <p class="warning">这几个步骤都很重要，特别是清空 <code>$_SESSION</code> 和销毁服务器端数据，以确保用户状态被彻底清除。
+        </p>
+        <pre><code class="language-php">&lt;?php
+// logout.php - 退出登录脚本
+
+// 1. 启动会话
+session_start();
+
+// 2. 清空所有 Session 变量
+$_SESSION = array();
+// 或者 session_unset();
+
+// 3. 如果使用了 Cookie 存储 Session ID，则需要销毁 Cookie
+//    (这是推荐的做法)
+if (ini_get("session.use_cookies")) {
+// 获取 session cookie 的参数
+$params = session_get_cookie_params();
+// 设置 cookie 过期时间为过去，使其失效
+setcookie(session_name(), '', time() - 42000,
+$params["path"], $params["domain"],
+$params["secure"], $params["httponly"]
+);
+}
+
+// 4. 最后，销毁 Session 数据本身
+session_destroy();
+
+echo "您已成功退出登录。";
+
+// 可以选择重定向到登录页面或首页
+// header("Location: login.php");
+// exit;
+?></code></pre>
+
+        <h3 id="s10-2-4">Session 配置 (`php.ini`)</h3>
+        <p>Session 的行为也受到 `php.ini` 中一些设置的影响：</p>
+        <ul>
+            <li><code>session.save_path</code>: 指定 Session 文件存储的目录（回顾 Part 5）。Web 服务器用户必须对此目录有读写权限。
+            </li>
+            <li><code>session.name</code>: 设置存储 Session ID 的 Cookie 的名称（默认 <code>PHPSESSID</code>）。</li>
+            <li><code>session.auto_start</code>: 如果设为 <code>1</code>，PHP 会在每个请求开始时自动调用 <code>session_start()</code>。<b>不推荐</b>，最好显式调用。
+            </li>
+            <li><code>session.gc_maxlifetime</code>: Session 数据在服务器上保留的最长时间（秒），即使没有活动。超过这个时间，PHP
+                的垃圾回收 (Garbage Collection, GC) 机制<b>可能</b>会删除它（GC 的触发不是 100% 精确及时的）。默认通常是
+                1440 秒 (24 分钟)。
+            </li>
+            <li><code>session.cookie_lifetime</code>: Session ID Cookie 本身的有效期（秒）。<code>0</code> 表示会话
+                Cookie（浏览器关闭时删除）。
+            </li>
+            <li><code>session.cookie_path</code>, <code>session.cookie_domain</code>, <code>session.cookie_secure</code>,
+                <code>session.cookie_httponly</code>: 控制 Session ID Cookie 的属性，<b>强烈推荐设置 <code>session.cookie_httponly
+                    = 1</code> 和（如果网站是 HTTPS）<code>session.cookie_secure = 1</code></b>。
+            </li>
+            <li><code>session.use_cookies</code>: 是否使用 Cookie 来存储 Session ID (默认 1, 推荐)。</li>
+            <li><code>session.use_only_cookies</code>: (PHP 4.3+) 是否<b>只</b>使用 Cookie 来存储 Session ID。设为 <code>1</code>
+                (推荐) 可以防止通过 URL 传递 Session ID（会话固定攻击的一种方式）。
+            </li>
+            <li><code>session.use_strict_mode</code>: (PHP 5.5.2+) 设为 <code>1</code> (推荐) 要求 PHP 只接受由它自己生成的、有效的
+                Session ID，不接受用户提供的未初始化的 Session ID，增强安全性。
+            </li>
+            <li><code>session.save_handler</code>: 允许将会话数据存储在默认文件之外的地方（如数据库、Memcached、Redis
+                等），需要自定义处理函数或使用扩展。
+            </li>
+        </ul>
+
+        <h3 id="s10-2-5">Session 安全</h3>
+        <p>Session 相比 Cookie 更安全，但仍需注意防范一些攻击：</p>
+        <ul>
+            <li><b>会话固定 (Session Fixation):</b> 攻击者诱导用户使用一个攻击者已知的 Session ID 来访问网站。当用户登录后，攻击者就可以用这个
+                Session ID 冒充用户。
+                <b>防御：</b> 在用户**登录成功后**，立即调用 <code>session_regenerate_id(true);</code> 来生成一个新的、不同的
+                Session ID，并删除旧的 Session 数据（参数 <code>true</code> 的作用）。
+            </li>
+            <li><b>会话劫持 (Session Hijacking):</b> 攻击者通过某种方式（如 XSS、网络嗅探、猜测）获取到了用户的有效 Session
+                ID，然后用这个 ID 来冒充用户访问。
+                <b>防御：</b>
+                <ul>
+                    <li>使用 HTTPS (设置 <code>session.cookie_secure = 1</code>) 防止网络嗅探。</li>
+                    <li>设置 <code>session.cookie_httponly = 1</code> 防止 XSS 窃取 Cookie。</li>
+                    <li>考虑将会话与用户的 IP 地址或 User Agent 绑定（但这可能影响使用动态 IP 或代理的用户）。</li>
+                    <li>定期（不必过于频繁）调用 <code>session_regenerate_id()</code> 更换 Session ID。</li>
+                    <li>设置合理的会话超时时间 (<code>session.gc_maxlifetime</code> 和
+                        <code>session.cookie_lifetime</code>)。
+                    </li>
+                </ul>
+            </li>
+            <li><b>不要在 Session 中存储过多敏感数据。</b> 存储用户的唯一 ID，然后在需要时从数据库获取其他信息通常是更好的做法。
+            </li>
+        </ul>
+        <p class="danger">正确配置和使用 Session 对于 Web 应用的安全性至关重要。</p>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 10 部分结束 ---</p>
+
+</div>
+</body>
+</html>

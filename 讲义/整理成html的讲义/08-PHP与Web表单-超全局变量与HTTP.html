@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP - Part 8: PHP 与 Web - 表单、超全局变量与 HTTP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+            /* Offset for fixed headers if any, or just some space */
+        }
+
+        /* Adding prose styles directly for better control over code blocks etc. */
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre; /* Preserve whitespace strictly */
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        /* Using <b> for bold now */
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        /* Keep strong style just in case */
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>PHP - Part 8: PHP 与 Web - 表单、超全局变量与 HTTP</h1>
+    <p class="text-gray-500 text-sm">这是 17 部分系列讲义的第八部分。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="s8-intro">引言：PHP 的主战场 - Web</h2>
+        <p>虽然 PHP 也可以用于命令行脚本，但它的主要应用领域是 Web 开发。理解 PHP 如何与 Web 服务器、浏览器以及 HTTP
+            协议交互是至关重要的。本部分将重点介绍 PHP 如何处理来自用户的输入（主要通过 HTML 表单），以及如何利用 PHP
+            的超全局变量和函数来控制 HTTP 响应。</p>
+
+        <hr/>
+
+        <h2 id="s8-1">8.1 超全局变量 (Superglobals) 回顾</h2>
+        <p>PHP 提供了一些特殊的、预定义的变量，称为超全局变量。它们在脚本的任何作用域内（函数内、类方法内、全局作用域）都始终可用，无需使用
+            <code>global</code> 关键字或 <code>$GLOBALS</code> 数组。</p>
+        <p>与 Web 开发最相关的超全局变量包括：</p>
+        <ul>
+            <li><code>$_GET</code>: 一个关联数组，包含通过 HTTP GET 方法传递给脚本的变量（通常来自 URL 查询字符串）。</li>
+            <li><code>$_POST</code>: 一个关联数组，包含通过 HTTP POST 方法传递给脚本的变量（通常来自 HTML 表单提交）。</li>
+            <li><code>$_REQUEST</code>: 一个关联数组，默认包含了 <code>$_GET</code>, <code>$_POST</code> 和 <code>$_COOKIE</code>
+                的内容。（<b>注意：</b>由于来源不明确且可能导致安全问题，<b>通常推荐直接使用 <code>$_GET</code> 或 <code>$_POST</code></b>）。
+            </li>
+            <li><code>$_FILES</code>: 一个关联数组，包含通过 HTTP POST 方法上传文件的信息。</li>
+            <li><code>$_COOKIE</code>: 一个关联数组，包含通过 HTTP Cookies 传递给脚本的变量。</li>
+            <li><code>$_SESSION</code>: 一个关联数组，包含当前脚本的会话变量。</li>
+            <li><code>$_SERVER</code>: 一个关联数组，包含诸如头信息(headers)、路径(paths)、脚本位置(script
+                locations)等信息。这个数组里的键名由 Web 服务器决定，常用的有：
+                <ul>
+                    <li><code>$_SERVER['REQUEST_METHOD']</code>: 请求方法（如 'GET', 'POST'）。</li>
+                    <li><code>$_SERVER['REQUEST_URI']</code>: 请求的 URI，例如 '/index.php?id=1'。</li>
+                    <li><code>$_SERVER['SCRIPT_NAME']</code>: 当前脚本的路径，例如 '/index.php'。</li>
+                    <li><code>$_SERVER['QUERY_STRING']</code>: URL 中问号 <code>?</code> 后面的查询字符串部分。</li>
+                    <li><code>$_SERVER['HTTP_HOST']</code>: 当前请求的 Host: 头内容。</li>
+                    <li><code>$_SERVER['REMOTE_ADDR']</code>: 发出请求的客户端 IP 地址。</li>
+                    <li><code>$_SERVER['HTTP_USER_AGENT']</code>: 客户端浏览器信息。</li>
+                    <li><code>$_SERVER['HTTPS']</code>: 如果是通过 HTTPS 访问，通常会设置（值可能是 'on' 或 1）。</li>
+                </ul>
+            </li>
+            <li><code>$_ENV</code>: 一个关联数组，包含通过环境方式传递给当前脚本的变量。</li>
+        </ul>
+        <p>我们将重点关注如何使用 <code>$_GET</code>, <code>$_POST</code>, <code>$_FILES</code>, 和
+            <code>$_SERVER</code> 来处理 Web 请求。</p>
+
+        <hr/>
+
+        <h2 id="s8-2">8.2 HTML 表单基础</h2>
+        <p>HTML 表单 (<code>&lt;form&gt;</code> 标签) 是网页上收集用户输入的主要方式。</p>
+        <ul>
+            <li><b><code>action</code> 属性:</b> 指定当用户提交表单时，数据应该被发送到哪个 URL（通常是一个 PHP
+                脚本）。如果省略，数据会提交到当前页面的 URL。
+            </li>
+            <li><b><code>method</code> 属性:</b> 指定发送数据使用的 HTTP 方法，主要有两种：
+                <ul>
+                    <li><code>GET</code>: 数据会附加在 <code>action</code> URL
+                        的末尾（作为查询字符串），对用户可见，且长度有限制。通常用于**获取数据**或提交不敏感、幂等（重复提交效果相同）的操作，如搜索。
+                    </li>
+                    <li><code>POST</code>: 数据包含在 HTTP 请求的 Body（主体）中发送，对用户不可见（地址栏中看不到），长度限制通常远大于
+                        GET。通常用于**提交数据**（如注册、登录、发布内容）、发送敏感信息或大量数据。
+                    </li>
+                </ul>
+            </li>
+            <li><b>表单控件 (Form Controls):</b> 用于用户输入的元素，如：
+                <ul>
+                    <li><code>&lt;input type="text" name="username"&gt;</code>: 文本输入框。</li>
+                    <li><code>&lt;input type="password" name="password"&gt;</code>: 密码输入框。</li>
+                    <li><code>&lt;textarea name="message"&gt;&lt;/textarea&gt;</code>: 多行文本区域。</li>
+                    <li><code>&lt;input type="radio" name="gender" value="male"&gt;</code>: 单选按钮（同名
+                        <code>name</code> 的一组中只能选一个）。
+                    </li>
+                    <li><code>&lt;input type="checkbox" name="interests[]" value="coding"&gt;</code>:
+                        复选框（可以多选，<code>name</code> 后面加 <code>[]</code> 会让 PHP 将选中的值收集到一个数组中）。
+                    </li>
+                    <li><code>&lt;select name="city"&gt;&lt;option
+                        value="bj"&gt;北京&lt;/option&gt;...&lt;/select&gt;</code>: 下拉列表。
+                    </li>
+                    <li><code>&lt;input type="file" name="avatar"&gt;</code>: 文件上传控件（需要配合 <code>form</code> 的
+                        <code>enctype="multipart/form-data"</code>）。
+                    </li>
+                    <li><code>&lt;button type="submit"&gt;提交&lt;/button&gt;</code> 或 <code>&lt;input type="submit"
+                        value="提交"&gt;</code>: 提交按钮。
+                    </li>
+                </ul>
+                <p class="warning"><b>关键：</b> 表单控件的 <code>name</code> 属性非常重要，它将作为 PHP 脚本中
+                <code>$_GET</code> 或 <code>$_POST</code> 数组的**键 (key)**。</p>
+            </li>
+        </ul>
+
+        <p><b>简单 HTML 表单示例 (<code>process.php</code> 是处理脚本):</b></p>
+        <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html>
+&lt;head>&lt;title>简单表单&lt;/title>&lt;/head>
+&lt;body>
+
+&lt;h3>GET 方法示例 (搜索)&lt;/h3>
+&lt;form action="process.php" method="GET">
+搜索内容: &lt;input type="text" name="query">
+&lt;button type="submit">搜索&lt;/button>
+&lt;/form>
+
+&lt;hr>
+
+&lt;h3>POST 方法示例 (登录)&lt;/h3>
+&lt;form action="process.php" method="POST">
+用户名: &lt;input type="text" name="username">&lt;br>
+密码: &lt;input type="password" name="password">&lt;br>
+&lt;button type="submit">登录&lt;/button>
+&lt;/form>
+
+&lt;/body>
+&lt;/html>
+</code></pre>
+
+        <hr/>
+
+        <h2 id="s8-3">8.3 处理 GET 请求</h2>
+        <p>当表单使用 <code>method="GET"</code> 提交，或者用户直接访问带有查询字符串的 URL（例如 <code>process.php?query=php+tutorial&page=1</code>）时，数据会存在于
+            <code>$_GET</code> 超全局数组中。</p>
+        <ul>
+            <li><code>$_GET</code> 是一个关联数组，键是表单控件的 <code>name</code> 或 URL 查询字符串中的参数名，值是用户输入或
+                URL 中指定的值。
+            </li>
+            <li>URL 中的查询字符串以 <code>?</code> 开始，参数之间用 <code>&</code> 分隔。特殊字符会被 URL 编码。</li>
+        </ul>
+        <p><b>处理脚本示例 (<code>process.php</code>):</b></p>
+        <pre><code class="language-php">&lt;?php
+// 检查是否有 'query' 参数被发送过来 (来自 GET 请求)
+// 使用 isset() 判断变量是否存在
+if (isset($_GET['query'])) {
+// 获取参数值
+// !!! 警告：直接使用用户输入非常危险 !!!
+// !!! 在实际输出到 HTML 或用于数据库查询前，必须进行清理和转义 !!!
+$searchTerm = $_GET['query'];
+
+// 为了安全地显示在 HTML 中，使用 htmlspecialchars
+$safeSearchTerm = htmlspecialchars($searchTerm, ENT_QUOTES, 'UTF-8');
+
+echo "你通过 GET 方法搜索了: " . $safeSearchTerm;
+
+// 可以在这里执行搜索逻辑...
+} else {
+// echo "没有提供搜索词。";
+// 可以选择什么都不做，或者显示提示
+}
+
+// 也可以使用 Null 合并运算符 ?? 提供默认值
+$page = $_GET['page'] ?? 1; // 如果 URL 中没有 page 参数，默认为 1
+$safePage = htmlspecialchars($page, ENT_QUOTES, 'UTF-8');
+echo "&lt;br>当前页码: " . safePage;?</code></pre>
+        <p class="danger"><b>安全第一！</b>永远不要直接<code>echo</code>或在SQL查询中使用来自<code>_GET</code> (或任何用户输入)
+            的原始数据！必须先进行适当的验证、清理和转义（例如用 <code>htmlspecialchars</code> 输出到
+            HTML，用预处理语句处理数据库查询）。</p>
+
+        <hr/>
+
+        <h2 id="s8-4">8.4 处理 POST 请求</h2>
+        <p>当表单使用 <code>method="POST"</code> 提交时，数据会存在于 <code>$_POST</code> 超全局数组中。</p>
+        <ul>
+            <li><code>$_POST</code> 也是一个关联数组，键是表单控件的 <code>name</code>，值是用户输入的值。</li>
+            <li>数据在请求体中发送，不在 URL 中显示。</li>
+        </ul>
+        <p>通常，处理 POST 请求的脚本需要先判断请求的方法是否确实是 POST，以区分是用户直接访问页面还是提交了表单。</p>
+
+        <p><b>处理脚本示例 (还是 <code>process.php</code>，但这次处理 POST):</b></p>
+        <pre><code class="language-php">&lt;?php
+// -- 接上面的 GET 处理代码 --
+// 检查请求方法是否为 POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+echo "&lt;hr>处理 POST 请求：&lt;br>";
+
+// 检查登录表单的 username 和 password 是否已提交
+// 使用 isset() 判断
+if (isset($_POST['username']) &amp;&amp; isset($_POST['password'])) {
+    // 获取用户名和密码
+    $username = $_POST['username'];
+    $password = $_POST['password']; // 实际应用中密码需要哈希处理！
+
+    // !!! 再次强调安全 !!!
+    // 在实际应用中：
+    // 1. 需要验证用户名和密码的格式、长度等。
+    // 2. 密码不应明文存储或比较，应使用 password_hash() 和 password_verify()。
+    // 3. 清理用户名以防注入（虽然预处理语句是更好的选择）。
+    // 4. 使用 htmlspecialchars() 输出到页面。
+
+    $safeUsername = htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
+    // $safePassword = htmlspecialchars($password, ENT_QUOTES, 'UTF-8'); // 通常不直接显示密码
+
+    echo "尝试登录的用户: " . $safeUsername . "&lt;br&gt;";
+    // echo "密码(仅演示，不应显示): " . $safePassword . "&lt;br&gt;";
+
+    // 在这里执行登录验证逻辑...
+    // if (验证成功) { ... } else { ... }
+
+} else {
+    echo "登录表单提交不完整。&lt;br&gt;";
+}
+} else {
+// 如果不是 POST 请求（例如是 GET 请求或其他）
+// echo "&lt;hr>当前不是 POST 请求。";
+}
+
+?></code></pre>
+        <p class="note">通常一个 PHP 脚本会结合使用 <code>_SERVER[
+            ′
+            REQUEST_METHOD
+            ′
+            ]</code>和<code>isset(_POST['submit_button_name'])</code> 来判断表单是否被提交，然后执行相应的处理逻辑。</p>
+
+        <hr/>
+
+        <h2 id="s8-5">8.5 处理文件上传</h2>
+        <p>处理文件上传稍微复杂一些，涉及 HTML 表单的特殊设置、PHP 配置和安全检查。</p>
+
+        <h3 id="s8-5-1">HTML 表单设置</h3>
+        <p>上传文件的 HTML 表单必须满足：</p>
+        <ol>
+            <li><code>method</code> 必须是 <code>POST</code>。</li>
+            <li>必须添加 <code>enctype="multipart/form-data"</code> 属性，告诉浏览器以特殊格式编码表单数据，以便传输文件。
+            </li>
+            <li>包含一个或多个 <code>&lt;input type="file" name="..."&gt;</code> 控件。</li>
+        </ol>
+        <p><b>示例 (<code>upload_form.html</code>):</b></p>
+        <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html>
+&lt;head>&lt;title>文件上传&lt;/title>&lt;/head>
+&lt;body>
+&lt;form action="upload_handler.php" method="post" enctype="multipart/form-data">
+选择要上传的文件:
+&lt;input type="file" name="uploadedFile" id="fileToUpload">&lt;br>
+&lt;!-- 可以添加其他字段，如文件描述 -->
+&lt;!-- &lt;input type="text" name="description"> -->
+&lt;button type="submit" name="submit">上传文件&lt;/button>
+&lt;/form>
+&lt;/body>
+&lt;/html>
+</code></pre>
+
+        <h3 id="s8-5-2">PHP 处理脚本 (<code>upload_handler.php</code>)</h3>
+        <p>当上述表单提交后，上传的文件信息会存储在 <code>$_FILES</code> 超全局数组中。</p>
+        <p><code>$_FILES['input_name']</code> 本身是一个关联数组，包含以下键：</p>
+        <ul>
+            <li><code>['name']</code>: 用户电脑上原始的文件名。<b>不可信赖！</b></li>
+            <li><code>['type']</code>: 浏览器猜测的文件 MIME 类型（如 <code>image/jpeg</code>）。<b>不可信赖！</b></li>
+            <li><code>['size']</code>: 文件大小（字节）。</li>
+            <li><code>['tmp_name']</code>: 文件被上传后，**临时存储**在服务器上的路径和文件名。这是你需要操作的实际文件。脚本结束后此临时文件通常会被删除。
+            </li>
+            <li><code>['error']</code>: 上传过程中的错误代码。这是检查上传是否成功的第一步。</li>
+        </ul>
+
+        <p><b>PHP 配置相关 (`php.ini`):</b></p>
+        <ul>
+            <li><code>file_uploads = On</code> (必须开启才能支持文件上传)。</li>
+            <li><code>upload_max_filesize</code>: 限制单个上传文件的最大尺寸。</li>
+            <li><code>post_max_size</code>: 限制整个 POST 请求的最大尺寸（必须 >= <code>upload_max_filesize</code>）。</li>
+            <li><code>upload_tmp_dir</code>: (可选) 指定存储临时文件的目录，Web 服务器用户必须有写入权限。</li>
+            <li><code>max_execution_time</code>: 上传大文件可能需要较长时间，可能需要调整。</li>
+        </ul>
+
+        <p><b>处理流程与安全检查 (非常重要！):</b></p>
+        <pre><code class="language-php">&lt;?php
+// 检查表单是否通过 POST 提交
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+
+// 检查 'uploadedFile' input 是否存在于 $_FILES 中，并且没有错误
+if (isset($_FILES['uploadedFile']) &amp;&amp; $_FILES['uploadedFile']['error'] === UPLOAD_ERR_OK) {
+
+    // --- 1. 获取文件信息 ---
+    $fileTmpPath = $_FILES['uploadedFile']['tmp_name']; // 临时文件路径
+    $fileName = $_FILES['uploadedFile']['name'];       // 原始文件名 (不可信)
+    $fileSize = $_FILES['uploadedFile']['size'];       // 文件大小 (字节)
+    $fileType = $_FILES['uploadedFile']['type'];       // 浏览器报告的 MIME 类型 (不可信)
+    $fileNameCmps = explode(".", $fileName);          // 分割文件名获取扩展名
+    $fileExtension = strtolower(end($fileNameCmps)); // 获取小写的文件扩展名
+
+    echo "收到的文件信息：&lt;br&gt;";
+    echo "临时路径: " . htmlspecialchars($fileTmpPath) . "&lt;br&gt;";
+    echo "原始文件名: " . htmlspecialchars($fileName) . "&lt;br&gt;";
+    echo "文件大小: " . $fileSize . " bytes&lt;br&gt;";
+    echo "浏览器报告类型: " . htmlspecialchars($fileType) . "&lt;br&gt;";
+    echo "文件扩展名: " . htmlspecialchars($fileExtension) . "&lt;br&gt;";
+
+    // --- 2. 安全检查 (非常重要!) ---
+
+    // a) 检查文件大小 (可以设置你自己的应用限制)
+    $maxFileSize = 5 * 1024 * 1024; // 示例：最大 5MB
+    if ($fileSize > $maxFileSize) {
+        die("错误：文件大小超过限制 (" . ($maxFileSize / 1024 / 1024) . "MB)");
+    }
+
+    // b) 检查文件类型/扩展名 (白名单方式更安全)
+    $allowedfileExtensions = ['jpg', 'gif', 'png', 'jpeg', 'zip', 'txt', 'pdf'];
+    if (!in_array($fileExtension, $allowedfileExtensions)) {
+        die("错误：不允许的文件扩展名。");
+    }
+
+    // c) **强烈建议:** 进一步验证文件 MIME 类型，而不是仅仅依赖扩展名或浏览器报告的类型。
+    //    这通常需要 finfo 扩展 (Fileinfo) 或 mime_content_type() 函数。
+    /*
+    if (function_exists('finfo_open')) {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $realMimeType = finfo_file($finfo, $fileTmpPath);
+        finfo_close($finfo);
+        $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/zip', 'text/plain', 'application/pdf'];
+        if (!in_array($realMimeType, $allowedMimeTypes)) {
+             die("错误：检测到的文件类型不被允许。");
+        }
+        echo "真实 MIME 类型: " . htmlspecialchars($realMimeType) . "&lt;br&gt;";
+    } else if (function_exists('mime_content_type')) {
+         $realMimeType = mime_content_type($fileTmpPath);
+         // ... 同样需要检查 $allowedMimeTypes ...
+    } else {
+         echo "警告：无法准确检测 MIME 类型，仅基于扩展名检查。&lt;br&gt;";
+    }
+    */
+
+
+    // d) **关键:** 生成一个安全的目标文件名，避免目录遍历和覆盖问题。
+    //    永远不要直接使用原始文件名 $fileName！
+    //    一个好的做法是生成一个唯一的名字，例如使用时间和随机数，或者基于文件内容的哈希值。
+    //    并且要对用户提供的原始文件名进行清理。
+    $safeOriginalName = preg_replace("/[^A-Za-z0-9\.\-\_]/", '', basename($fileName)); // 清理原始文件名中的危险字符
+    $newFileName = md5(time() . $safeOriginalName) . '.' . $fileExtension; // 生成唯一文件名示例
+
+    // --- 3. 定义上传目标目录 ---
+    //    确保这个目录存在，并且 Web 服务器用户 (如 www-data) 有写入权限！
+    //    出于安全考虑，如果上传的文件不是网页资源（如图片、CSS），最好将其存储在网站根目录之外，防止被直接通过 URL 访问执行。
+    $uploadFileDir = './uploaded_files/'; // 示例：当前脚本所在目录下的 uploaded_files 文件夹
+    // $uploadFileDir = '/var/www/uploads/'; // 网站根目录之外的示例
+
+    if (!is_dir($uploadFileDir)) {
+        mkdir($uploadFileDir, 0755, true); // 尝试创建目录
+    }
+    $dest_path = $uploadFileDir . $newFileName;
+
+    // --- 4. 移动临时文件到最终位置 ---
+    //    必须使用 move_uploaded_file()，它会进行额外的安全检查。
+    //    不要使用 copy() 或 rename() 来处理上传的临时文件。
+    if (move_uploaded_file($fileTmpPath, $dest_path)) {
+        echo "文件已成功上传到: " . htmlspecialchars($dest_path);
+    } else {
+        echo "移动上传文件时出错！";
+        // 可能是目录权限问题，或者 $dest_path 无效
+        // 在这里检查 PHP 错误日志可能会有更多信息
+    }
+
+} else {
+    // 处理上传错误
+    $errorMessage = "未知上传错误。";
+    if (isset($_FILES['uploadedFile']['error'])) {
+        switch ($_FILES['uploadedFile']['error']) {
+            case UPLOAD_ERR_INI_SIZE:
+                $errorMessage = "错误：上传的文件超过了 php.ini 中 upload_max_filesize 的限制。";
+                break;
+            case UPLOAD_ERR_FORM_SIZE:
+                $errorMessage = "错误：上传的文件超过了 HTML 表单中 MAX_FILE_SIZE 的限制。";
+                break;
+            case UPLOAD_ERR_PARTIAL:
+                $errorMessage = "错误：文件只有部分被上传。";
+                break;
+            case UPLOAD_ERR_NO_FILE:
+                $errorMessage = "错误：没有文件被上传。";
+                break;
+            case UPLOAD_ERR_NO_TMP_DIR:
+                $errorMessage = "错误：找不到临时文件夹。";
+                break;
+            case UPLOAD_ERR_CANT_WRITE:
+                $errorMessage = "错误：文件写入失败。";
+                break;
+            case UPLOAD_ERR_EXTENSION:
+                $errorMessage = "错误：某个 PHP 扩展停止了文件上传。";
+                break;
+            default:
+                $errorMessage = "发生未知上传错误，错误代码: " . $_FILES['uploadedFile']['error'];
+                break;
+        }
+    }
+    die($errorMessage);
+}
+} else {
+echo "请通过 POST 方法提交文件上传表单。";
+}
+
+?></code></pre>
+        <p class="danger"><b>再次强调文件上传安全：</b> 处理文件上传时必须极其小心，验证文件大小、类型（不要只信扩展名）、清理文件名、使用
+            <code>move_uploaded_file()</code>，并将文件存储在安全的位置，以防止恶意文件执行、目录遍历等攻击。</p>
+
+        <hr/>
+
+        <h2 id="s8-6">8.6 发送 HTTP 标头 (Headers) - <code>header()</code></h2>
+        <p>PHP 的 <code>header()</code> 函数用于向浏览器发送原始的 HTTP 标头。HTTP
+            标头是在实际的网页内容（HTML）发送之前，由服务器发送给浏览器的一些元信息，用于控制浏览器的行为（如缓存、重定向、内容类型等）。
+        </p>
+        <p class="danger"><b>最重要的规则：</b><code>header()</code> 函数必须在**任何实际的输出被发送到浏览器之前**调用。这包括：
+        </p>
+        <ul>
+            <li>HTML 标签 (甚至 <code>&lt;!DOCTYPE ...&gt;</code> 之前不能有任何输出)</li>
+            <li><code>echo</code> 或 <code>print</code> 语句的输出</li>
+            <li>PHP 代码块 <code>?&gt;</code> 之外的任何空格或空行</li>
+            <li>UTF-8 BOM 标记 (如果你的 PHP 文件以带 BOM 的 UTF-8 格式保存)</li>
+        </ul>
+        <p>如果违反了这个规则，你会收到一个 "Warning: Cannot modify header information - headers already sent by (...)"
+            的错误。</p>
+
+        <h3 id="s8-6-1">常见用途</h3>
+        <ul>
+            <li><b>页面重定向 (Redirect):</b>
+                <pre><code class="language-php">&lt;?php
+// 将用户重定向到另一个页面
+header("Location: https://www.example.com/newpage.php");
+exit; // !! 在发送 Location 头之后，强烈建议立即调用 exit() 终止脚本执行 !!
+// 防止后续代码意外输出，也确保重定向立即发生。
+?></code></pre>
+            </li>
+            <li><b>指定内容类型 (Content-Type):</b> 告诉浏览器接下来发送的内容是什么类型。
+                <pre><code class="language-php">&lt;?php
+// 告诉浏览器这是一个 JSON 响应
+header('Content-Type: application/json; charset=utf-8');
+
+$data = ['status' => 'success', 'id' => 123];
+echo json_encode($data); // 输出 JSON 字符串
+exit;
+?>
+
+&lt;?php
+/*
+// 告诉浏览器这是一张 JPEG 图片 (假设后面会输出图片数据)
+header('Content-Type: image/jpeg');
+// readfile('path/to/image.jpg');
+// exit;
+*/
+?></code></pre>
+            </li>
+            <li><b>控制浏览器缓存:</b>
+                <pre><code class="language-php">&lt;?php
+// 禁止浏览器缓存页面
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false); // 兼容旧版 IE
+header("Pragma: no-cache");
+?>
+&lt;!DOCTYPE html>
+&lt;!-- 后续 HTML 内容 --></code></pre>
+            </li>
+            <li><b>发送 HTTP 状态码:</b> 默认是 <code>200 OK</code>。你可以发送其他状态码。
+                <pre><code class="language-php">&lt;?php
+if ($resource_not_found) { // 假设 $resource_not_found 是 true
+    header("HTTP/1.1 404 Not Found");
+    echo "&lt;h1>404 Not Found&lt;/h1>";
+    exit;
+}
+
+if ($internal_error) { // 假设 $internal_error 是 true
+    header("HTTP/1.1 500 Internal Server Error");
+    echo "&lt;h1>服务器内部错误&lt;/h1>";
+    exit;
+}
+?></code></pre>
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s8-7">8.7 输出缓冲 (Output Buffering)</h2>
+        <p>有时，在脚本执行过程中，你可能无法完全控制是否在调用 <code>header()</code> 之前产生了输出（例如，包含的文件里有意外的空格，或者某个函数提前
+            <code>echo</code> 了内容）。这时，**输出缓冲**机制可以提供帮助。</p>
+        <p>当你开启输出缓冲后，PHP 不会立即将 <code>echo</code>、<code>print</code> 或 PHP 代码块之外的 HTML
+            发送给浏览器，而是将它们先存放在一个内部的**缓冲区**里。</p>
+        <p><b>常用函数：</b></p>
+        <ul>
+            <li><b><code>ob_start(): bool</code></b>: 开启输出缓冲。在此之后的所有输出都会进入缓冲区。可以嵌套调用。</li>
+            <li><b><code>ob_get_contents(): string|false</code></b>: 获取当前缓冲区的内容（**但不**清空缓冲区）。</li>
+            <li><b><code>ob_end_flush(): bool</code></b>: 发送（刷新）缓冲区的内容到浏览器，并关闭这个级别的输出缓冲。</li>
+            <li><b><code>ob_end_clean(): bool</code></b>: 清空（丢弃）缓冲区的内容，并关闭这个级别的输出缓冲。</li>
+            <li><b><code>ob_get_clean(): string|false</code></b>: 获取缓冲区内容，然后清空并关闭缓冲区（相当于 <code>ob_get_contents()</code>
+                + <code>ob_end_clean()</code>）。
+            </li>
+            <li><code>ob_flush(): void</code>: 仅发送缓冲区内容，但不关闭缓冲区。</li>
+            <li><code>ob_clean(): void</code>: 仅清空缓冲区内容，但不关闭缓冲区。</li>
+            <li><code>ob_get_level(): int</code>: 获取当前缓冲的嵌套级别。</li>
+        </ul>
+        <p><b>示例：即使有提前输出也能发送 Header</b></p>
+        <pre><code class="language-php">&lt;?php
+// 在脚本最开始就开启输出缓冲
+ob_start();
+
+// 假设这里有一些意外的输出，或者需要先计算再决定 Header
+echo "这段内容会被缓冲起来...";
+
+// ... 执行一些逻辑 ...
+$shouldRedirect = true;
+
+// 现在可以安全地发送 Header，因为之前的输出在缓冲区里，还没发送给浏览器
+if ($shouldRedirect) {
+header("Location: /another-page.php");
+// 清空缓冲区（我们不关心之前的输出了）并关闭缓冲
+ob_end_clean(); // 或者用 ob_end_flush() 如果需要发送缓冲内容再重定向
+exit;
+}
+
+// 如果不需要重定向，可能需要继续处理或输出页面
+echo "&lt;br>更多内容...";
+
+// 最后，发送所有缓冲内容并关闭缓冲
+ob_end_flush();
+?></code></pre>
+        <p class="note">输出缓冲是一个强大的工具，不仅能解决 "headers already sent" 的问题，还可以用于捕获页面输出进行修改、缓存、压缩等操作。许多
+            PHP 框架在底层都广泛使用了输出缓冲。</p>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 8 部分结束 ---</p>
+
+</div>
+</body>
+</html>

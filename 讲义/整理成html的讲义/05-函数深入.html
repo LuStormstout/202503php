@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP - Part 5: 函数深入</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+            /* Offset for fixed headers if any, or just some space */
+        }
+
+        /* Adding prose styles directly for better control over code blocks etc. */
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre; /* Preserve whitespace strictly */
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        /* Using <b> for bold now */
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        /* Keep strong style just in case */
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>PHP - Part 5: 函数深入</h1>
+    <p class="text-gray-500 text-sm">这是 17 部分系列讲义的第五部分。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="s5-intro">引言：为什么使用函数？</h2>
+        <p>函数是程序中执行特定任务的可重用代码块。想象一下你经常需要计算两个数的和，与其每次都写 <code>$sum = $a +
+            $b;</code>，不如定义一个名为 <code>add</code> 的函数，每次需要求和时调用它即可。</p>
+        <p>使用函数的好处：</p>
+        <ul>
+            <li><b>代码重用 (Code Reusability):</b> 避免重复编写相同的代码。</li>
+            <li><b>模块化 (Modularity):</b> 将复杂的程序分解成更小、更易于管理的部分。</li>
+            <li><b>可读性 (Readability):</b> 有意义的函数名可以使代码更易于理解。</li>
+            <li><b>可维护性 (Maintainability):</b> 修改或修复一个功能时，只需要改动对应的函数内部即可。</li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s5-1">5.1 定义与调用函数</h2>
+
+        <h3 id="s5-1-1">定义函数</h3>
+        <p>使用 <code>function</code> 关键字来定义一个新函数。</p>
+        <p><b>基本语法：</b></p>
+        <pre><code class="language-php">function 函数名(参数1, 参数2, ...) {
+// 函数体：要执行的代码
+// ...
+// 可以使用 return 语句返回一个值
+}</code></pre>
+        <ul>
+            <li><b><code>function</code>:</b> 声明这是一个函数定义。</li>
+            <li><b><code>函数名</code>:</b>
+                你给函数起的名字。命名规则与变量类似（通常字母或下划线开头），但函数名<b>不区分大小写</b>（<code>myFunction()</code>
+                和 <code>myfunction()</code> 调用的是同一个函数）。不过，推荐使用统一的风格，如驼峰式
+                <code>calculateTotal</code> 或下划线式 <code>calculate_total</code>。
+            </li>
+            <li><b><code>(参数1, 参数2, ...)</code>:</b> 圆括号内是函数的参数列表，用于接收传递给函数的值。参数之间用逗号分隔。如果没有参数，括号也不能省略。
+            </li>
+            <li><b><code>{ ... }</code>:</b> 花括号内是函数体，包含函数要执行的代码。</li>
+        </ul>
+        <p><b>示例：定义一个打招呼的函数</b></p>
+        <pre><code class="language-php">&lt;?php
+function sayHello() {
+echo "你好，欢迎来到 PHP 的世界！\n";
+}
+
+function greetUser($name) { // 带一个参数 $name
+echo "你好, " . $name . "！\n";
+}
+
+function addNumbers($num1, $num2) { // 带两个参数
+$sum = $num1 + $num2;
+echo $num1 . " + " . $num2 . " = " . $sum . "\n";
+}
+?></code></pre>
+
+        <h3 id="s5-1-2">调用函数</h3>
+        <p>定义好函数后，通过写出函数名并加上圆括号 <code>()</code> 来执行（调用）它。如果函数需要参数，在圆括号内按顺序传入相应的值。
+        </p>
+        <pre><code class="language-php">&lt;?php
+// 假设上面的函数已经定义好了
+
+sayHello(); // 调用无参数的函数
+
+greetUser("Alice"); // 调用带参数的函数，传入字符串 'Alice'
+greetUser("Bob");
+
+addNumbers(5, 3);    // 调用带两个参数的函数，传入 5 和 3
+addNumbers(100, 200);
+?></code></pre>
+        <p><b>输出：</b></p>
+        <pre><code>你好，欢迎来到 PHP 的世界！
+你好, Alice！
+你好, Bob！
+5 + 3 = 8
+100 + 200 = 300
+</code></pre>
+
+        <hr/>
+
+        <h2 id="s5-2">5.2 参数传递 (Argument Passing)</h2>
+        <p>函数通过参数从外部接收数据。</p>
+
+        <h3 id="s5-2-1">按值传递 (Pass by Value - 默认)</h3>
+        <p>默认情况下，PHP 函数参数是**按值传递**的。这意味着当你在调用函数时传入一个变量，函数内部得到的是这个变量值的**一个副本
+            (copy)**。在函数内部修改这个参数的值，**不会影响**函数外部原始变量的值。</p>
+        <pre><code class="language-php">&lt;?php
+function incrementValue($number) {
+$number++; // 修改的是函数内部的副本 $number
+echo "函数内部的值: " . $number . "\n";
+}
+
+$value = 10;
+incrementValue($value); // 将 $value 的值 (10) 复制给 $number
+echo "函数外部的值: " . $value . "\n"; // $value 仍然是 10
+
+/*
+输出:
+函数内部的值: 11
+函数外部的值: 10
+*/
+?></code></pre>
+
+        <h3 id="s5-2-2">按引用传递 (Pass by Reference)</h3>
+        <p>如果你希望函数能够**修改**传入的原始变量，可以在函数定义时，在参数名前加上 <code>&</code>
+            符号。这样传递的就是变量的**引用**（可以理解为内存地址的别名），函数内部对参数的修改会直接反映到外部变量上。</p>
+        <pre><code class="language-php">&lt;?php
+function incrementReference(&$number) { // 注意这里的 &
+$number++; // 修改的是外部变量 $value 指向的值
+echo "函数内部的值: " . $number . "\n";
+}
+
+$value = 10;
+incrementReference($value); // 将 $value 的引用传递给 $number
+echo "函数外部的值: " . $value . "\n"; // $value 也被修改了
+
+/*
+输出:
+函数内部的值: 11
+函数外部的值: 11
+*/
+?></code></pre>
+        <p class="warning"><b>注意：</b>按引用传递有时会让代码逻辑变得不清晰（“这个函数会不会偷偷改了我的变量？”），需要谨慎使用。通常用于需要函数返回多个结果（通过修改传入的变量）或处理非常大的数据结构以避免复制开销（尽管
+            PHP 的 Copy-on-Write 机制在很多情况下能优化传值复制的性能）。</p>
+
+        <h3 id="s5-2-3">默认参数值 (Default Argument Values)</h3>
+        <p>你可以为函数的参数指定一个默认值。如果在调用函数时没有为该参数提供值，PHP 就会使用这个默认值。</p>
+        <p><b>语法：</b>在参数名后面加上 <code>=</code> 和默认值。</p>
+        <p><b>重要规则：</b>带有默认值的参数必须放在**所有没有默认值**的参数**之后**。</p>
+        <pre><code class="language-php">&lt;?php
+// $message 是必需参数，$name 有默认值
+function showMessage($message, $name = "访客") {
+echo "[" . $name . "] 说: " . $message . "\n";
+}
+
+showMessage("今天天气不错！");         // 只传必需参数，$name 使用默认值
+showMessage("该吃饭了！", "张三"); // 两个参数都传，$name 使用传入值
+
+/*
+输出:
+[访客] 说: 今天天气不错！
+[张三] 说: 该吃饭了！
+*/
+
+// 错误示例：默认值参数不能在必需参数之前
+/*
+function wrongOrder($name = "Guest", $message) { // 错误！
+// ...
+}
+*/
+?></code></pre>
+
+        <h3 id="s5-2-4">可变参数列表 (Variadic Functions) (PHP 5.6+)</h3>
+        <p>如果你希望函数能接受**任意数量**的参数，可以在最后一个参数名前加上 <code>...</code>
+            (三个点)。这样，所有传入该位置及之后的额外参数都会被收集到一个数组中。</p>
+        <pre><code class="language-php">&lt;?php
+function sumNumbers(...$numbers) { // $numbers 将是一个包含所有传入参数的数组
+$total = 0;
+foreach ($numbers as $num) {
+$total += $num;
+}
+return $total;
+}
+
+echo sumNumbers(1, 2, 3);           // 输出: 6
+echo "\n";
+echo sumNumbers(10, 20, 30, 40, 50); // 输出: 150
+echo "\n";
+echo sumNumbers(5);               // 输出: 5
+echo "\n";
+echo sumNumbers();                // 输出: 0
+?></code></pre>
+        <p>可变参数必须是参数列表中的最后一个参数。</p>
+
+        <h3 id="s5-2-5">命名参数 (Named Arguments) (PHP 8.0+)</h3>
+        <p>从 PHP 8.0
+            开始，你可以在调用函数时，通过指定参数名来传递值，而不用关心参数的顺序，并且可以跳过有默认值的参数。</p>
+        <p><b>语法：</b><code>参数名: 值</code></p>
+        <pre><code class="language-php">&lt;?php
+function createUser($username, $email, $isActive = true, $isAdmin = false) {
+echo "创建用户: \n";
+echo "  用户名: " . $username . "\n";
+echo "  邮箱: " . $email . "\n";
+echo "  激活状态: " . ($isActive ? '是' : '否') . "\n";
+echo "  管理员: " . ($isAdmin ? '是' : '否') . "\n";
+echo "----\n";
+}
+
+// 传统调用 (按顺序)
+createUser("alice", "[移除了电子邮件地址]");
+
+// 使用命名参数 (顺序可以打乱，可以跳过默认值)
+createUser(email: "[移除了电子邮件地址]", username: "bob");
+
+// 使用命名参数，只覆盖部分默认值
+createUser(username: "charlie", email: "[移除了电子邮件地址]", isAdmin: true);
+
+/* 输出: 创建用户: 用户名: alice 邮箱: [移除了电子邮件地址] 激活状态: 是 管理员: 否
+创建用户: 用户名: bob 邮箱: [移除了电子邮件地址] 激活状态: 是 管理员: 否
+创建用户: 用户名: charlie 邮箱: [移除了电子邮件地址] 激活状态: 是 管理员: 是
+*/
+?></code></pre>
+        <p class="note">命名参数大大提高了代码的可读性，尤其对于有很多可选参数的函数。</p>
+
+        <hr/>
+
+        <h2 id="s5-3">5.3 返回值 (Return Values)</h2>
+        <p>函数可以使用 <code>return</code> 语句向调用它的代码返回一个值。一旦执行到 <code>return</code>，函数会立即结束，并将
+            <code>return</code> 后面的表达式的值作为结果返回。</p>
+        <p><b>语法：</b><code>return 表达式;</code></p>
+        <pre><code class="language-php">&lt;?php
+function multiply($a, $b) {
+$result = $a * $b;
+return $result; // 返回计算结果
+// echo "这句不会被执行"; // return 之后的代码不会执行
+}
+
+$product = multiply(6, 7); // 将 multiply 函数返回的值赋给 $product
+echo "6 * 7 = " . $product; // 输出: 6 * 7 = 42
+?></code></pre>
+        <ul>
+            <li>一个函数只能有一个 <code>return</code> 语句被执行（因为它会立即退出函数）。</li>
+            <li>如果函数没有 <code>return</code> 语句，或者执行了 <code>return;</code>（后面没有值），它会默认返回 <code>null</code>。
+            </li>
+            <li><b>返回多个值：</b> PHP 函数不能直接返回多个独立的值。通常的做法是将多个值放入一个数组或对象中，然后返回这个数组或对象。
+                <pre><code class="language-php">&lt;?php
+function getUserInfo($id) {
+// 假设这里从数据库获取了用户信息
+$name = "David";
+$age = 25;
+return ['name' => $name, 'age' => $age]; // 返回一个包含多个信息的数组
+}
+
+                $userInfo = getUserInfo(1);
+                echo "用户名: " . $userInfo['name'] . ", 年龄: " . $userInfo['age']; // 输出: 用户名: David, 年龄: 25
+
+                // PHP 7.1+ 可以使用列表解构（List Destructuring）更方便地接收
+                // list($name, $age) = getUserInfo(1); // 如果返回的是索引数组
+                ['name' => $userName, 'age' => $userAge] = getUserInfo(1); // 如果返回的是关联数组
+                echo "\n用户名: " . $userName . ", 年龄: " . $userAge;
+                ?&gt;</code></pre>
+            </li>
+            <li><b>返回引用 (Return by Reference):</b> 极少使用。可以在函数名前和调用赋值时都加上 <code>&</code>
+                来返回一个引用，允许调用者修改函数内部（通常是类的属性或静态变量）的值。<b>强烈不推荐初学者使用。</b></li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s5-4">5.4 类型提示 (Type Hinting / Type Declarations)</h2>
+        <p>从 PHP 5 开始，可以为函数参数和返回值添加**类型声明**（也叫类型提示）。这有助于：</p>
+        <ul>
+            <li><b>提高代码可读性和可维护性：</b> 清晰地表明函数期望接收什么类型的数据，以及它会返回什么类型的数据。</li>
+            <li><b>及早发现错误：</b> 如果传入或返回了错误类型的值，PHP 会在运行时（或编译时，对于某些情况）抛出错误，而不是默默地进行可能不符合预期的类型转换。
+            </li>
+            <li><b>帮助 IDE 进行静态分析和自动补全。</b></li>
+        </ul>
+
+        <h3 id="s5-4-1">参数类型声明 (Parameter Type Declarations)</h3>
+        <p>在参数名前面指定期望的类型。</p>
+        <p><b>可用的类型：</b></p>
+        <ul>
+            <li><b>类名/接口名:**</b> 要求参数必须是该类或实现了该接口的对象。</li>
+            <li><code>self</code>: 要求参数必须是当前类（定义该方法的类）的实例。</li>
+            <li><code>parent</code>: 要求参数必须是当前类的父类的实例。</li>
+            <li><code>array</code>: 要求参数必须是数组。</li>
+            <li><code>callable</code>: 要求参数必须是可调用类型（如函数名字符串、匿名函数等）。</li>
+            <li><code>bool</code>, <code>int</code>, <code>float</code>, <code>string</code>: (PHP 7.0+) 标量类型声明。
+            </li>
+            <li><code>iterable</code>: (PHP 7.1+) 要求参数必须是数组或实现了 <code>Traversable</code> 接口的对象（可以被
+                <code>foreach</code> 遍历）。
+            </li>
+            <li><code>object</code>: (PHP 7.2+) 要求参数必须是对象。</li>
+            <li><code>mixed</code>: (PHP 8.0+) 表示接受任何类型。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+         // PHP 7.0+
+         function processUserData(string $name, int $age, array $options) {
+             echo "姓名: " . $name . ", 年龄: " . $age . "\n";
+             // 处理 $options 数组...
+         }
+
+         processUserData("Eve", 28, ['notify' => true]); // 正确
+
+         // processUserData("Frank", "30", []); // 默认会尝试转换 "30" 为 int(30) - 这是 Coercive Mode
+         // processUserData("Grace", 35.5, []); // 错误！35.5 不能直接赋给 int 类型参数 (除非开启 strict_types=1 且传入的就是 int)
+
+         // PHP 8.0+ Union Types
+         function handleId(int|string $id) {
+            echo "处理 ID: " . $id . "\n";
+         }
+         handleId(123);
+         handleId("user-456");
+         ?&gt;</code></pre>
+
+
+        <h3 id="s5-4-2">返回值类型声明 (Return Type Declarations) (PHP 7.0+)</h3>
+        <p>在函数参数列表的括号 <code>)</code> 后面，加上冒号 <code>:</code> 和期望的返回类型。</p>
+        <pre><code class="language-php">&lt;?php
+         function calculateSum(float $a, float $b) : float {
+             return $a + $b;
+         }
+
+         function getUserName(int $userId) : ?string { // 返回值可能是 string 或 null
+             if ($userId === 1) {
+                 return "Alice";
+             } else {
+                 return null; // 允许返回 null
+             }
+         }
+
+         function processData(array $data) : void { // void 表示函数不应该 return 任何值
+             // 处理数据...
+             // return 123; // 错误！void 函数不能返回值
+             // return; // 可以，相当于 return null;
+         }
+
+         // PHP 8.0+ Union Types
+         function findItem(int $id) : object|null {
+            // ... 查找逻辑 ...
+            if ($item = /* ...找到对象... */ false) { // 假设这里是伪代码
+                 return $item;
+            }
+            return null;
+         }
+
+         // PHP 8.0+ mixed type
+         function getAnything() : mixed {
+            // 可以返回任何类型的值
+            $rand = rand(1,3);
+            if ($rand == 1) return 123;
+            if ($rand == 2) return "hello";
+            return false;
+         }
+         ?&gt;</code></pre>
+        <ul>
+            <li><code>void</code> (PHP 7.1+): 表明函数不返回值。如果函数声明了 <code>: void</code>，它内部要么不能有
+                <code>return</code> 语句，要么只能有不带值的 <code>return;</code>。
+            </li>
+            <li><code>?Type</code> (Nullable Types, PHP 7.1+): 在类型前加上问号 <code>?</code> 表示该参数或返回值可以是指定的类型，也可以是
+                <code>null</code>。
+            </li>
+            <li><code>Type1|Type2|...</code> (Union Types, PHP 8.0+): 用 <code>|</code> 分隔，表示可以是多种指定类型中的任意一种。<code>null</code>
+                也可以是联合类型的一部分（<code>Type|null</code> 或 <code>?Type</code>）。<code>mixed</code> 类型（PHP
+                8.0+）等同于 <code>array|bool|callable|int|float|null|object|resource|string</code>。
+            </li>
+            <li><code>static</code> (PHP 8.0+): 作为返回类型时，表示返回一个与调用该方法的类相同的类的实例（常用于支持链式调用的方法）。
+            </li>
+            <li><code>never</code> (PHP 8.1+): 作为返回类型时，表示这个函数将永远不会返回值（因为它会 <code>exit()</code>,
+                <code>die()</code>, 抛出异常，或者进入无限循环）。
+            </li>
+        </ul>
+
+        <h3 id="s5-4-3">严格类型模式 (Strict Types)</h3>
+        <p>默认情况下，PHP 对<b>标量类型</b>（<code>int</code>, <code>float</code>, <code>string</code>, <code>bool</code>）的参数类型声明采用**强制模式
+            (Coercive Mode)**。这意味着如果传入的值类型不完全匹配，但 PHP 能够进行隐式转换（例如，将整数 <code>10</code>
+            传给期望 <code>float</code> 的参数，或者将数字字符串 <code>"5"</code> 传给期望 <code>int</code> 的参数），PHP
+            会自动转换它。</p>
+        <p>你可以通过在文件的**最顶部**（在任何其他代码之前，包括 <code>namespace</code> 之前）加上一条
+            <code>declare</code> 语句来开启**严格模式 (Strict Mode)**：</p>
+        <pre><code class="language-php">&lt;?php
+declare(strict_types=1); // 开启严格模式，必须是文件第一句
+
+function addIntegers(int $a, int $b): int {
+return $a + $b;
+}
+
+addIntegers(5, 3);     // 正确
+// addIntegers(5.0, 3);   // 错误！在严格模式下，float 不能传给 int 参数
+// addIntegers("5", 3); // 错误！在严格模式下，string 不能传给 int 参数
+
+function getFloat() : float {
+return 1; // 错误！在严格模式下，int 不能作为 float 返回
+}
+?></code></pre>
+        <p class="note"><b>关键点：</b></p>
+        <ul>
+            <li><code>declare(strict_types=1);</code> 只影响当前文件内的函数调用以及返回值。它不影响 PHP 内部函数或来自其他文件的调用。
+            </li>
+            <li>严格模式只对标量类型声明有效，对于类、接口、数组、callable
+                等复合类型，无论是否开启严格模式，都要求类型必须匹配（或满足继承/实现关系）。
+            </li>
+            <li>是否使用严格模式是一个项目级的决策。它可以帮助捕获更多潜在的类型错误，但也可能需要更明确的类型转换代码。现代
+                PHP 开发中推荐使用。
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s5-5">5.5 变量作用域详解 (Variable Scope Detailed)</h2>
+        <p>变量的作用域决定了在哪里可以访问这个变量。</p>
+
+        <h3 id="s5-5-1">局部作用域 (Local Scope)</h3>
+        <p>
+            在**函数内部**声明的变量拥有局部作用域。它们只存在于该函数执行期间，函数执行完毕后会被销毁。它们不能在函数外部被访问，不同函数中即使有同名变量，也是完全独立的。</p>
+        <pre><code class="language-php">&lt;?php
+function myFunc() {
+$localVar = 10; // $localVar 是局部变量
+echo "Inside function: localVar = " . $localVar . "\n";
+}
+
+myFunc();
+// echo "Outside function: localVar = " . $localVar; // 错误！会产生 Undefined variable 错误
+?></code></pre>
+
+        <h3 id="s5-5-2">全局作用域 (Global Scope)</h3>
+        <p>在**函数外部**（脚本的顶层）声明的变量拥有全局作用域。它们在脚本的主体部分是可访问的。</p>
+        <p class="warning"><b>但是，全局变量默认情况下不能在函数内部直接访问！</b></p>
+        <pre><code class="language-php">&lt;?php
+$globalVar = "I am global";
+
+function tryAccessGlobal() {
+// echo $globalVar; // 错误！会产生 Undefined variable 错误
+// PHP 会认为你想访问一个名为 $globalVar 的局部变量，但它不存在
+}
+
+tryAccessGlobal();
+echo $globalVar; // 在函数外部可以访问
+?></code></pre>
+
+        <h3 id="s5-5-3">访问全局变量：<code>global</code> 关键字</h3>
+        <p>要在函数内部访问一个全局变量，你需要在函数内部使用 <code>global</code> 关键字声明一下这个变量。</p>
+        <pre><code class="language-php">&lt;?php
+$counter = 0;
+
+function incrementCounter() {
+global $counter; // 声明 $counter 是引用外部的全局变量
+$counter++;
+echo "Counter inside function: " . $counter . "\n";
+}
+
+incrementCounter(); // 输出: Counter inside function: 1
+incrementCounter(); // 输出: Counter inside function: 2
+echo "Counter outside function: " . $counter . "\n"; // 输出: Counter outside function: 2
+?></code></pre>
+        <p class="danger"><b>不推荐使用 <code>global</code>：</b> 大量使用 <code>global</code>
+            会破坏函数的封装性（函数不再是独立的单元，而是依赖于外部状态），使得代码难以理解、测试和维护。它让追踪变量的修改变得困难。通常有更好的方式来让函数获取所需数据（如通过参数传递）或返回结果。
+        </p>
+
+        <h3 id="s5-5-4">访问全局变量：<code>$GLOBALS</code> 数组</h3>
+        <p>PHP 将所有全局变量存储在一个特殊的关联数组 <code>$GLOBALS</code> 中，数组的键是全局变量的名称。你可以通过这个数组在任何地方（包括函数内部）访问全局变量。
+        </p>
+        <pre><code class="language-php">&lt;?php
+$appName = "My Application";
+
+function printAppName() {
+echo "App Name from $GLOBALS: " . $GLOBALS['appName'] . "\n";
+// 也可以用 $GLOBALS 修改全局变量
+$GLOBALS['appName'] = "Updated App Name";
+}
+
+printAppName(); // 输出: App Name from $GLOBALS: My Application
+echo "App Name outside: " . $appName . "\n"; // 输出: App Name outside: Updated App Name
+?></code></pre>
+        <p class="warning">虽然 <code>$GLOBALS</code> 比 <code>global</code>
+            关键字稍微清晰一点点（因为它明确指出了访问的是全局集合），但它仍然具有破坏封装性的缺点，同样不推荐经常使用。</p>
+
+        <h3 id="s5-5-5">静态变量 (Static Variables)</h3>
+        <p>如果在函数内部使用 <code>static</code>
+            关键字声明一个变量，这个变量将只在**第一次**调用该函数时被初始化。之后每次调用该函数时，这个变量会**保留**它在上一次调用结束时的值，而不是被销毁和重新创建。
+        </p>
+        <pre><code class="language-php">&lt;?php
+function callTracker() {
+static $calls = 0; // 静态变量，只在第一次调用时初始化为 0
+$calls++;
+echo "这个函数已经被调用了 " . $calls . " 次。\n";
+}
+
+callTracker(); // 输出: 这个函数已经被调用了 1 次。 ($calls 变为 1)
+callTracker(); // 输出: 这个函数已经被调用了 2 次。 ($calls 变为 2)
+callTracker(); // 输出: 这个函数已经被调用了 3 次。 ($calls 变为 3)
+?></code></pre>
+        <p>
+            静态变量的作用域仍然是局部的（只能在函数内部访问），但它的生命周期延长到了整个脚本执行期间。常用于实现函数内部的计数器、缓存等功能。</p>
+
+        <hr/>
+
+        <h2 id="s5-6">5.6 可变函数 (Variable Functions)</h2>
+        <p>可以将函数名存储在一个变量中，然后通过变量名加圆括号的方式来调用该函数。</p>
+        <pre><code class="language-php">&lt;?php
+function sayHi() {
+echo "Hi there!\n";
+}
+
+$functionName = 'sayHi';
+
+$functionName(); // 调用 sayHi() 函数，输出: Hi there!
+
+// 也可以用于类的方法 (将在 OOP 章节讲解)
+class MyUtil { static function utility() { echo "Utility called.\n"; } }
+$methodName = ['MyUtil', 'utility']; // 静态方法
+$methodName(); // 输出: Utility called.
+?></code></pre>
+        <p>这在实现回调函数 (Callback) 或根据条件动态调用不同函数时很有用。</p>
+
+        <hr/>
+
+        <h2 id="s5-7">5.7 匿名函数 (Anonymous Functions / Closures)</h2>
+        <p>匿名函数，也称为**闭包
+            (Closures)**，是没有名称的函数。它们可以被赋值给变量，也可以作为参数传递给其他函数（常用于回调）。</p>
+        <p><b>语法：</b></p>
+        <pre><code class="language-php">$variable = function(参数列表) use (要从父作用域继承的变量列表) {
+// 函数体
+return 返回值; // 可选
+}; // 注意：将匿名函数赋值给变量时，末尾需要分号</code></pre>
+        <p><b><code>use</code> 关键字：</b> 匿名函数默认无法访问其定义时所在的父作用域（例如定义它的函数或全局作用域）中的变量。需要使用
+            <code>use</code>
+            关键字，将被引用的外部变量列表放在圆括号内，才能在匿名函数内部访问它们。默认情况下，<code>use</code>
+            是按值捕获变量，如果要按引用捕获，在变量名前加 <code>&</code>。</p>
+
+        <p><b>示例：</b></p>
+        <pre><code class="language-php">&lt;?php
+// 将匿名函数赋值给变量
+$greet = function($name) {
+echo "Hello, " . $name . "!\n";
+};
+
+$greet("World"); // 调用匿名函数，输出: Hello, World!
+
+// 使用 use 捕获外部变量
+$messagePrefix = "重要消息: ";
+$sendMessage = function($text) use ($messagePrefix) { // 按值捕获 $messagePrefix
+echo $messagePrefix . $text . "\n";
+// $messagePrefix = "改不了"; // 错误，因为是按值捕获的副本
+};
+$sendMessage("会议推迟了"); // 输出: 重要消息: 会议推迟了
+
+$count = 0;
+$increment = function() use (&$count) { // 按引用捕获 $count
+$count++;
+};
+$increment();
+$increment();
+echo "Count is now: " . $count; // 输出: Count is now: 2
+
+// 作为回调函数传递给 array_map
+$numbers = [1, 2, 3, 4];
+$squares = array_map(function($n) {
+return $n * $n;
+}, $numbers);
+print_r($squares); // 输出: Array ( [0] => 1 [1] => 4 [2] => 9 [3] => 16 )
+?></code></pre>
+        <p class="note">闭包是 PHP 中一个强大的特性，广泛应用于事件处理、回调、以及现代框架中。</p>
+        <p><b>静态匿名函数 (Static Anonymous Functions):</b> 在 <code>function</code> 前加上 <code>static</code>
+            关键字，创建的匿名函数不会绑定到定义它的对象（如果在类方法中定义的话），也不能访问 <code>$this</code>。可以稍微提高性能。
+        </p>
+
+        <hr/>
+
+        <h2 id="s5-8">5.8 箭头函数 (Arrow Functions) (PHP 7.4+)</h2>
+        <p>箭头函数提供了一种更简洁的语法来定义**只有一行表达式**的匿名函数。它特别适合用作简单的回调。</p>
+        <p><b>语法：</b></p>
+        <pre><code class="language-php">fn(参数列表) => 表达式;</code></pre>
+        <p><b>特点：</b></p>
+        <ul>
+            <li>使用 <code>fn</code> 关键字。</li>
+            <li><b>自动**按值**捕获**父作用域的变量**，无需 <code>use</code> 关键字。</b></li>
+            <li>函数体只能包含**一个表达式**，该表达式的值会被**自动返回**（不需要 <code>return</code> 关键字）。</li>
+        </ul>
+        <p><b>示例：使用箭头函数重写上面的 <code>array_map</code> 示例</b></p>
+        <pre><code class="language-php">&lt;?php
+$numbers = [1, 2, 3, 4];
+$factor = 3; // 父作用域变量
+
+// 箭头函数自动捕获 $factor
+$multiplied = array_map(fn($n) => $n * $factor, $numbers);
+
+print_r($multiplied); // 输出: Array ( [0] => 3 [1] => 6 [2] => 9 [3] => 12 )
+?></code></pre>
+        <p class="note">箭头函数让代码更简洁，尤其适用于数组函数等需要简短回调的场景。</p>
+
+        <hr/>
+
+        <h2 id="s5-9">5.9 递归函数 (Recursive Functions)</h2>
+        <p>
+            递归函数是指在其函数体内部**调用自身**的函数。递归是解决某些问题的强大技巧，特别是那些可以被分解为与原问题相似的子问题的情况（例如树状结构遍历、计算阶乘、斐波那契数列等）。</p>
+        <p><b>关键要素：</b></p>
+        <ol>
+            <li><b>基本情况 (Base Case):**</b> 必须有一个或多个**终止条件**（不再调用自身的条件），否则函数会无限调用下去，导致“栈溢出”错误
+                (Stack Overflow)。
+            </li>
+            <li><b>递归步骤 (Recursive Step):**</b> 函数调用自身，但通常处理的是**规模更小**或**更接近**基本情况的问题。
+            </li>
+        </ol>
+        <p><b>示例：计算阶乘 (n!)</b></p>
+        <p>阶乘定义：<code>n! = n * (n-1) * (n-2) * ... * 1</code>。递归定义：<code>n! = n * (n-1)!</code>，基本情况：<code>0!
+            = 1</code>。</p>
+        <pre><code class="language-php">&lt;?php
+function factorial($n) {
+// 基本情况: 0! 或 1! 都等于 1
+if ($n &lt;= 1) {
+return 1;
+} else {
+// 递归步骤: n! = n * (n-1)!
+return $n * factorial($n - 1); // 调用自身，但问题规模减小 (n-1)
+}
+}
+
+echo "5! = " . factorial(5); // 输出: 5! = 120
+?></code></pre>
+        <p class="warning">
+            递归虽然强大，但也可能比迭代（使用循环）效率低（因为函数调用有开销），并且容易因忘记基本情况而导致栈溢出。使用前需要仔细设计。</p>
+
+        <hr/>
+
+        <h2 id="s5-10">5.10 生成器 (Generators) 与 <code>yield</code> (进阶话题简介)</h2>
+        <p>生成器提供了一种简单的方式来实现**迭代器 (Iterator)**，而不需要创建一个实现了 Iterator
+            接口的类。当你需要处理**非常大的数据集**（例如逐行读取一个巨大的文件）或者需要生成一个**无限序列**时，生成器特别有用，因为它们**不会一次性将所有数据加载到内存中**。</p>
+        <p><b>关键：<code>yield</code> 关键字</b></p>
+        <p>包含 <code>yield</code> 关键字的函数会自动成为一个生成器函数。</p>
+        <ul>
+            <li>当生成器函数被调用时，它并不会立即执行，而是返回一个可以被迭代的对象（例如用 <code>foreach</code>）。</li>
+            <li>当通过 <code>foreach</code> 迭代这个对象时，生成器函数的代码会执行，直到遇到第一个 <code>yield</code> 语句。
+            </li>
+            <li><code>yield</code> 语句会**暂停**函数的执行，并将 <code>yield</code> 后面的值作为当前迭代的**返回值**。
+            </li>
+            <li>当下一次迭代请求值时，函数会从上次 <code>yield</code> 暂停的地方**继续执行**，直到遇到下一个
+                <code>yield</code> 或函数结束。
+            </li>
+        </ul>
+
+        <p><b>示例：生成一个范围内的数字（内存高效）</b></p>
+        <pre><code class="language-php">&lt;?php
+function numberRange($start, $end) {
+    echo "生成器函数开始...\n"; // 只会执行一次
+    for ($i = $start; $i &lt;= $end; $i++) {
+        echo "准备 yield " . $i . "\n";
+        yield $i; // 暂停并返回值 $i
+        echo $i . " 已被 yield。\n"; // 下次迭代时从这里继续
+    }
+    echo "生成器函数结束。\n";
+}
+
+$numbers = numberRange(1, 3);
+
+echo "开始 foreach 循环:\n";
+foreach ($numbers as $num) {
+    echo "从循环中接收到: " . $num . "\n";
+}
+echo "循环结束。\n";
+
+/*
+输出大致如下:
+生成器函数开始...
+开始 foreach 循环:
+准备 yield 1
+从循环中接收到: 1
+1 已被 yield。
+准备 yield 2
+从循环中接收到: 2
+2 已被 yield。
+准备 yield 3
+从循环中接收到: 3
+3 已被 yield。
+生成器函数结束。
+循环结束。
+*/
+?></code></pre>
+        <p class="note">
+            生成器是一个相对高级但非常有用的特性，特别是在处理大数据和优化内存使用方面。初学者了解其概念和基本用法即可。</p>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 5 部分结束 ---</p>
+
+</div>
+</body>
+</html>

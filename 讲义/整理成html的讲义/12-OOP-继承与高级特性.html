@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP - Part 12: OOP - Part 2: 继承与高级特性</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem; /* Offset for fixed headers if any, or just some space */
+        }
+
+        /* Adding prose styles directly for better control over code blocks etc. */
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        /* Enhanced <pre> style with corrected comments */
+        .prose pre {
+            background-color: #1f2937; /* Dark background */
+            color: #f3f4f6; /* Light text */
+            padding: 1em;
+            border-radius: 0.375rem; /* Rounded corners */
+            overflow-x: auto; /* Horizontal scroll on overflow */
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151; /* Subtle border */
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); /* Optional: subtle shadow */
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre; /* Preserve whitespace strictly */
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        /* Using <b> for bold now */
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        /* Keep strong style just in case */
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>PHP - Part 12: OOP - Part 2: 继承与高级特性</h1>
+    <p class="text-gray-500 text-sm">这是 17 部分系列讲义的第十二部分。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="s12-1">12.1 继承 (Inheritance)</h2>
+
+        <h3 id="s12-1-1">概念与好处</h3>
+        <p>继承是 OOP 的核心支柱之一。它允许你创建一个新类（称为<b>子类 (Subclass)</b> 或 <b>派生类 (Derived Class)</b>），这个新类可以自动获得另一个已存在类（称为<b>父类
+            (Parent Class)</b>、<b>超类 (Superclass)</b> 或 <b>基类 (Base Class)</b>）的属性和方法。</p>
+        <p>这体现了一种 "is-a"（是一个）的关系。例如，<code>Dog</code> <b>是一个</b> <code>Animal</code>，<code>Car</code>
+            <b>是一个</b> <code>Vehicle</code>。</p>
+        <p><b>主要好处：</b></p>
+        <ul>
+            <li><b>代码重用：</b> 子类可以直接使用父类中已有的、非私有的代码，避免重复编写。</li>
+            <li><b>建立层次结构：</b> 可以创建具有通用特性的父类和具有特定特性的子类，形成清晰的类层次。</li>
+            <li><b>可扩展性：</b> 可以在不修改父类的情况下，通过创建子类来扩展功能。</li>
+        </ul>
+
+        <h3 id="s12-1-2">语法：<code>extends</code></h3>
+        <p>使用 <code>extends</code> 关键字来声明一个类继承自另一个类。</p>
+        <pre><code class="language-php">&lt;?php
+// 定义父类 Animal
+class Animal {
+public string $name;
+protected string $sound = '...'; // 受保护属性，子类可以访问
+
+public function __construct(string $name) {
+    $this->name = $name;
+    echo "一个新的动物被命名为: {$this->name}\n";
+}
+
+public function eat(string $food): void {
+    echo "{$this->name} 正在吃 {$food}。\n";
+}
+
+public function speak(): void {
+    echo "{$this->name} 发出声音: {$this->sound}\n";
+}
+}
+
+// 定义子类 Dog，继承自 Animal
+class Dog extends Animal {
+// Dog 类自动拥有了 $name 属性以及 eat() 和 speak() 方法
+
+// 可以添加 Dog 特有的属性
+public string $breed;
+
+// 可以覆盖父类的方法 (Method Overriding)
+public function speak(): void {
+    // 可以在子类方法中使用 $this 访问继承的属性
+    echo "{$this->name} 叫: 汪汪!\n";
+    // 注意：子类不能直接访问父类的 private 成员
+    // echo $this->sound; // 如果 sound 是 private 则会报错，protected 则可以
+}
+
+// 可以添加 Dog 特有的方法
+public function fetch(): void {
+    echo "{$this->name} 跑去捡球了！\n";
+}
+}
+
+// 定义子类 Cat，也继承自 Animal
+class Cat extends Animal {
+// 覆盖父类的 speak 方法
+public function speak(): void {
+echo "{$this->name} 叫: 喵~\n";
+}
+
+public function climbTree(): void {
+    echo "{$this->name} 爬到了树上！\n";
+}
+}
+
+// --- 使用子类创建对象 ---
+$dog1 = new Dog("旺财"); // 调用父类的构造函数
+$dog1->breed = "金毛"; // 设置子类特有属性
+$dog1->eat("骨头");   // 调用继承自父类的 eat() 方法
+$dog1->speak();   // 调用子类覆盖后的 speak() 方法
+$dog1->fetch();   // 调用子类特有的 fetch() 方法
+
+echo "\n";
+
+$cat1 = new Cat("咪咪");
+$cat1->eat("鱼");
+$cat1->speak();
+$cat1->climbTree();
+
+?&gt;</code></pre>
+        <p><b>输出：</b></p>
+        <pre><code>一个新的动物被命名为: 旺财
+旺财 正在吃 骨头。
+旺财 叫: 汪汪!
+旺财 跑去捡球了！
+
+一个新的动物被命名为: 咪咪
+咪咪 正在吃 鱼。
+咪咪 叫: 喵~
+咪咪 爬到了树上！
+</code></pre>
+
+        <h3 id="s12-1-3">继承中的访问控制</h3>
+        <ul>
+            <li><b><code>public</code> 成员：</b> 子类可以像访问自己的成员一样访问父类的公共成员。</li>
+            <li><b><code>protected</code> 成员：</b> 子类**可以**在**其内部**访问父类的受保护成员（属性和方法）。这是 <code>protected</code>
+                的主要用途——允许继承但不允许外部直接访问。
+            </li>
+            <li><b><code>private</code> 成员：</b> 子类**不能**直接访问父类的私有成员。父类的私有成员只对父类自身可见。如果子类需要与父类的私有状态交互，通常需要通过父类提供的
+                public 或 protected 方法。
+            </li>
+        </ul>
+
+        <h3 id="s12-1-4">方法覆盖 (Method Overriding)</h3>
+        <p>如上例所示，子类可以定义一个与父类同名的方法，来提供自己特定的实现。这就是方法覆盖。</p>
+        <p><b>规则：</b></p>
+        <ul>
+            <li>方法名必须相同。</li>
+            <li>
+                参数列表通常应该兼容（子类方法的参数可以与父类相同，或者更少要求——例如父类需要特定类型，子类可以不需要或需要其父类型；参数个数通常应匹配，除非使用可变参数）。
+            </li>
+            <li>访问控制：子类方法的访问权限必须**等于或低于**（即更宽松）父类方法的访问权限。例如，不能将父类的
+                <code>public</code> 方法覆盖为 <code>private</code> 或 <code>protected</code>，但可以将
+                <code>protected</code> 覆盖为 <code>public</code>。
+            </li>
+            <li>
+                返回值类型：如果父类方法声明了返回类型，子类方法的返回类型必须兼容（相同或者是父类返回类型的子类型）。如果父类没有声明返回类型，子类可以自由声明。
+            </li>
+        </ul>
+
+        <h3 id="s12-1-5">调用父类方法/构造函数：<code>parent::</code></h3>
+        <p>有时在子类覆盖一个方法时，你可能还想执行父类中被覆盖的那个方法的逻辑。或者在子类的构造函数中，你需要先调用父类的构造函数来完成父类的初始化。这时可以使用
+            <code>parent::</code> 关键字。</p>
+        <pre><code class="language-php">&lt;?php
+class Vehicle {
+protected int $speed = 0;
+
+public function __construct() {
+    echo "Vehicle 构造函数被调用。\n";
+}
+
+public function move(int $distance): void {
+    echo "移动了 " . $distance . " 米。\n";
+}
+}
+
+class Bicycle extends Vehicle {
+public int $gears;
+
+// 子类的构造函数
+public function __construct(int $gears) {
+    // **重要：** 首先调用父类的构造函数
+    parent::__construct(); // 调用 Vehicle 的 __construct
+
+    // 然后执行子类自己的初始化
+    $this->gears = $gears;
+    echo "Bicycle 构造函数被调用，齿轮数: " . $this->gears . "\n";
+}
+
+// 覆盖父类的 move 方法，并调用父类版本
+public function move(int $distance): void {
+    echo "自行车开始骑行...\n";
+    // 调用父类的 move 方法
+    parent::move($distance);
+    // 可以在此添加子类特定的逻辑
+    echo "骑行结束。\n";
+}
+}
+
+$bike = new Bicycle(18);
+$bike->move(100);
+
+/*
+输出:
+Vehicle 构造函数被调用。
+Bicycle 构造函数被调用，齿轮数: 18
+自行车开始骑行...
+移动了 100 米。
+骑行结束。
+*/
+?&gt;</code></pre>
+        <p class="warning"><b>注意：</b> 如果子类定义了自己的构造函数，而你想让父类的构造函数也被执行，必须在子类构造函数中显式调用
+            <code>parent::__construct()</code>。否则，父类的构造函数会被完全覆盖掉。</p>
+
+        <h3 id="s12-1-6"><code>final</code> 关键字</h3>
+        <ul>
+            <li><b><code>final class ClassName { ... }</code></b>: 如果在类定义前加上 <code>final</code>，这个类就**不能被其他任何类继承**。
+            </li>
+            <li><b><code>final public function methodName() { ... }</code></b>: 如果在方法定义前加上 <code>final</code>（必须是
+                public 或 protected），这个方法就**不能在子类中被覆盖**。
+            </li>
+        </ul>
+        <p><code>final</code> 主要用于你想阻止类的功能被扩展或修改的场景。</p>
+
+        <hr/>
+
+        <h2 id="s12-2">12.2 抽象类与抽象方法 (Abstract Classes and Methods)</h2>
+
+        <h3 id="s12-2-1">概念</h3>
+        <ul>
+            <li><b>抽象类 (Abstract Class):</b> 使用 <code>abstract</code> 关键字声明的类。它像一个不完整的“模板”或“草稿”，主要目的是被其他类继承。
+                <ul>
+                    <li><b>不能被直接实例化</b> (你不能 <code>new AbstractClass()</code>)。</li>
+                    <li>可以包含普通的属性和方法（带有实现体）。</li>
+                    <li><b>可以包含抽象方法</b>。</li>
+                </ul>
+            </li>
+            <li><b>抽象方法 (Abstract Method):</b> 使用 <code>abstract</code> 关键字声明的方法，它只有方法签名（名称、参数、返回类型），**没有方法体**（没有
+                <code>{}</code> 代码块），以分号 <code>;</code> 结尾。
+                <ul>
+                    <li>抽象方法只能存在于抽象类中。</li>
+                    <li>声明抽象方法意味着：<b>任何继承这个抽象类的子类，都必须提供这个抽象方法的具体实现</b>（除非子类本身也被声明为抽象类）。
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        <p><b>用途：</b> 定义一个通用的基类结构，强制子类实现某些特定的行为，同时允许共享一些通用的属性或方法。</p>
+
+        <h3 id="s12-2-2">语法与示例</h3>
+        <pre><code class="language-php">&lt;?php
+// 定义一个抽象类 Shape
+abstract class Shape {
+// 可以有普通属性
+protected string $color;
+
+// 可以有普通方法（构造函数）
+public function __construct(string $color) {
+    $this->color = $color;
+}
+
+// 可以有普通方法
+public function getColor(): string {
+    return $this->color;
+}
+
+// **定义一个抽象方法**，只有签名，没有实现
+// 所有继承 Shape 的非抽象子类都必须实现这个方法
+abstract public function calculateArea(): float;
+}
+
+// 定义子类 Circle，继承自 Shape
+class Circle extends Shape {
+private float $radius;
+
+// 子类构造函数，需要调用父类构造函数
+public function __construct(string $color, float $radius) {
+    parent::__construct($color); // 调用 Shape 的构造函数设置颜色
+    $this->radius = $radius;
+}
+
+// **必须实现**父类的抽象方法 calculateArea
+public function calculateArea(): float {
+    return pi() * $this->radius * $this->radius;
+}
+}
+
+// 定义子类 Rectangle
+class Rectangle extends Shape {
+private float $width;
+private float $height;
+
+public function __construct(string $color, float $width, float $height) {
+    parent::__construct($color);
+    $this->width = $width;
+    $this->height = $height;
+}
+
+// **必须实现** calculateArea
+public function calculateArea(): float {
+    return $this->width * $this->height;
+}
+}
+
+// $shape = new Shape('red'); // 错误！不能实例化抽象类
+
+$circle = new Circle('红色', 5);
+echo "圆形颜色: " . $circle->getColor() . ", 面积: " . $circle->calculateArea() . "\n";
+
+$rectangle = new Rectangle('蓝色', 4, 6);
+echo "矩形颜色: " . $rectangle->getColor() . ", 面积: " . $rectangle->calculateArea() . "\n";
+
+?&gt;</code></pre>
+
+        <hr/>
+
+        <h2 id="s12-3">12.3 接口 (Interfaces)</h2>
+
+        <h3 id="s12-3-1">概念</h3>
+        <ul>
+            <li>接口使用 <code>interface</code> 关键字定义。它更像一份**纯粹的“合同”或“规范”**。</li>
+            <li>接口只定义类**应该**具有哪些**公共方法**（方法签名），但**完全不提供**任何方法的实现（没有方法体）。</li>
+            <li>接口可以定义**常量**。</li>
+            <li>一个类可以使用 <code>implements</code> 关键字声明它实现了**一个或多个**接口。</li>
+            <li>实现接口的类**必须**提供接口中定义的所有方法的具体实现，且方法签名（参数、返回类型）必须兼容。</li>
+            <li>接口本身**不能被实例化**。</li>
+        </ul>
+        <p><b>与抽象类的区别：</b></p>
+        <ul>
+            <li><b>实现方式：</b> 类通过 <code>extends</code> **继承**抽象类（单继承），通过 <code>implements</code>
+                **实现**接口（可实现多个接口）。
+            </li>
+            <li><b>成员：</b> 抽象类可以包含属性、普通方法、抽象方法、构造函数等；接口只能包含公共方法签名和常量。</li>
+            <li><b>目的：</b> 抽象类通常用于建立 "is-a" 的继承关系，提供一些共享代码和强制子类实现部分功能；接口主要用于定义
+                "can-do" 的能力契约，强制不同类实现相同的公共 API，以实现多态和解耦。
+            </li>
+        </ul>
+
+        <h3 id="s12-3-2">语法与示例</h3>
+        <pre><code class="language-php">&lt;?php
+// 定义一个可记录日志的接口
+interface Loggable {
+// 定义一个 log 方法签名，所有实现者都必须有这个方法
+public function log(string $message): void;
+}
+
+// 定义另一个接口，表示可以被序列化为字符串
+interface StringSerializable {
+public function __toString(): string; // 使用了魔术方法签名
+}
+
+// FileLogger 类实现了 Loggable 接口
+class FileLogger implements Loggable {
+private $logFile;
+
+public function __construct(string $filename) {
+    $this->logFile = $filename;
+    // 实际应用中需要处理文件打开和权限
+}
+
+// 必须实现接口中定义的 log 方法
+public function log(string $message): void {
+    $timestamp = date('Y-m-d H:i:s');
+    file_put_contents($this->logFile, "[{$timestamp}] " . $message . PHP_EOL, FILE_APPEND);
+    echo "消息已记录到文件 {$this->logFile}\n";
+}
+}
+
+// DatabaseLogger 类也实现了 Loggable 接口
+class DatabaseLogger implements Loggable {
+private $pdo; // 假设有 PDO 连接
+
+public function __construct(PDO $pdo) {
+    $this->pdo = $pdo;
+}
+
+// 实现 log 方法，将日志写入数据库
+public function log(string $message): void {
+    try {
+        $stmt = $this->pdo->prepare("INSERT INTO logs (message, created_at) VALUES (:msg, NOW())");
+        $stmt->execute([':msg' => $message]);
+        echo "消息已记录到数据库\n";
+    } catch (PDOException $e) {
+        echo "数据库日志记录失败: " . $e->getMessage() . "\n";
+    }
+}
+}
+
+// User 类同时实现了 Loggable 和 StringSerializable 接口
+class User implements Loggable, StringSerializable {
+public string $name;
+private Loggable $logger; // 类型提示为接口，可以是任何实现 Loggable 的对象
+
+public function __construct(string $name, Loggable $logger) { // 依赖注入 Logger
+    $this->name = $name;
+    $this->logger = $logger;
+    $this->log("User '{$this->name}' created.");
+}
+
+// 实现 Loggable 接口的 log 方法 (委托给内部 logger)
+public function log(string $message): void {
+    $this->logger->log($message);
+}
+
+// 实现 StringSerializable 接口的 __toString 方法
+public function __toString(): string {
+    return "User(name={$this->name})";
+}
+}
+
+// --- 使用 ---
+// $pdo = new PDO(...); // 假设已连接数据库
+// $dbLogger = new DatabaseLogger($pdo);
+$fileLogger = new FileLogger('app.log');
+
+// 创建 User 对象，可以传入 FileLogger 或 DatabaseLogger
+$user1 = new User('Alice', $fileLogger); // 使用文件日志
+// $user2 = new User('Bob', $dbLogger); // 使用数据库日志
+
+echo $user1; // 调用 $user1 的 __toString() 方法，输出: User(name=Alice)
+
+?&gt;</code></pre>
+        <p class="note">接口是实现多态（不同的对象对相同的调用做出不同的行为，例如 <code>$user->log()</code> 会根据传入的
+            Logger 不同而写入文件或数据库）和依赖注入（如 User 类依赖 <code>Loggable</code>
+            接口而不是具体实现）的重要工具，有助于构建松耦合、可测试的系统。</p>
+
+        <hr/>
+
+        <h2 id="s12-4">12.4 静态属性与静态方法 (Static Properties and Methods)</h2>
+
+        <h3 id="s12-4-1">概念</h3>
+        <ul>
+            <li>静态成员（属性或方法）是属于**类本身**的，而不是属于类的任何特定实例（对象）。</li>
+            <li>这意味着你可以在**不创建对象**的情况下访问静态成员。</li>
+            <li>静态属性在所有对象实例之间是**共享**的（只有一个副本）。</li>
+            <li>静态方法内部**不能**使用 <code>$this</code> 关键字，因为它不与任何特定对象关联。</li>
+        </ul>
+
+        <h3 id="s12-4-2">语法：<code>static</code> 关键字与 <code>::</code> 运算符</h3>
+        <ul>
+            <li><b>声明：</b> 在属性或方法定义前加上 <code>static</code> 关键字。
+                <pre><code class="language-php">class Counter {
+public static int $count = 0; // 静态属性
+
+public static function increment(): void { // 静态方法
+    // ...
+}
+}</code></pre>
+            </li>
+            <li><b>外部访问：</b> 使用类名和范围解析操作符 (Scope Resolution Operator) <code>::</code> 来访问。
+                <pre><code class="language-php">echo Counter::$count;    // 访问静态属性
+Counter::increment(); // 调用静态方法</code></pre>
+            </li>
+            <li><b>内部访问：</b> 在类的内部（无论静态还是非静态方法）访问本类的静态成员，使用 <code>self::</code>。
+                <pre><code class="language-php">class Counter {
+public static int $count = 0;
+
+public static function increment(): void {
+    self::$count++; // 在静态方法内部访问静态属性
+}
+
+public function currentCount(): int {
+    return self::$count; // 在非静态方法内部访问静态属性
+}
+
+public static function getAndIncrement(): int {
+     self::increment(); // 在静态方法内部调用其他静态方法
+     return self::$count;
+}
+}</code></pre>
+            </li>
+        </ul>
+
+        <h3 id="s12-4-3">后期静态绑定 (Late Static Binding) - <code>static::</code> (PHP 5.3+)</h3>
+        <p>当涉及到**继承**时，<code>self::</code> 的行为有时可能不符合预期。<code>self::</code>
+            总是指向**定义**该方法的类，而不是**调用**该方法的类。</p>
+        <p><code>static::</code> 关键字解决了这个问题，它指向**运行时实际调用**该方法的类。</p>
+        <pre><code class="language-php">&lt;?php
+class ParentClass {
+protected static string $name = 'Parent';
+
+public static function whoAreYouSelf(): void {
+    echo self::$name . "\n"; // self:: 总是指向 ParentClass
+}
+
+public static function whoAreYouStatic(): void {
+    echo static::$name . "\n"; // static:: 指向调用时的类
+}
+}
+
+class ChildClass extends ParentClass {
+protected static string $name = 'Child'; // 子类覆盖了静态属性
+}
+
+ChildClass::whoAreYouSelf();  // 输出: Parent (因为 whoAreYouSelf 在 ParentClass 定义，self 指向 ParentClass)
+ChildClass::whoAreYouStatic(); // 输出: Child  (因为 static 指向运行时调用的类 ChildClass)
+?&gt;</code></pre>
+        <p class="note">当你编写可能被继承的、需要引用“后期”类的静态属性或方法的静态方法时，应使用 <code>static::</code>
+            而不是 <code>self::</code>。</p>
+
+        <h3 id="s12-4-4">使用场景</h3>
+        <ul>
+            <li><b>工具/辅助函数：</b> 不需要对象状态的通用函数，可以作为静态方法（如 <code>MathUtils::add()</code>）。</li>
+            <li><b>计数器或共享状态：</b> 需要在所有实例间共享的变量（如记录创建了多少个对象）。</li>
+            <li><b>工厂模式 (Factory Pattern):**</b> 静态方法可以用来创建和返回类的实例。</li>
+            <li><b>单例模式 (Singleton Pattern):**</b> 确保一个类只有一个实例，通常通过私有构造函数和公共静态方法实现（但单例模式的使用也存在争议）。
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+class Logger {
+private static $instance = null;
+private $logData = [];
+
+// 私有构造函数，防止外部 new
+private function __construct() {}
+
+// 获取唯一实例的静态方法
+public static function getInstance(): Logger {
+    if (self::$instance === null) {
+        self::$instance = new Logger();
+    }
+    return self::$instance;
+}
+
+public function log(string $message): void {
+    $this->logData[] = $message;
+    echo "Logged: " . $message . "\n";
+}
+
+// 防止克隆
+private function __clone() {}
+// 防止反序列化 (如果需要)
+// public function __wakeup() { throw new Exception("Cannot unserialize singleton"); }
+}
+
+// 使用单例
+Logger::getInstance()->log("系统启动。");
+Logger::getInstance()->log("处理请求...");
+
+// $logger1 = Logger::getInstance();
+// $logger2 = Logger::getInstance();
+// var_dump($logger1 === $logger2); // 输出: bool(true)，它们是同一个对象
+?&gt;</code></pre>
+
+        <hr/>
+
+        <h2 id="s12-5">12.5 对象比较 (Object Comparison)</h2>
+        <ul>
+            <li><b>比较运算符 <code>==</code> (Equality):</b>
+                <ul>
+                    <li>如果两个对象是**同一个类**的实例，并且它们所有**属性**的值都相等（使用 <code>==</code>
+                        比较属性值），则认为两个对象相等。
+                    </li>
+                    <li><b>不关心</b>它们是否是内存中的同一个实例。</li>
+                </ul>
+            </li>
+            <li><b>全等运算符 <code>===</code> (Identity):</b>
+                <ul>
+                    <li><b>只有当</b>两个变量指向内存中**完全相同的对象实例**时，才认为它们全等。</li>
+                </ul>
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+class SimpleBox {
+public $value;
+public function __construct($value) { $this->value = $value; }
+}
+
+$box1 = new SimpleBox(10);
+$box2 = new SimpleBox(10);
+$box3 = new SimpleBox(20);
+$box4 = $box1; // $box4 指向 $box1 同一个对象
+
+var_dump($box1 == $box2);  // 输出: bool(true)  (类相同，属性值相同)
+var_dump($box1 === $box2); // 输出: bool(false) (不是同一个实例)
+
+var_dump($box1 == $box3);  // 输出: bool(false) (属性值不同)
+var_dump($box1 === $box3); // 输出: bool(false)
+
+var_dump($box1 == $box4);  // 输出: bool(true)  (指向同一个对象，当然相等)
+var_dump($box1 === $box4); // 输出: bool(true)  (指向同一个实例)
+?&gt;</code></pre>
+
+        <hr/>
+
+        <h2 id="s12-6">12.6 对象克隆 (Object Cloning)</h2>
+        <p>使用 <code>clone</code> 关键字可以创建一个现有对象的副本。</p>
+        <pre><code class="language-php">&lt;?php
+$original = new SimpleBox(100); // 假设 SimpleBox 类如上定义
+$clone = clone $original;     // 创建 $original 的一个副本
+?&gt;</code></pre>
+
+        <h3 id="s12-6-1">浅拷贝 (Shallow Copy)</h3>
+        <p>默认情况下，<code>clone</code> 执行的是**浅拷贝**：</p>
+        <ul>
+            <li>对象的所有**标量类型**（int, float, string, bool, null）的属性会被完整复制一份到新对象中。</li>
+            <li>
+                对象的所有包含**其他对象**或**资源**的属性，在新对象中只会复制**引用**。也就是说，原始对象和克隆对象中的这些属性将指向**同一个**内部对象或资源。
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+class Detail { public $info = "original"; }
+class Container {
+public $scalar = 1;
+public $object; // 包含一个对象属性
+public function __construct() { $this->object = new Detail(); }
+}
+
+$obj1 = new Container();
+$obj2 = clone $obj1; // 浅拷贝
+
+// 修改标量属性
+$obj2->scalar = 2;
+echo "Obj1 scalar: " . $obj1->scalar . "\n"; // 输出: Obj1 scalar: 1 (未受影响)
+echo "Obj2 scalar: " . $obj2->scalar . "\n"; // 输出: Obj2 scalar: 2
+
+// 修改对象属性 (!!!)
+$obj2->object->info = "modified by clone";
+echo "Obj1 object info: " . $obj1->object->info . "\n"; // 输出: Obj1 object info: modified by clone (受到影响!)
+echo "Obj2 object info: " . $obj2->object->info . "\n"; // 输出: Obj2 object info: modified by clone
+?&gt;</code></pre>
+        <p class="warning">浅拷贝对于包含其他对象的属性时需要特别注意，修改克隆对象的内部对象会影响原始对象。</p>
+
+        <h3 id="s12-6-2">深拷贝 (Deep Copy) 与 <code>__clone()</code></h3>
+        <p>如果你需要在克隆对象时，也同时克隆其内部包含的对象属性（使它们完全独立），你需要实现**深拷贝**。这通常通过定义一个特殊的魔术方法
+            <code>__clone()</code> 来完成。</p>
+        <ul>
+            <li>当执行 <code>$newObj = clone $oldObj;</code> 时：
+                <ol>
+                    <li>PHP 首先执行一次浅拷贝，创建 <code>$newObj</code>。</li>
+                    <li>然后，PHP 会检查 <code>$newObj</code>（也就是克隆出来的对象）中是否存在 <code>__clone()</code>
+                        方法。如果存在，则**调用 <code>$newObj</code> 的 <code>__clone()</code> 方法**。
+                    </li>
+                </ol>
+            </li>
+            <li>你可以在 <code>__clone()</code> 方法内部，手动去克隆那些需要深拷贝的内部对象属性。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+class Detail { public $info = "original"; }
+class Container {
+public $scalar = 1;
+public $object;
+public function __construct() { $this->object = new Detail(); }
+
+// 定义 __clone 方法来实现深拷贝 object 属性
+public function __clone() {
+    // $this 在这里指代的是新克隆出来的对象
+    // 手动克隆内部的 object 属性
+    $this->object = clone $this->object;
+}
+}
+
+$obj1 = new Container();
+$obj2 = clone $obj1; // clone 时会调用 __clone()
+
+// 修改标量属性 (行为同浅拷贝)
+$obj2->scalar = 2;
+echo "Obj1 scalar: " . $obj1->scalar . "\n"; // 1
+echo "Obj2 scalar: " . $obj2->scalar . "\n"; // 2
+
+// 修改对象属性 (现在不会互相影响了)
+$obj2->object->info = "modified by clone";
+echo "Obj1 object info: " . $obj1->object->info . "\n"; // 输出: Obj1 object info: original (未受影响!)
+echo "Obj2 object info: " . $obj2->object->info . "\n"; // 输出: Obj2 object info: modified by clone
+?&gt;</code></pre>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 12 部分结束 ---</p>
+
+</div>
+</body>
+</html>

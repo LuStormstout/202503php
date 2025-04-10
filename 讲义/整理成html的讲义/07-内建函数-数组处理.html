@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP - Part 7: 内建函数详解 - 数组处理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+            /* Offset for fixed headers if any, or just some space */
+        }
+
+        /* Adding prose styles directly for better control over code blocks etc. */
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre; /* Preserve whitespace strictly */
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        /* Using <b> for bold now */
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        /* Keep strong style just in case */
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>PHP - Part 7: 内建函数详解 - 数组处理</h1>
+    <p class="text-gray-500 text-sm">这是 17 部分系列讲义的第七部分。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="s7-intro">引言：PHP 的瑞士军刀 - 数组</h2>
+        <p>数组 (Array) 是 PHP 中最重要、最灵活的数据结构之一。它可以让你在一个变量中存储多个值，并通过索引（数字）或键（字符串）来访问这些值。PHP
+            提供了极其丰富的内建函数来操作数组，使得数据处理变得非常方便。</p>
+        <p>本部分将详细介绍一些最常用的数组函数，按照功能进行分类。</p>
+
+        <hr/>
+
+        <h2 id="s7-1">7.1 创建与检查数组</h2>
+        <ul>
+            <li><b>创建数组：</b>
+                <ul>
+                    <li>使用 <code>array()</code> 结构：<code>$arr = array(1, 2, 3);</code> 或 <code>$assoc = array('a'
+                        => 1, 'b' => 2);</code></li>
+                    <li>使用短数组语法 <code>[]</code> (PHP 5.4+，<b>推荐</b>): <code>$arr = [1, 2, 3];</code> 或 <code>$assoc
+                        = ['a' => 1, 'b' => 2];</code></li>
+                </ul>
+            </li>
+            <li><b><code>count(array|Countable $array, int $mode = COUNT_NORMAL): int</code></b> (别名
+                <code>sizeof</code>)
+                <ul>
+                    <li>返回数组中元素的数量。</li>
+                    <li><code>$mode</code> (可选): <code>COUNT_RECURSIVE</code> (或 <code>1</code>) 可以递归地计算多维数组中所有元素的数量。
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$fruits = ["apple", "banana", "orange"];
+echo count($fruits); // 输出: 3
+
+$nested = [1, 2, [3, 4], 5];
+echo count($nested); // 输出: 4 (只计算第一层)
+echo count($nested, COUNT_RECURSIVE); // 输出: 6 (计算了内部数组的元素)
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>is_array(mixed $value): bool</code></b>
+                <ul>
+                    <li>检查一个变量是否是数组类型。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$arr = [];
+$str = "hello";
+var_dump(is_array($arr)); // 输出: bool(true)
+var_dump(is_array($str)); // 输出: bool(false)
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>empty(mixed $value): bool</code></b> (回顾)
+                <ul>
+                    <li>对于数组，如果数组没有任何元素（<code>[]</code>），<code>empty()</code> 返回 <code>true</code>。</li>
+                </ul>
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s7-2">7.2 添加与移除元素</h2>
+        <p class="warning">注意：以下很多函数会直接<b>修改</b>原始数组。</p>
+        <ul>
+            <li><b><code>array_push(array &amp;$array, mixed ...$values): int</code></b>
+                <ul>
+                    <li>将一个或多个元素压入数组的<b>末尾</b>。</li>
+                    <li>会修改原始数组 <code>$array</code>。</li>
+                    <li>返回数组新的元素个数。</li>
+                    <li class="note"><b>注意：</b> 使用 <code>$array[] = $value;</code> 的方式添加单个元素通常更常用且效率可能更高。
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$stack = ["a", "b"];
+$count = array_push($stack, "c", "d");
+print_r($stack); // 输出: Array ( [0] => a [1] => b [2] => c [3] => d )
+echo "New count: " . $count; // 输出: New count: 4
+
+$stack[] = "e"; // 更常见的方式添加单个元素
+print_r($stack); // 输出: Array ( [0] => a [1] => b [2] => c [3] => d [4] => e )
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>array_pop(array &amp;$array): mixed</code></b>
+                <ul>
+                    <li>弹出并返回数组的<b>最后一个</b>元素。</li>
+                    <li>会修改原始数组。如果数组为空或不是数组，返回 <code>null</code>。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$stack = ["a", "b", "c"];
+$last = array_pop($stack);
+echo "Popped: " . $last . "\n"; // 输出: Popped: c
+print_r($stack); // 输出: Array ( [0] => a [1] => b )
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>array_unshift(array &amp;$array, mixed ...$values): int</code></b>
+                <ul>
+                    <li>在数组的<b>开头</b>插入一个或多个元素。</li>
+                    <li>会修改原始数组。原有的数字键名会被重新索引（从 0 开始），但字符串键名不变。</li>
+                    <li>返回数组新的元素个数。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$queue = ["b", "c"];
+$count = array_unshift($queue, "a", "x");
+print_r($queue); // 输出: Array ( [0] => a [1] => x [2] => b [3] => c )
+echo "New count: " . $count; // 输出: New count: 4
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>array_shift(array &amp;$array): mixed</code></b>
+                <ul>
+                    <li>移除并返回数组的<b>第一个</b>元素。</li>
+                    <li>会修改原始数组。数字键名会被重新索引，字符串键名不变。</li>
+                    <li>如果数组为空或不是数组，返回 <code>null</code>。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$queue = ["a", "b", "c"];
+$first = array_shift($queue);
+echo "Shifted: " . $first . "\n"; // 输出: Shifted: a
+print_r($queue); // 输出: Array ( [0] => b [1] => c ) (注意索引重排了)
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>unset(mixed ...$vars): void</code></b> (回顾)
+                <ul>
+                    <li>可以用来删除数组中的某个元素。</li>
+                    <li><code>unset($array[$key])</code>。</li>
+                    <li><b>注意：</b><code>unset</code> 不会重新索引数组的数字键。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$arr = [0 => "apple", 1 => "banana", 2 => "cherry"];
+unset($arr[1]); // 删除索引为 1 的元素
+print_r($arr); // 输出: Array ( [0] => apple [2] => cherry ) (索引 1 不存在了)
+
+// 如果想删除后重新索引，可以用 array_values()
+$reindexed = array_values($arr);
+print_r($reindexed); // 输出: Array ( [0] => apple [1] => cherry )
+?&gt;</code></pre>
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s7-3">7.3 访问元素与内部指针</h2>
+        <ul>
+            <li><b>直接访问：</b> <code>$array[$key]</code></li>
+            <li><b><code>array_key_exists(int|string $key, array $array): bool</code></b>
+                <ul>
+                    <li>检查指定的键（<code>$key</code>）是否存在于数组 <code>$array</code> 中。</li>
+                </ul>
+            </li>
+            <li><b><code>isset(mixed ...$vars): bool</code></b> (回顾)
+                <ul>
+                    <li><code>isset($array[$key])</code> 检查键是否存在 <b>并且其值不是 <code>null</code></b>。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$data = ['name' => 'Alice', 'age' => null];
+
+var_dump(array_key_exists('name', $data)); // 输出: bool(true)
+var_dump(isset($data['name']));          // 输出: bool(true)
+
+var_dump(array_key_exists('age', $data));  // 输出: bool(true) (键存在)
+var_dump(isset($data['age']));           // 输出: bool(false) (因为值是 null)
+
+var_dump(array_key_exists('city', $data)); // 输出: bool(false) (键不存在)
+var_dump(isset($data['city']));          // 输出: bool(false)
+?&gt;</code></pre>
+                <p class="note">需要区分“键是否存在”和“键存在且值不为 null”时，使用 <code>array_key_exists</code>。</p>
+            </li>
+            <li class="mt-2"><b><code>array_keys(array $array, mixed $search_value = null, bool $strict = false):
+                array</code></b>
+                <ul>
+                    <li>返回数组中所有的键名，组成一个新的索引数组。</li>
+                    <li>如果提供了 <code>$search_value</code>，则只返回值为该值的键名。</li>
+                    <li><code>$strict</code> (可选): 如果为 <code>true</code>，则在搜索值时使用 <code>===</code> 进行比较。
+                    </li>
+                </ul>
+            </li>
+            <li class="mt-2"><b><code>array_values(array $array): array</code></b>
+                <ul>
+                    <li>返回数组中所有的值，组成一个新的、<b>从 0 开始重新索引</b>的数组。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$user = ['name' => 'Bob', 'age' => 25, 'city' => 'London', 'status' => 'active'];
+$keys = array_keys($user);
+print_r($keys); // 输出: Array ( [0] => name [1] => age [2] => city [3] => status )
+
+$values = array_values($user);
+print_r($values); // 输出: Array ( [0] => Bob [1] => 25 [2] => London [3] => active )
+
+$ages = ['Alice' => 30, 'Bob' => 25, 'Charlie' => 30];
+$keysOf30 = array_keys($ages, 30);
+print_r($keysOf30); // 输出: Array ( [0] => Alice [1] => Charlie )
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b>内部数组指针函数：</b>
+                <ul>
+                    <li>PHP 维护着每个数组的一个内部指针，指向当前元素。<code>foreach</code> 循环会自动管理这个指针。</li>
+                    <li>手动操作指针的函数（现在不常用，但有助于理解）：
+                        <ul>
+                            <li><code>current(array $array): mixed</code>: 返回指针当前指向的元素的值。</li>
+                            <li><code>key(array $array): int|string|null</code>: 返回指针当前指向的元素的键。</li>
+                            <li><code>next(array $array): mixed</code>: 将指针向前移动一位，并返回移动后元素的值。</li>
+                            <li><code>prev(array $array): mixed</code>: 将指针向后移动一位，并返回移动后元素的值。</li>
+                            <li><code>reset(array $array): mixed</code>: 将指针重置到数组的第一个元素，并返回第一个元素的值。
+                            </li>
+                            <li><code>end(array $array): mixed</code>: 将指针移动到数组的最后一个元素，并返回最后一个元素的值。
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$fruits = ['a' => 'apple', 'b' => 'banana', 'c' => 'cherry'];
+
+echo "Current: " . current($fruits) . " (Key: " . key($fruits) . ")\n"; // Current: apple (Key: a)
+next($fruits);
+echo "Next: " . current($fruits) . " (Key: " . key($fruits) . ")\n";    // Next: banana (Key: b)
+end($fruits);
+echo "End: " . current($fruits) . " (Key: " . key($fruits) . ")\n";      // End: cherry (Key: c)
+reset($fruits);
+echo "Reset: " . current($fruits) . " (Key: " . key($fruits) . ")\n";   // Reset: apple (Key: a)
+?&gt;</code></pre>
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s7-4">7.4 搜索数组</h2>
+        <ul>
+            <li><b><code>in_array(mixed $needle, array $haystack, bool $strict = false): bool</code></b>
+                <ul>
+                    <li>检查值 <code>$needle</code> 是否存在于数组 <code>$haystack</code> 中。</li>
+                    <li><code>$strict</code> (可选): 如果为 <code>true</code>，则使用 <code>===</code> 严格比较（比较值和类型）。默认为
+                        <code>false</code>，使用 <code>==</code> 松散比较。
+                    </li>
+                </ul>
+            </li>
+            <li><b><code>array_search(mixed $needle, array $haystack, bool $strict = false): int|string|false</code></b>
+                <ul>
+                    <li>在数组 <code>$haystack</code> 中搜索值 <code>$needle</code>，如果找到，返回**第一个**匹配元素的**键**。
+                    </li>
+                    <li>如果没找到，返回 <code>false</code>。</li>
+                    <li><code>$strict</code> (可选): 同 <code>in_array</code>，为 <code>true</code> 时使用
+                        <code>===</code> 比较。
+                    </li>
+                    <li class="danger"><b>重要：</b> 同样需要用 <code>=== false</code> 或 <code>!== false</code>
+                        来判断是否没找到，因为键 <code>0</code> 是有效返回值。
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$os = ['Mac', 'Windows', 'Linux', 0];
+
+var_dump(in_array('Linux', $os)); // 输出: bool(true)
+var_dump(in_array('linux', $os)); // 输出: bool(false) (区分大小写)
+var_dump(in_array(0, $os));       // 输出: bool(true)
+var_dump(in_array('0', $os));     // 输出: bool(true) (松散比较 0 == '0')
+var_dump(in_array('0', $os, true)); // 输出: bool(false) (严格比较 int(0) !== string('0'))
+
+$key1 = array_search('Windows', $os);
+var_dump($key1); // 输出: int(1)
+
+$key2 = array_search('Solaris', $os);
+if ($key2 === false) {
+echo "Solaris not found.\n"; // 输出: Solaris not found.
+}
+
+$key3 = array_search(0, $os);
+var_dump($key3); // 输出: int(3) (返回键 3)
+if ($key3 == false) { // 错误判断方式！
+echo "错误：认为 0 没找到！\n";
+}
+?&gt;</code></pre>
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s7-5">7.5 修改与提取部分数组</h2>
+        <ul>
+            <li><b><code>array_merge(array ...$arrays): array</code></b>
+                <ul>
+                    <li>合并一个或多个数组。<b>返回一个新的数组</b>，不修改原数组。</li>
+                    <li>行为：
+                        <ul>
+                            <li><b>字符串键名：</b>
+                                如果后面的数组有与前面数组相同的字符串键名，<b>后面数组的值会覆盖前面数组的值</b>。
+                            </li>
+                            <li><b>数字键名：</b>
+                                后面的数组中的数字键名会被**重新索引**，并追加到结果数组的末尾，<b>不会覆盖</b>前面数组中相同数字键名的值。
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$arr1 = ['color' => 'red', 0 => 'a', 1 => 'b'];
+$arr2 = ['color' => 'green', 'shape' => 'circle', 1 => 'c', 2 => 'd'];
+
+$merged = array_merge($arr1, $arr2);
+print_r($merged);
+/*
+输出:
+Array
+(
+[color] => green   // $arr2 的 color 覆盖了 $arr1 的
+[0] => a
+[1] => b
+[shape] => circle
+[2] => c           // $arr2 的数字键 1 被重新索引为 2
+[3] => d           // $arr2 的数字键 2 被重新索引为 3
+)
+*/
+
+// 对比数组联合 (+) 运算符
+$union = $arr1 + $arr2;
+print_r($union);
+/*
+输出:
+Array
+(
+[color] => red    // $arr1 的 color 保留
+[0] => a
+[1] => b          // $arr1 的数字键 1 保留
+[shape] => circle
+[2] => d          // $arr2 中键 2 被加入
+)
+*/
+?&gt;</code></pre>
+                <p class="note">通常需要合并数组（特别是关联数组，希望后面的覆盖前面的）时，<code>array_merge()</code> 更常用。
+                </p>
+            </li>
+            <li class="mt-2"><b><code>array_replace(array $array, array ...$replacements): array</code></b> / <b><code>array_replace_recursive(...)</code></b>
+                <ul>
+                    <li>用后面数组 (<code>$replacements</code>) 中的值替换第一个数组 (<code>$array</code>) 中相同键的值。<b>返回一个新的数组</b>。
+                    </li>
+                    <li>与 <code>array_merge</code> 不同，<code>array_replace</code> 对于数字键名也会覆盖。</li>
+                    <li><code>array_replace_recursive</code> 会递归地替换嵌套数组中的值。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$base = ['color' => 'red', 'shape' => 'square', 0 => 10, 1 => 20];
+$replacements = ['color' => 'blue', 1 => 25, 'border' => 'dotted'];
+
+$replaced = array_replace($base, $replacements);
+print_r($replaced);
+/*
+输出:
+Array
+(
+[color] => blue     // 被替换
+[shape] => square
+[0] => 10
+[1] => 25          // 数字键 1 也被替换
+[border] => dotted // 新增的键
+)
+*/
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>array_slice(array $array, int $offset, ?int $length = null, bool $preserve_keys =
+                false): array</code></b>
+                <ul>
+                    <li>从数组 <code>$array</code> 中提取一部分（一个“切片”）。<b>返回一个新的数组</b>，不修改原数组。</li>
+                    <li><code>$offset</code>: 起始偏移量。负数表示从末尾倒数。</li>
+                    <li><code>$length</code> (可选): 要提取的元素个数。负数表示提取到距离末尾 <code>abs($length)</code>
+                        个元素之前。省略则提取到末尾。
+                    </li>
+                    <li><code>$preserve_keys</code> (可选): 默认为 <code>false</code>，返回的数组会使用从 0
+                        开始的连续数字索引。如果设为 <code>true</code>，则保留原数组的键名（无论是数字还是字符串）。
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$input = ['a', 'b', 'c', 'd', 'e'];
+
+$slice1 = array_slice($input, 2);      // 从索引 2 到末尾 -> ['c', 'd', 'e'] (索引变为 0, 1, 2)
+$slice2 = array_slice($input, 2, 2);   // 从索引 2 开始，取 2 个 -> ['c', 'd'] (索引变为 0, 1)
+$slice3 = array_slice($input, 1, -1);  // 从索引 1 开始，到倒数第 1 个之前结束 -> ['b', 'c', 'd']
+$slice4 = array_slice($input, -2, 1); // 从倒数第 2 个开始，取 1 个 -> ['d']
+
+$assoc = ['x' => 10, 'y' => 20, 'z' => 30];
+$slice5 = array_slice($assoc, 1, null, true); // 从索引 1 开始，保留键名 -> ['y' => 20, 'z' => 30]
+
+print_r($slice1); print_r($slice2); print_r($slice3); print_r($slice4); print_r($slice5);
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>array_splice(array &amp;$array, int $offset, ?int $length = null, mixed
+                $replacement = []): array</code></b>
+                <ul>
+                    <li>从数组 <code>$array</code> 中移除由 <code>$offset</code> 和 <code>$length</code> 指定的部分，并可用
+                        <code>$replacement</code>（可以是数组或单个值）替换它。<b>直接修改原始数组 <code>$array</code></b>。
+                    </li>
+                    <li>返回一个包含被移除元素的数组。</li>
+                    <li>参数含义与 <code>array_slice</code> 类似，但 <code>$length</code> 如果省略，则移除从
+                        <code>$offset</code> 到末尾的所有元素。
+                    </li>
+                    <li>如果提供了 <code>$replacement</code>，它会被插入到移除的位置。如果 <code>$replacement</code>
+                        是数组，其元素会被插入；如果是单个值，则插入该值。
+                    </li>
+                    <li class="warning"><b>注意：</b> 此函数会重新索引数组中的数字键名。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$input = ["red", "green", "blue", "yellow"];
+
+// 移除从索引 2 开始的两个元素
+$removed1 = array_splice($input, 2, 2);
+print_r($input);   // 输出: Array ( [0] => red [1] => green )
+print_r($removed1); // 输出: Array ( [0] => blue [1] => yellow )
+
+$input = ["red", "green", "blue", "yellow"];
+// 移除从索引 1 开始的一个元素，并用 "orange", "purple" 替换
+$removed2 = array_splice($input, 1, 1, ["orange", "purple"]);
+print_r($input);   // 输出: Array ( [0] => red [1] => orange [2] => purple [3] => blue [4] => yellow ) (键已重排)
+print_r($removed2); // 输出: Array ( [0] => green )
+?&gt;</code></pre>
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s7-6">7.6 迭代与函数式处理</h2>
+        <p>PHP 提供了一些函数，可以用函数式编程的风格来处理数组，通常涉及回调函数。</p>
+        <ul>
+            <li><b><code>array_map(callable|null $callback, array $array, array ...$arrays): array</code></b>
+                <ul>
+                    <li>对 <code>$array</code>（以及可选的其他数组 <code>...$arrays</code>）中的每个元素应用 <code>$callback</code>
+                        函数，并返回一个包含回调函数返回值的新数组。
+                    </li>
+                    <li><code>$callback</code> 可以是函数名字符串、匿名函数、箭头函数、<code>[$object, 'method']</code>
+                        等可调用类型。如果传入 <code>null</code>，它会尝试将多个数组“压缩”成一个数组的数组。
+                    </li>
+                    <li>如果提供了多个数组参数，回调函数会接收来自每个数组的对应元素作为参数。</li>
+                    <li><b>返回一个新的数组</b>，不修改原数组。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+function square($n) {
+return $n * $n;
+}
+$numbers = [1, 2, 3, 4];
+$squares = array_map('square', $numbers); // 使用函数名
+print_r($squares); // 输出: Array ( [0] => 1 [1] => 4 [2] => 9 [3] => 16 )
+
+$lower = ['a', 'b', 'c'];
+$upper = array_map('strtoupper', $lower); // 使用内建函数
+print_r($upper); // 输出: Array ( [0] => A [1] => B [2] => C )
+
+$nums1 = [1, 2, 3];
+$nums2 = [10, 20, 30];
+$sums = array_map(fn($n1, $n2) => $n1 + $n2, $nums1, $nums2); // 使用箭头函数处理多个数组
+print_r($sums); // 输出: Array ( [0] => 11 [1] => 22 [2] => 33 )
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>array_filter(array $array, ?callable $callback = null, int $mode = 0):
+                array</code></b>
+                <ul>
+                    <li>使用回调函数 <code>$callback</code> 过滤数组 <code>$array</code> 中的元素。</li>
+                    <li><b>返回一个新数组</b>，只包含那些让 <code>$callback</code> 返回 <code>true</code>（或等价于
+                        true）的元素。
+                    </li>
+                    <li>如果省略 <code>$callback</code>，则会移除数组中所有等价于 <code>false</code> 的元素（如 <code>false</code>,
+                        <code>0</code>, <code>0.0</code>, <code>""</code>, <code>"0"</code>, <code>[]</code>,
+                        <code>null</code>）。
+                    </li>
+                    <li><code>$mode</code> (可选):
+                        <ul>
+                            <li><code>0</code> (默认): 回调函数只接收元素的值 <code>$value</code>。</li>
+                            <li><code>ARRAY_FILTER_USE_KEY</code>: 回调函数只接收元素的键 <code>$key</code>。</li>
+                            <li><code>ARRAY_FILTER_USE_BOTH</code>: 回调函数接收键和值 <code>($value, $key)</code>。</li>
+                        </ul>
+                    </li>
+                    <li class="note"><b>注意：</b><code>array_filter</code> 会保留原始数组的键名。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$numbers = [1, 2, 3, 4, 5, 6];
+$even = array_filter($numbers, fn($n) => $n % 2 == 0);
+print_r($even); // 输出: Array ( [1] => 2 [3] => 4 [5] => 6 ) (保留了键名 1, 3, 5)
+
+$mixed = [0, 1, false, true, "", "hello", null, []];
+$notEmpty = array_filter($mixed); // 省略回调，移除所有 falsey 值
+print_r($notEmpty); // 输出: Array ( [1] => 1 [3] => 1 [5] => hello ) (true 被转为 1 输出)
+
+$assoc = ['a' => 1, 'b' => 2, 'c' => 3];
+// 过滤掉键名不是 'a' 的元素
+$onlyA = array_filter($assoc, fn($key) => $key === 'a', ARRAY_FILTER_USE_KEY);
+print_r($onlyA); // 输出: Array ( [a] => 1 )
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>array_reduce(array $array, callable $callback, mixed $initial = null):
+                mixed</code></b>
+                <ul>
+                    <li>使用回调函数 <code>$callback</code> 将数组迭代地简化为单一的值。</li>
+                    <li><code>$callback</code> 函数接收两个参数：<code>$carry</code>（携带值，即上一次迭代的返回值，或初始值）和
+                        <code>$item</code>（当前元素的值）。回调函数需要返回本次迭代后的携带值。
+                    </li>
+                    <li><code>$initial</code> (可选): 迭代开始前 <code>$carry</code> 的初始值。如果未提供，则第一次迭代时
+                        <code>$carry</code> 是数组的第一个元素，<code>$item</code> 是第二个元素。
+                    </li>
+                    <li>返回最后一次迭代的 <code>$carry</code> 值。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$numbers = [1, 2, 3, 4, 5];
+
+// 计算数组元素的和
+$sum = array_reduce($numbers, fn($carry, $item) => $carry + $item, 0); // 初始值为 0
+echo "Sum: " . $sum; // 输出: Sum: 15
+
+// 将数组元素连接成字符串
+$string = array_reduce($numbers, fn($carry, $item) => $carry . "-" . $item, "Numbers:"); // 初始值为 "Numbers:"
+echo "\nString: " . $string; // 输出: String: Numbers:-1-2-3-4-5
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>array_walk(array|object &amp;$array, callable $callback, mixed $arg = null):
+                bool</code></b> / <b><code>array_walk_recursive(...)</code></b>
+                <ul>
+                    <li>对数组 <code>$array</code> 中的每个成员应用回调函数 <code>$callback</code>。</li>
+                    <li>主要用于对数组元素执行某些操作（如修改、打印），而不是为了构建一个新的返回值。</li>
+                    <li>回调函数通常接收两个参数：<code>$value</code>（元素值）和 <code>$key</code>（元素键）。可以接收第三个可选参数
+                        <code>$arg</code>（传递给 <code>array_walk</code> 的第三个参数）。
+                    </li>
+                    <li><b>重要：</b> 如果你想在回调函数中修改数组元素的值，需要让回调函数的第一个参数按引用传递 (<code>&amp;$value</code>)。<code>array_walk</code>
+                        会直接修改原始数组。
+                    </li>
+                    <li><code>array_walk_recursive</code> 会递归地遍历多维数组。</li>
+                    <li>成功时返回 <code>true</code>，失败时 <code>false</code>。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$fruits = ['a' => 'apple', 'b' => 'banana'];
+
+// 打印每个元素
+array_walk($fruits, function($value, $key) {
+echo $key . " => " . $value . "\n";
+});
+
+// 修改数组元素（注意 &）
+$numbers = [1, 2, 3];
+array_walk($numbers, function(&amp;$value, $key) {
+$value *= 10;
+});
+print_r($numbers); // 输出: Array ( [0] => 10 [1] => 20 [2] => 30 )
+?&gt;</code></pre>
+                <p class="note"><code>array_walk</code> 主要用于原地修改或基于元素执行动作，而 <code>array_map</code>
+                    用于创建新数组，<code>array_filter</code> 用于筛选，<code>array_reduce</code> 用于聚合。</p>
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s7-7">7.7 数组排序 (Sorting Arrays)</h2>
+        <p>PHP 提供了一系列函数来对数组进行排序。关键在于理解它们是按值排序还是按键排序，以及排序后是否保留原始键名。</p>
+
+        <h3 id="s7-7-1">按值排序</h3>
+        <ul>
+            <li><b><code>sort(array &amp;$array, int $flags = SORT_REGULAR): bool</code></b>
+                <ul>
+                    <li>按值**升序**排列数组。<b>会重置数字键名</b>（字符串键名通常也会丢失，表现像索引数组）。修改原数组。
+                    </li>
+                </ul>
+            </li>
+            <li><b><code>rsort(array &amp;$array, int $flags = SORT_REGULAR): bool</code></b>
+                <ul>
+                    <li>按值**降序**排列数组。<b>会重置数字键名</b>。修改原数组。</li>
+                </ul>
+            </li>
+            <li><b><code>asort(array &amp;$array, int $flags = SORT_REGULAR): bool</code></b>
+                <ul>
+                    <li>按值**升序**排列数组，但<b>保持键值关联</b>（即键名不变）。修改原数组。主要用于关联数组。</li>
+                </ul>
+            </li>
+            <li><b><code>arsort(array &amp;$array, int $flags = SORT_REGULAR): bool</code></b>
+                <ul>
+                    <li>按值**降序**排列数组，<b>保持键值关联</b>。修改原数组。</li>
+                </ul>
+            </li>
+            <li><b><code>natsort(array &amp;$array): bool</code></b>
+                <ul>
+                    <li>使用“自然排序”算法按值升序排序，<b>保持键值关联</b>。修改原数组。</li>
+                </ul>
+            </li>
+            <li><b><code>natcasesort(array &amp;$array): bool</code></b>
+                <ul>
+                    <li>自然排序，不区分大小写，保持键值关联。修改原数组。</li>
+                </ul>
+            </li>
+        </ul>
+        <p><b>排序标识 (<code>$flags</code> - 可选):</b></p>
+        <ul>
+            <li><code>SORT_REGULAR</code> (默认): 按常规方式比较项目（不改变类型）。</li>
+            <li><code>SORT_NUMERIC</code>: 按数值比较。</li>
+            <li><code>SORT_STRING</code>: 按字符串比较。</li>
+            <li><code>SORT_LOCALE_STRING</code>: 根据当前区域设置按字符串比较。</li>
+            <li><code>SORT_NATURAL</code>: 同 <code>natsort()</code>。</li>
+            <li><code>SORT_FLAG_CASE</code>: 可以与 <code>SORT_STRING</code> 或 <code>SORT_NATURAL</code> 结合（使用
+                <code>|</code> 位或），进行不区分大小写的排序。
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+$numbers = [3, 1, 4, 1, 5, 9];
+sort($numbers);
+print_r($numbers); // 输出: Array ( [0] => 1 [1] => 1 [2] => 3 [3] => 4 [4] => 5 [5] => 9 ) (键被重置)
+
+$scores = ['Alice' => 85, 'Bob' => 92, 'Charlie' => 78];
+asort($scores); // 按分数升序，保留名字键
+print_r($scores); // 输出: Array ( [Charlie] => 78 [Alice] => 85 [Bob] => 92 )
+
+arsort($scores); // 按分数降序，保留名字键
+print_r($scores); // 输出: Array ( [Bob] => 92 [Alice] => 85 [Charlie] => 78 )
+
+$files = ['img12.png', 'img10.png', 'img2.png', 'img1.png'];
+natsort($files); // 自然排序
+print_r($files); // 输出: Array ( [3] => img1.png [2] => img2.png [1] => img10.png [0] => img12.png ) (键保留)
+?&gt;</code></pre>
+
+        <h3 id="s7-7-2">按键排序</h3>
+        <ul>
+            <li><b><code>ksort(array &amp;$array, int $flags = SORT_REGULAR): bool</code></b>
+                <ul>
+                    <li>按**键名升序**排列数组，<b>保持键值关联</b>。修改原数组。</li>
+                </ul>
+            </li>
+            <li><b><code>krsort(array &amp;$array, int $flags = SORT_REGULAR): bool</code></b>
+                <ul>
+                    <li>按**键名降序**排列数组，<b>保持键值关联</b>。修改原数组。</li>
+                </ul>
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+$ages = ['Charlie' => 30, 'Alice' => 25, 'Bob' => 35];
+ksort($ages); // 按名字键升序
+print_r($ages); // 输出: Array ( [Alice] => 25 [Bob] => 35 [Charlie] => 30 )
+
+krsort($ages); // 按名字键降序
+print_r($ages); // 输出: Array ( [Charlie] => 30 [Bob] => 35 [Alice] => 25 )
+?&gt;</code></pre>
+
+        <h3 id="s7-7-3">使用用户自定义函数排序</h3>
+        <p>当内置的排序规则不满足需求时，可以使用以下函数，提供一个自定义的比较函数。</p>
+        <ul>
+            <li><b><code>usort(array &amp;$array, callable $callback): bool</code></b>
+                <ul>
+                    <li>使用用户提供的比较函数按值排序。<b>会重置键名</b>。修改原数组。</li>
+                </ul>
+            </li>
+            <li><b><code>uasort(array &amp;$array, callable $callback): bool</code></b>
+                <ul>
+                    <li>使用用户函数按值排序，<b>保持键值关联</b>。修改原数组。</li>
+                </ul>
+            </li>
+            <li><b><code>uksort(array &amp;$array, callable $callback): bool</code></b>
+                <ul>
+                    <li>使用用户函数按键排序，<b>保持键值关联</b>。修改原数组。</li>
+                </ul>
+            </li>
+        </ul>
+        <p><b>比较函数 (<code>$callback</code>):</b> 这个函数需要接收两个参数（<code>$a</code> 和 <code>$b</code>），代表要比较的两个元素（或键）。它需要返回：
+        </p>
+        <ul>
+            <li>一个小于 0 的整数：如果 <code>$a</code> 应该排在 <code>$b</code> 前面。</li>
+            <li>0：如果 <code>$a</code> 和 <code>$b</code> 相等。</li>
+            <li>一个大于 0 的整数：如果 <code>$a</code> 应该排在 <code>$b</code> 后面。</li>
+        </ul>
+        <p>PHP 7+ 可以使用太空船运算符 <code>&lt;=&gt;</code> 快速实现这个比较逻辑。</p>
+        <pre><code class="language-php">&lt;?php
+// 按字符串长度排序 (usort 会重置键)
+$words = ["banana", "apple", "kiwi"];
+usort($words, function($a, $b) {
+// return strlen($a) - strlen($b); // 传统方式
+return strlen($a) &lt;=&gt; strlen($b); // 使用太空船运算符
+});
+print_r($words); // 输出: Array ( [0] => kiwi [1] => apple [2] => banana )
+
+// 按关联数组中的 'age' 字段排序，保持键名 (uasort)
+$users = [
+'user1' => ['name' => 'Alice', 'age' => 30],
+'user2' => ['name' => 'Bob', 'age' => 25],
+'user3' => ['name' => 'Charlie', 'age' => 35]
+];
+uasort($users, fn($a, $b) => $a['age'] &lt;=&gt; $b['age']);
+print_r($users);
+/*
+输出:
+Array
+(
+[user2] => Array ( [name] => Bob [age] => 25 )
+[user1] => Array ( [name] => Alice [age] => 30 )
+[user3] => Array ( [name] => Charlie [age] => 35 )
+)
+*/
+?&gt;</code></pre>
+
+        <hr/>
+
+        <h2 id="s7-8">7.8 其他常用数组函数</h2>
+        <ul>
+            <li><b><code>array_unique(array $array, int $flags = SORT_STRING): array</code></b>
+                <ul>
+                    <li>移除数组中重复的**值**，返回一个新数组。第一个遇到的值对应的键会被保留。可选的 <code>$flags</code>
+                        用于改变比较行为（如 <code>SORT_NUMERIC</code>）。
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$input = ["a", "b", "a", "c", "b", "b"];
+$unique = array_unique($input);
+print_r($unique); // 输出: Array ( [0] => a [1] => b [3] => c )
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>array_diff(array $array, array ...$arrays): array</code></b>
+                <ul>
+                    <li>计算数组的差集。返回一个包含所有在第一个数组 (<code>$array</code>) 中出现，但在后续任何其他数组
+                        (<code>...$arrays</code>) 中都没有出现的值的新数组。比较只基于值。保留键名。
+                    </li>
+                </ul>
+            </li>
+            <li class="mt-2"><b><code>array_intersect(array $array, array ...$arrays): array</code></b>
+                <ul>
+                    <li>计算数组的交集。返回一个包含所有在第一个数组 (<code>$array</code>) 中出现，并且也在所有后续其他数组
+                        (<code>...$arrays</code>) 中都出现的值的新数组。比较只基于值。保留键名。
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$array1 = ["a" => "green", "red", "blue", "red"];
+$array2 = ["b" => "green", "yellow", "red"];
+
+$diff = array_diff($array1, $array2);
+print_r($diff); // 输出: Array ( [1] => blue ) ('green' 和 'red' 在 $array2 中也存在)
+
+$intersect = array_intersect($array1, $array2);
+print_r($intersect); // 输出: Array ( [a] => green [0] => red [2] => red )
+?&gt;</code></pre>
+                <p class="note">还有基于键比较、同时比较键和值、使用回调函数比较的版本，如 <code>array_diff_key</code>,
+                    <code>array_diff_assoc</code>, <code>array_udiff</code>, <code>array_intersect_key</code> 等。</p>
+            </li>
+            <li class="mt-2"><b><code>array_sum(array $array): int|float</code></b>
+                <ul>
+                    <li>计算数组中所有数值的总和。非数值会被忽略。</li>
+                </ul>
+            </li>
+            <li class="mt-2"><b><code>array_product(array $array): int|float</code></b>
+                <ul>
+                    <li>计算数组中所有数值的乘积。</li>
+                </ul>
+            </li>
+            <li class="mt-2"><b><code>array_reverse(array $array, bool $preserve_keys = false): array</code></b>
+                <ul>
+                    <li>返回一个元素顺序相反的新数组。如果 <code>$preserve_keys</code> 为 <code>true</code>，则保留原始键名。
+                    </li>
+                </ul>
+            </li>
+            <li class="mt-2"><b><code>array_flip(array $array): array</code></b>
+                <ul>
+                    <li>交换数组中的键和值。<b>注意：</b>原数组的值必须是合法的键名（整数或字符串）。如果存在重复的值，后面的会覆盖前面的。
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$numbers = [1, 2, 3, 4.5];
+echo "Sum: " . array_sum($numbers); // 输出: Sum: 10.5
+
+$input = ["a" => 1, "b" => 2, "c" => 3];
+$flipped = array_flip($input);
+print_r($flipped); // 输出: Array ( [1] => a [2] => b [3] => c )
+?&gt;</code></pre>
+            </li>
+        </ul>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 7 部分结束 ---</p>
+
+</div>
+</body>
+</html>

@@ -13,13 +13,41 @@
 
         h2[id], h3[id], h4[id] {
             scroll-margin-top: 2rem;
-            /* Offset for fixed headers if any, or just some space /
-           }
-           / Adding prose styles directly for better control over code blocks etc. /
-           .prose code::before, .prose code::after { content: none !important; }
-           .prose code { background-color: #f3f4f6; color: #374151; padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.875em; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-           .prose pre { background-color: #1f2937; color: #f3f4f6; padding: 1em; border-radius: 0.375rem; overflow-x: auto; font-size: 0.875em; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; margin-top: 1.6em; margin-bottom: 1.6em; }
-           .prose pre code { background-color: transparent; color: inherit; padding: 0; font-size: inherit; white-space: pre; / Preserve whitespace strictly */
+            /* Offset for fixed headers if any, or just some space */
+        }
+
+        /* Adding prose styles directly for better control over code blocks etc. */
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre; /* Preserve whitespace strictly */
         }
 
         .prose ul > li::marker {
@@ -384,8 +412,9 @@ prompt = '\u@\h [\d]> \_'
                     <li>指定具体 IP: 只监听该 IP 地址。</li>
                 </ul>
             </li>
-            <li><strong class="warning">安全:</strong> 如果设置为 <code>0.0.0.0</code> 或公网
-                IP，**必须**确保你有防火墙规则限制访问来源，并且设置了强壮的 MySQL 用户密码，否则数据库将暴露在公网上，极易被攻击！
+            <li class="warning">
+                <strong>安全: 如果设置为 <code>0.0.0.0</code> 或公网 IP，**必须**确保你有防火墙规则限制访问来源，并且设置了强壮的
+                    MySQL 用户密码，否则数据库将暴露在公网上，极易被攻击！</strong>
             </li>
             <li><strong>示例:</strong> <code>bind-address = 127.0.0.1</code></li>
         </ul>
@@ -408,8 +437,8 @@ prompt = '\u@\h [\d]> \_'
             <li><strong>值:</strong> 一个绝对路径。例如 <code>/var/lib/mysql/</code> (Linux 常见), <code>/opt/homebrew/var/mysql/</code>
                 (macOS Homebrew), <code>C:/laragon/data/mysql/</code> (Windows Laragon)。
             </li>
-            <li><strong class="danger">极其重要:</strong> 这个目录包含了你的所有数据！务必确保其安全，有足够的磁盘空间，并且
-                MySQL 服务器进程（通常是 <code>mysql</code> 用户）有完全的读写权限。**不要轻易修改这个路径**，除非你知道如何正确迁移数据和处理权限。
+            <li class="danger"><strong>极其重要: 这个目录包含了你的所有数据！务必确保其安全，有足够的磁盘空间，并且
+                MySQL 服务器进程（通常是 <code>mysql</code> 用户）有完全的读写权限。**不要轻易修改这个路径**，除非你知道如何正确迁移数据和处理权限。</strong>
             </li>
             <li><strong>示例:</strong> <code>datadir = /var/lib/mysql</code></li>
         </ul>
@@ -420,8 +449,8 @@ prompt = '\u@\h [\d]> \_'
             <li><strong>值:</strong> 文件路径。例如 <code>/var/log/mysql/error.log</code>, <code>/opt/homebrew/var/log/mysql.err</code>,
                 <code>C:/laragon/logs/mysql.log</code>。
             </li>
-            <li><strong class="danger">极其重要:</strong> 这是排查 MySQL 启动失败、运行错误等问题的**首要信息来源**！务必确保
-                MySQL 进程有权限写入此文件。
+            <li class="danger"><strong>极其重要: 这是排查 MySQL 启动失败、运行错误等问题的**首要信息来源**！务必确保
+                MySQL 进程有权限写入此文件。</strong>
             </li>
             <li><strong>示例:</strong> <code>log_error = /var/log/mysql/error.log</code></li>
         </ul>
@@ -500,7 +529,8 @@ prompt = '\u@\h [\d]> \_'
                     </li>
                 </ul>
             </li>
-            <li><strong class="danger">警告:</strong> 设置过大会导致系统内存不足，反而降低性能甚至使系统崩溃。设置过小则缓存命中率低，性能差。需要根据实际情况调整。
+            <li class="danger"><strong>警告:
+                设置过大会导致系统内存不足，反而降低性能甚至使系统崩溃。设置过小则缓存命中率低，性能差。需要根据实际情况调整。</strong>
             </li>
             <li><strong>示例:</strong> <code>innodb_buffer_pool_size = 256M</code> (适用于内存不大的开发机)</li>
         </ul>
@@ -526,9 +556,9 @@ prompt = '\u@\h [\d]> \_'
                 SQL 语句（包括连接和断开）。
             </li>
             <li><code>general_log_file</code> 指定日志文件的路径。</li>
-            <li><strong class="warning">用途:</strong> 主要用于**短期调试**，查看应用实际发送了哪些 SQL。</li>
-            <li><strong class="danger">性能影响:</strong> **开启通用日志会对性能产生巨大影响**，因为它需要记录每一条语句。**生产环境通常必须关闭
-                (`general_log = 0`)**，仅在需要调试时临时开启。
+            <li class="warning"><strong>用途: 主要用于**短期调试**，查看应用实际发送了哪些 SQL。</strong></li>
+            <li class="danger"><strong>性能影响: **开启通用日志会对性能产生巨大影响**，因为它需要记录每一条语句。**生产环境通常必须关闭
+                (`general_log = 0`)**，仅在需要调试时临时开启。</strong>
             </li>
             <li><strong>示例 (通常保持注释或设置为 0):</strong>
                 <pre><code class="language-ini"># general_log = 1

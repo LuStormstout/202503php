@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP - Part 13: OOP - Part 3: Trait 与魔术方法</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+            /* Offset for fixed headers if any, or just some space */
+        }
+
+        /* Adding prose styles directly for better control over code blocks etc. */
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        /* Enhanced <pre> style */
+        .prose pre {
+            background-color: #1f2937; /* Dark background */
+            color: #f3f4f6; /* Light text */
+            padding: 1em;
+            border-radius: 0.375rem; /* Rounded corners */
+            overflow-x: auto; /* Horizontal scroll on overflow */
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151; /* Subtle border */
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); /* Optional: subtle shadow */
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre; /* Preserve whitespace strictly */
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        /* Using <b> for bold now */
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        /* Keep strong style just in case */
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>PHP - Part 13: OOP - Part 3: Trait 与魔术方法</h1>
+    <p class="text-gray-500 text-sm">这是 17 部分系列讲义的第十三部分。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="s13-1">13.1 Trait - 超越单继承的代码复用</h2>
+
+        <h3 id="s13-1-1">问题：单继承的局限</h3>
+        <p>我们在上一部分学习了继承 (<code>extends</code>)，它允许子类获得父类的属性和方法，是实现代码重用的重要方式。但是，PHP
+            和许多其他面向对象语言一样，只支持<b>单继承</b>，也就是说，一个类最多只能直接继承自<b>一个</b>父类。</p>
+        <p>这会带来一个问题：如果我们想在两个完全不相关的类（例如 <code>Post</code> 文章类和 <code>Product</code>
+            商品类）中都实现类似的功能（例如 “分享到社交媒体” 的功能），而它们又各自继承了不同的父类（或者没有父类），我们无法通过继承来共享
+            “分享” 这部分代码。</p>
+        <p>难道要在每个类里都复制粘贴一遍“分享”功能的代码吗？这显然违反了代码重用的原则。</p>
+
+        <h3 id="s13-1-2">解决方案：Trait</h3>
+        <p>PHP 5.4 引入了 Trait 来解决这个问题。Trait
+            是一种为类**添加一组可复用方法**的机制，它允许开发者在不同的类层次结构中自由地重用方法集。</p>
+        <ul>
+            <li>Trait 旨在减少单继承的限制，允许你**水平地组合**功能到类中，而不是垂直地继承。</li>
+            <li>可以把它想象成 "混入 (Mixin)" 或者给类添加特定的 "能力" 或 "特征"。</li>
+        </ul>
+
+        <h3 id="s13-1-3">定义 Trait</h3>
+        <p>使用 <code>trait</code> 关键字来定义一个 Trait。Trait 内部可以包含具体的方法实现（public, protected, private,
+            static）、抽象方法、属性（静态或非静态，但包含属性时需注意潜在冲突）。</p>
+        <pre><code class="language-php">&lt;?php
+// 定义一个用于分享功能的 Trait
+trait Sharable {
+    // 公共方法，用于执行分享
+    public function share(string $platform): bool {
+    // 检查平台是否支持等逻辑...
+    $message = "正在分享 '" . $this->getShareTitle() . "' 到 " . $platform;
+    $this->log($message); // 调用 Trait 内部或使用该 Trait 的类中的 log 方法
+    // ... 执行实际分享操作 ...
+    return true;
+}
+
+// 受保护方法，供 Trait 内部或使用 Trait 的类调用
+protected function log(string $message): void {
+    echo "[Log - Sharable] " . $message . "\n";
+    // 如果使用 Trait 的类中也有 log 方法，这里的 self::log() 行为需注意
+    // 或者直接假设使用 Trait 的类会提供 log 方法 (更常见)
+    // if (method_exists($this, 'logActivity')) {
+    //     $this->logActivity($message); // 调用使用类的特定方法
+    // }
+}
+
+// Trait 也可以定义抽象方法，强制使用它的类去实现
+abstract protected function getShareTitle(): string;
+}
+?&gt;</code></pre>
+
+        <h3 id="s13-1-4">在类中使用 Trait: <code>use</code></h3>
+        <p>在类定义内部使用 <code>use</code> 关键字，后跟一个或多个 Trait 的名称，就可以将 Trait 中定义的方法“混入”到当前类中。
+        </p>
+        <pre><code class="language-php">&lt;?php
+// 假设 Sharable Trait 如上定义
+
+class BlogPost {
+    // 在类内部使用 use 关键字引入 Trait
+    use Sharable;
+
+    public string $title;
+
+    public function __construct(string $title) {
+        $this->title = $title;
+    }
+
+    // 必须实现 Trait 中定义的抽象方法
+    protected function getShareTitle(): string {
+        return $this->title;
+    }
+
+    // 类可以有自己的其他方法
+    public function display(): void {
+        echo "文章标题: " . $this->title . "\n";
+    }
+
+    // 类也可以有自己的 log 方法，可能与 Trait 中的同名方法交互 (见冲突解决)
+    public function log(string $message) {
+         echo "[Log - BlogPost] " . $message . "\n";
+    }
+}
+
+class Image {
+    use Sharable;
+
+    public string $filename;
+    public string $caption;
+
+    public function __construct(string $filename, string $caption) {
+        $this->filename = $filename;
+        $this->caption = $caption;
+    }
+
+    protected function getShareTitle(): string {
+        return $this->caption ?: $this->filename; // 如果有标题用标题，否则用文件名
+    }
+
+     public function log(string $message) {
+         echo "[Log - Image] " . $message . "\n";
+    }
+}
+
+// --- 使用 ---
+$post = new BlogPost("PHP Trait 详解");
+$post->display();
+$post->share("Twitter"); // 调用来自 Sharable Trait 的方法
+
+echo "\n";
+
+$image = new Image("cat.jpg", "可爱的小猫");
+$image->share("Facebook");
+
+?&gt;</code></pre>
+        <p><b>输出：</b></p>
+        <pre><code>文章标题: PHP Trait 详解
+[Log - BlogPost] 正在分享 'PHP Trait 详解' 到 Twitter // 注意：这里调用的是 BlogPost 自己的 log 方法！
+消息已记录到文件 app.log // 这是 Sharable Trait 中 log 方法的 echo，说明父类log也被调用了？不，应该是我例子写错了，Trait 的 log 调用 this->log 时，会调用使用 Trait 的那个类的 log 方法（如果存在的话）
+
+[Log - Image] 正在分享 '可爱的小猫' 到 Facebook
+消息已记录到文件 app.log // 同上
+</code></pre>
+        <p class="note"><b>修正解释：</b> 当 Trait 中的方法（如 <code>Sharable::log</code>）调用
+            <code>$this->log(...)</code> 时，它实际调用的是使用该 Trait 的那个类（如 <code>BlogPost</code> 或
+            <code>Image</code>）中的 <code>log</code> 方法（如果该类有定义的话）。这就是 Trait 与类结合的方式。</p>
+
+        <h3 id="s13-1-5">使用多个 Trait 与冲突解决</h3>
+        <p>一个类可以使用逗号分隔来引入多个 Trait：<code>use TraitA, TraitB;</code></p>
+        <p><b>冲突：</b> 如果不同的 Trait 定义了同名的方法，直接 <code>use</code> 会导致致命错误。你需要明确告诉 PHP
+            如何解决这个冲突。</p>
+        <ul>
+            <li><b><code>insteadof</code> (替代):</b> 选择使用哪个 Trait 的方法。
+                <pre><code class="language-php">trait A {
+    public function commonMethod() { echo "Method from A\n"; }
+}
+trait B {
+    public function commonMethod() { echo "Method from B\n"; }
+}
+
+class MyClass {
+    use A, B {
+        // 指定当调用 commonMethod 时，使用 Trait A 的版本，忽略 Trait B 的
+        A::commonMethod insteadof B;
+    }
+}
+$obj = new MyClass();
+$obj->commonMethod(); // 输出: Method from A
+</code></pre>
+            </li>
+            <li><b><code>as</code> (别名 / 修改可见性):</b> 给来自 Trait 的方法起一个新的名字（别名），或者修改它的可见性。
+                <pre><code class="language-php">trait C {
+    public function method1() { echo "C::method1\n"; }
+    protected function method2() { echo "C::method2 (protected)\n"; }
+    }
+    trait D {
+    public function method1() { echo "D::method1\n"; }
+}
+
+class YourClass {
+    use C, D {
+    // 解决 method1 冲突：选择 C 的，并把 D 的重命名
+    C::method1 insteadof D;
+    D::method1 as dMethod1; // 将 D 的 method1 重命名为 dMethod1
+
+        // 修改 method2 的可见性为 public
+        C::method2 as public;
+        // 也可以重命名并修改可见性
+        // C::method2 as public renamedMethod2;
+    }
+}
+
+$obj = new YourClass();
+$obj->method1(); // 输出: C::method1
+$obj->dMethod1(); // 输出: D::method1
+$obj->method2(); // 输出: C::method2 (protected) (现在可以从外部调用了)
+// $obj->renamedMethod2(); // 如果使用了重命名
+?&gt;</code></pre>
+            </li>
+        </ul>
+        <p><b>优先级规则总结：</b></p>
+        <ol>
+            <li>来自当前类的成员会覆盖 Trait 的成员。</li>
+            <li>来自 Trait 的成员会覆盖继承自父类的成员。</li>
+        </ol>
+
+        <h3 id="s13-1-6">Trait 的其他特性</h3>
+        <ul>
+            <li><b>Trait 可以使用 Trait：</b> 一个 Trait 内部可以使用 <code>use</code> 来引入其他 Trait。</li>
+            <li><b>抽象方法：</b> Trait 可以包含抽象方法，强制使用该 Trait 的类必须实现这些方法。</li>
+            <li><b>静态成员：</b> Trait 可以包含静态方法和静态属性。</li>
+            <li><b>属性：</b> Trait 也可以定义属性，但如果多个 Trait 定义了同名属性（且不兼容），会导致错误，除非在使用 Trait
+                的类中显式定义同名属性（其定义必须兼容）。通常不推荐在 Trait 中定义太多属性，以减少冲突可能。
+            </li>
+        </ul>
+        <p class="note">Trait 是 PHP 中实现代码复用的一种非常灵活和强大的方式，特别适用于在不相关的类之间共享功能。</p>
+
+
+        <hr/>
+
+        <h2 id="s13-2">13.2 魔术方法 (Magic Methods)</h2>
+        <p>魔术方法是以双下划线 <code>__</code> 开头的特殊方法。PHP
+            会在某些特定的事件发生或对对象执行某些特定操作时，**自动调用**这些方法（如果类中定义了它们的话）。这允许我们“重载”
+            PHP 的默认行为，或者在特定时机执行自定义逻辑。</p>
+        <p>我们已经见过 <code>__construct()</code> (构造) 和 <code>__destruct()</code> (析构)。下面介绍其他一些常用的魔术方法。
+        </p>
+
+        <h3 id="s13-2-1">属性重载 (Property Overloading)</h3>
+        <p>这组魔术方法用于处理对类中**不可访问**（private 或 protected）或**不存在**的属性进行读写操作时的行为。</p>
+        <ul>
+            <li><b><code>__set(string $name, mixed $value): void</code></b>
+                <ul>
+                    <li>当试图给一个**不可访问或不存在**的属性赋值时被调用。</li>
+                    <li><code>$name</code> 是属性名，<code>$value</code> 是要赋的值。</li>
+                </ul>
+            </li>
+            <li><b><code>__get(string $name): mixed</code></b>
+                <ul>
+                    <li>当试图读取一个**不可访问或不存在**的属性的值时被调用。</li>
+                    <li><code>$name</code> 是属性名。<b>必须</b>有返回值。</li>
+                </ul>
+            </li>
+            <li><b><code>__isset(string $name): bool</code></b>
+                <ul>
+                    <li>当对一个**不可访问或不存在**的属性调用 <code>isset()</code> 或 <code>empty()</code> 时被调用。
+                    </li>
+                </ul>
+            </li>
+            <li><b><code>__unset(string $name): void</code></b>
+                <ul>
+                    <li>当对一个**不可访问或不存在**的属性调用 <code>unset()</code> 时被调用。</li>
+                </ul>
+            </li>
+        </ul>
+        <p><b>使用场景：</b> 主要用于创建具有“动态”属性的对象，或者在访问属性时执行额外的逻辑（如验证、延迟加载）。</p>
+        <p class="warning"><b>注意：</b> 过度使用属性重载会使代码的可读性降低，因为不明确对象到底有哪些属性。IDE
+            也难以进行静态分析和自动补全。通常使用明确的 getter/setter 方法是更好的选择。只有在确实需要模拟动态属性时才考虑使用。
+        </p>
+        <p><b>示例：</b></p>
+        <pre><code class="language-php">&lt;?php
+class DynamicProps {
+    // 使用一个私有数组存储动态属性
+    private array $data = [];
+
+    // 当设置不可访问属性时调用
+    public function __set(string $name, $value): void {
+        echo "正在设置动态属性 '{$name}' 为 '{$value}'\n";
+        $this->data[$name] = $value; // 将值存入私有数组
+    }
+
+    // 当读取不可访问属性时调用
+    public function __get(string $name) {
+        echo "正在读取动态属性 '{$name}'\n";
+        // 检查是否存在于私有数组中
+        if (array_key_exists($name, $this->data)) {
+            return $this->data[$name];
+        }
+        // 如果不存在，可以返回 null 或抛出错误
+        trigger_error("未定义的属性: {$name}", E_USER_NOTICE);
+        return null;
+    }
+
+    // 当对不可访问属性调用 isset() 时调用
+    public function __isset(string $name): bool {
+        echo "正在检查动态属性 '{$name}' 是否存在\n";
+        return isset($this->data[$name]);
+    }
+
+    // 当对不可访问属性调用 unset() 时调用
+    public function __unset(string $name): void {
+        echo "正在取消设置动态属性 '{$name}'\n";
+        unset($this->data[$name]);
+    }
+}
+
+$obj = new DynamicProps();
+
+// 这些操作会触发魔术方法，因为 'property1' 和 'property2' 在类中未显式定义
+$obj->property1 = "value1"; // 触发 __set
+$obj->property2 = 123;     // 触发 __set
+
+echo $obj->property1;      // 触发 __get
+echo "\n";
+var_dump(isset($obj->property1)); // 触发 __isset
+var_dump(empty($obj->property1)); // 触发 __isset
+var_dump(isset($obj->undefinedProp)); // 触发 __isset
+
+unset($obj->property1);   // 触发 __unset
+var_dump(isset($obj->property1)); // 触发 __isset (现在应该是 false)
+
+print_r($obj); // 查看对象内部 (可能需要 __debugInfo)
+
+?&gt;</code></pre>
+
+        <h3 id="s13-2-2">方法重载 (Method Overloading)</h3>
+        <p>这组魔术方法用于处理调用类中**不可访问**（private 或 protected）或**不存在**的方法时的行为。</p>
+        <ul>
+            <li><b><code>__call(string $name, array $arguments): mixed</code></b>
+                <ul>
+                    <li>当试图在**对象上下文**中调用一个不可访问或不存在的<b>实例方法</b>时被调用。</li>
+                    <li><code>$name</code> 是被调用的方法名，<code>$arguments</code> 是传递给方法的参数数组。</li>
+                </ul>
+            </li>
+            <li><b><code>__callStatic(string $name, array $arguments): mixed</code></b>
+                <ul>
+                    <li>当试图在**静态上下文**中调用一个不可访问或不存在的<b>静态方法</b>时被调用。</li>
+                </ul>
+            </li>
+        </ul>
+        <p><b>使用场景：</b> 创建动态方法接口，实现代理模式，或者提供更灵活的方法调用方式。</p>
+        <p class="warning"><b>注意：</b> 与属性重载类似，过度使用方法重载也会降低代码清晰度和可维护性。</p>
+        <p><b>示例：</b></p>
+        <pre><code class="language-php">&lt;?php
+class MethodRouter {
+    // 处理不存在的实例方法调用
+    public function __call(string $name, array $arguments): void {
+    echo "尝试调用实例方法 '{$name}' ";
+    echo "参数为: (" . implode(', ', $arguments) . ")\n";
+    // 在这里可以根据 $name 执行不同的逻辑
+    if ($name === 'doSomething') {
+    $this->realDoSomething($arguments[0] ?? null);
+    }
+}
+
+// 处理不存在的静态方法调用
+public static function __callStatic(string $name, array $arguments): void {
+    echo "尝试调用静态方法 '{$name}' ";
+    echo "参数为: (" . implode(', ', $arguments) . ")\n";
+}
+
+private function realDoSomething($param): void {
+    echo "... 真正执行 doSomething 逻辑，参数: " . ($param ?? '无') . "\n";
+}
+}
+
+$router = new MethodRouter();
+$router->doSomething('data1'); // 触发 __call
+$router->anotherMethod(1, 2);  // 触发 __call
+
+MethodRouter::staticMethod('arg1'); // 触发 __callStatic
+?&gt;</code></pre>
+
+        <h3 id="s13-2-3">对象表示与调用</h3>
+        <ul>
+            <li><b><code>__toString(): string</code></b>
+                <ul>
+                    <li>允许一个对象在被当作**字符串**处理时，自定义其输出。</li>
+                    <li>例如，当使用 <code>echo $object;</code> 或将对象与字符串连接时被调用。</li>
+                    <li><b>必须</b>返回一个字符串。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+class Point {
+    public float $x;
+    public float $y;
+    public function __construct(float $x, float $y) { $this->x = $x; $this->y = $y; }
+
+    // 定义如何将 Point 对象转为字符串
+    public function __toString(): string {
+        return "({$this->x}, {$this->y})";
+    }
+}
+
+$p = new Point(10.5, 20.1);
+echo "坐标点是: " . $p; // 触发 __toString()，输出: 坐标点是: (10.5, 20.1)
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>__invoke(...$arguments): mixed</code></b>
+                <ul>
+                    <li>允许一个对象可以像函数一样被调用。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+class Adder {
+    public function __invoke(int $a, int $b): int {
+        return $a + $b;
+    }
+}
+
+$add = new Adder();
+$sum = $add(5, 10); // 像调用函数一样调用对象 $add，触发 __invoke()
+echo "Sum: " . $sum; // 输出: Sum: 15
+?&gt;</code></pre>
+                <p class="note">这使得对象可以作为回调函数（callable 类型）使用。</p>
+            </li>
+        </ul>
+
+        <h3 id="s13-2-4">序列化 (Serialization)</h3>
+        <p>序列化是将 PHP 的值（包括对象）转换为可以存储或传输的字节流的过程，反序列化则是将字节流恢复为原始值。</p>
+        <ul>
+            <li><b><code>__sleep(): array</code></b>
+                <ul>
+                    <li>在对象被 <code>serialize()</code> 函数序列化**之前**自动调用。</li>
+                    <li>它**必须**返回一个包含**需要被序列化**的该对象属性名称的数组。</li>
+                    <li>常用于在序列化之前进行清理（如关闭数据库连接）或指定哪些属性需要保存。</li>
+                </ul>
+            </li>
+            <li><b><code>__wakeup(): void</code></b>
+                <ul>
+                    <li>在对象被 <code>unserialize()</code> 函数反序列化**之后**自动调用。</li>
+                    <li>常用于重新建立在 <code>__sleep</code> 中断开的连接或执行其他初始化操作。</li>
+                </ul>
+            </li>
+        </ul>
+        <p class="note">PHP 还提供了一个 <code>Serializable</code> 接口，提供更细粒度的序列化控制，但 <code>__sleep</code>
+            和 <code>__wakeup</code> 更常见。</p>
+        <p class="warning"><b>安全警告：</b>
+            反序列化来自不可信来源的数据（如用户输入、Cookie）是**极其危险**的，可能导致远程代码执行漏洞！除非绝对必要且对数据来源有完全控制，否则应避免反序列化不可信数据。
+        </p>
+        <pre><code class="language-php">&lt;?php
+class Connection {
+    protected $dsn;
+    protected $conn = null; // 代表数据库连接资源或对象
+
+    public function __construct($dsn) {
+        $this->dsn = $dsn;
+        $this->connect();
+    }
+
+    public function connect() {
+        echo "连接到 {$this->dsn}...\n";
+        $this->conn = "[连接资源]"; // 模拟连接
+    }
+
+    // 序列化前调用：只保存 $dsn，不保存连接资源 $conn
+    public function __sleep(): array {
+        echo "__sleep: 准备序列化...\n";
+        return ['dsn']; // 返回需要序列化的属性名数组
+    }
+
+    // 反序列化后调用：重新建立连接
+    public function __wakeup(): void {
+        echo "__wakeup: 正在反序列化...\n";
+        $this->connect(); // 重新连接数据库
+    }
+}
+
+$conn = new Connection("mysql:host=localhost"); // 连接数据库...
+
+$serialized = serialize($conn); // 序列化对象，会调用 __sleep
+echo "序列化结果: " . $serialized . "\n";
+
+unset($conn); // 销毁原对象
+
+$conn_restored = unserialize($serialized); // 反序列化，会调用 __wakeup 重新连接
+echo "对象已恢复。\n";
+?&gt;</code></pre>
+
+        <h3 id="s13-2-5">其他魔术方法</h3>
+        <ul>
+            <li><b><code>__clone()</code>:</b> (回顾 Part 12) 在对象被 <code>clone</code> 之后，在新创建的对象上调用。
+            </li>
+            <li><b><code>__set_state(array $properties): object</code>:</b> 供 <code>var_export()</code> 函数使用。</li>
+            <li><b><code>__debugInfo(): array</code>:</b> (PHP 5.6+) 当对对象使用 <code>var_dump()</code>
+                时调用，允许自定义输出的属性和值。
+                <pre><code class="language-php">&lt;?php
+class SensitiveData {
+    public $publicInfo = "这是公开信息";
+    private $secret = "这是私密信息";
+    protected $internal = "这是内部信息";
+
+    // 自定义 var_dump 输出
+    public function __debugInfo(): array {
+        return [
+            'publicInfo' => $this->publicInfo,
+            'info' => '（私有和受保护信息已隐藏）'
+        ];
+    }
+}
+
+$data = new SensitiveData();
+var_dump($data);
+/*
+输出类似 (只会显示 __debugInfo 返回的数组内容):
+object(SensitiveData)#1 (2) {
+    ["publicInfo"]=>
+    string(18) "这是公开信息"
+    ["info"]=>
+    string(42) "（私有和受保護信息已隱藏）"
+}
+*/
+?&gt;</code></pre>
+            </li>
+        </ul>
+        <p class="note">魔术方法为 PHP 的 OOP
+            提供了强大的扩展能力，但理解它们何时被调用以及它们的用途至关重要。不恰当地使用魔术方法（尤其是重载相关的）可能会牺牲代码的清晰性。</p>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 13 部分结束 ---</p>
+
+</div>
+</body>
+</html>

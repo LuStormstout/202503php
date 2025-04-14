@@ -393,13 +393,14 @@ echo "操作系统: " . PHP_OS . PHP_EOL;
             <li class="mt-2"><strong>字符串 (<code>string</code>):**</strong>
                 <ul>
                     <li>表示一串文本字符。</li>
-                    <li>**单引号 (<code>' '</code>):**</strong> 最简单的字符串。其中的内容几乎是原样输出，只有
+                    <li><strong>**单引号 (<code>' '</code>):**</strong> 最简单的字符串。其中的内容几乎是原样输出，只有
                         <code>\'</code>
                         (单引号本身) 和 <code>\\</code> (反斜杠本身) 会被转义。**变量不会被解析**。
                         <pre><code
-                                class="language-php">$name = 'Alice'; echo 'Hello, $name!'; // 输出: Hello, $name!</code></pre>
+                                class="language-php">$name = 'Alice';
+echo 'Hello, $name!'; // 输出: Hello, $name!</code></pre>
                     </li>
-                    <li>**双引号 (<code>" "</code>):**</strong> 功能更强。会**解析**其中的变量（直接写变量名
+                    <li><strong>**双引号 (<code>" "</code>):**</strong> 功能更强。会**解析**其中的变量（直接写变量名
                         <code>$var</code>
                         或用花括号 <code>{<span class="math-inline">var\}</code\> / <code\></span>{var}</code>
                         包裹），还会解析更多的**转义序列**，如：
@@ -413,7 +414,8 @@ echo "操作系统: " . PHP_OS . PHP_EOL;
                             <li><code>\xNN</code>: 十六进制表示的字符</li>
                             <li><code>\u{NNNN}</code>: Unicode 字符 (PHP 7+)</li>
                         </ul>
-                        <pre><code class="language-php">$name = 'Bob'; echo "Hello, $name!\nWelcome back."; // 输出: Hello, Bob!(换行)Welcome back.</code></pre>
+                        <pre><code class="language-php">$name = 'Bob';
+echo "Hello, $name!\nWelcome back."; // 输出: Hello, Bob!(换行)Welcome back.</code></pre>
                     </li>
                     <li><strong>Heredoc (<code>&lt;&lt;&lt;IDENTIFIER ... IDENTIFIER;</code>):**</strong>
                         用于定义**大段**的、行为类似**双引号**的字符串，可以跨越多行，且内部不需要转义双引号。结束标识符必须顶格，且该行不能有其他任何字符（除了可选的分号）。

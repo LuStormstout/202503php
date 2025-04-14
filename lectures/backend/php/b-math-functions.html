@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP - Supplement B: 数学运算函数</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+        }
+
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre;
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>PHP - Supplement B: 数学运算函数</h1>
+    <p class="text-gray-500 text-sm">这是补充章节的第二部分 (B)。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="sb-intro">引言：超越基础运算符</h2>
+        <p>除了 Part 3 中介绍的基本算术运算符 (<code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>,
+            <code>%</code>, <code>**</code>) 之外，PHP 还提供了许多内建函数来执行更复杂的或更常用的数学运算，例如取绝对值、四舍五入、生成随机数、查找最大/最小值等。
+        </p>
+
+        <hr/>
+
+        <h2 id="sb-1">B.1 绝对值</h2>
+        <ul>
+            <li><b><code>abs(int|float $num): int|float</code></b>
+                <ul>
+                    <li>返回数字 <code>$num</code> 的绝对值。</li>
+                    <li>如果输入是整数，返回整数；如果输入是浮点数，返回浮点数。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+// 获取数字的绝对值
+$negative_int = -10;
+$positive_float = 5.7;
+
+$abs_int = abs($negative_int);     // $abs_int 的值是 10
+$abs_float = abs($positive_float);  // $abs_float 的值是 5.7
+
+echo "abs(-10) = " . $abs_int . "\n";   // 输出: abs(-10) = 10
+echo "abs(5.7) = " . $abs_float . "\n"; // 输出: abs(5.7) = 5.7
+?&gt;</code></pre>
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="sb-2">B.2 四舍五入与取整</h2>
+        <ul>
+            <li><b><code>round(float $num, int $precision = 0, int $mode = PHP_ROUND_HALF_UP): float</code></b>
+                <ul>
+                    <li>对浮点数 <code>$num</code> 进行四舍五入。</li>
+                    <li><code>$precision</code> (可选): 指定要保留的小数位数。默认为
+                        0，即四舍五入到最接近的整数。可以为负数，表示在小数点左侧进行四舍五入（例如 <code>-1</code> 表示到十位，<code>-2</code>
+                        表示到百位）。
+                    </li>
+                    <li><code>$mode</code> (可选): 指定处理“正好一半”（如 1.5, 2.5）时的规则：
+                        <ul>
+                            <li><code>PHP_ROUND_HALF_UP</code> (默认): 向上舍入（1.5 变成 2，-1.5 变成 -2）。</li>
+                            <li><code>PHP_ROUND_HALF_DOWN</code>: 向下舍入（1.5 变成 1，-1.5 变成 -1）。</li>
+                            <li><code>PHP_ROUND_HALF_EVEN</code>: 向最近的偶数舍入（“银行家舍入法”，1.5 变成 2，2.5 变成
+                                2）。
+                            </li>
+                            <li><code>PHP_ROUND_HALF_ODD</code>: 向最近的奇数舍入（1.5 变成 1，2.5 变成 3）。</li>
+                        </ul>
+                    </li>
+                    <li><b>返回值：</b> 结果是浮点数。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$val1 = 3.14159;
+$val2 = 3.7;
+$val3 = 3.5;
+$val4 = 4.5;
+$val5 = 12345.67;
+
+echo "round(3.14159) = " . round($val1) . "\n";         // 输出: 3 (默认 precision 0)
+echo "round(3.7) = " . round($val2) . "\n";           // 输出: 4
+echo "round(3.14159, 2) = " . round($val1, 2) . "\n";  // 输出: 3.14 (保留两位小数)
+
+echo "round(3.5, 0, PHP_ROUND_HALF_UP) = " . round($val3, 0, PHP_ROUND_HALF_UP) . "\n"; // 输出: 4 (默认)
+echo "round(3.5, 0, PHP_ROUND_HALF_DOWN) = " . round($val3, 0, PHP_ROUND_HALF_DOWN) . "\n"; // 输出: 3
+echo "round(3.5, 0, PHP_ROUND_HALF_EVEN) = " . round($val3, 0, PHP_ROUND_HALF_EVEN) . "\n"; // 输出: 4 (到偶数)
+echo "round(4.5, 0, PHP_ROUND_HALF_EVEN) = " . round($val4, 0, PHP_ROUND_HALF_EVEN) . "\n"; // 输出: 4 (到偶数)
+
+echo "round(12345.67, -2) = " . round($val5, -2) . "\n"; // 输出: 12300 (四舍五入到百位)
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>ceil(float $num): float</code></b>
+                <ul>
+                    <li>向上取整，返回<b>不小于</b> <code>$num</code> 的下一个最小整数值（作为浮点数返回）。</li>
+                </ul>
+            </li>
+            <li class="mt-2"><b><code>floor(float $num): float</code></b>
+                <ul>
+                    <li>向下取整，返回<b>不大于</b> <code>$num</code> 的下一个最大整数值（作为浮点数返回）。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$val = 4.3;
+$neg_val = -4.3;
+
+echo "ceil(4.3) = " . ceil($val) . "\n";      // 输出: 5
+echo "floor(4.3) = " . floor($val) . "\n";    // 输出: 4
+
+echo "ceil(-4.3) = " . ceil($neg_val) . "\n"; // 输出: -4 (注意负数向上是靠近 0)
+echo "floor(-4.3) = " . floor($neg_val) . "\n";// 输出: -5 (注意负数向下是远离 0)
+?&gt;</code></pre>
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="sb-3">B.3 幂、平方根与 Pi</h2>
+        <ul>
+            <li><b><code>pow(mixed $base, mixed $exp): int|float|object</code></b>
+                <ul>
+                    <li>返回 <code>$base</code> 的 <code>$exp</code> 次幂。</li>
+                    <li>可以使用 <code>**</code> 运算符替代 (<code>$base ** $exp</code>)。</li>
+                </ul>
+            </li>
+            <li><b><code>sqrt(float $num): float</code></b>
+                <ul>
+                    <li>返回 <code>$num</code> 的平方根。</li>
+                </ul>
+            </li>
+            <li><b><code>pi(): float</code></b>
+                <ul>
+                    <li>返回圆周率 Pi (π) 的近似值。</li>
+                </ul>
+            </li>
+            <li><b><code>M_PI</code> (常量)</b>
+                <ul>
+                    <li>也是 Pi 的值。</li>
+                </ul>
+            </li>
+            <li><b>其他 <code>M_*</code> 常量：</b> PHP 还定义了其他数学常量，如 <code>M_E</code> (自然对数的底 e), <code>M_SQRT2</code>
+                (2的平方根) 等。
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+$power = pow(2, 8);   // 2 的 8 次方
+echo "2^8 = " . $power . "\n"; // 输出: 256
+
+$sqrt_val = sqrt(144); // 144 的平方根
+echo "sqrt(144) = " . $sqrt_val . "\n"; // 输出: 12
+
+$pi_val = pi();
+echo "Pi = " . $pi_val . "\n"; // 输出 Pi 的近似值
+echo "M_PI = " . M_PI . "\n"; // 输出相同的值
+?&gt;</code></pre>
+
+        <hr/>
+
+        <h2 id="sb-4">B.4 生成随机数</h2>
+        <ul>
+            <li><b><code>rand(int $min, int $max): int</code></b> / <b><code>rand(): int</code></b>
+                <ul>
+                    <li>生成一个伪随机整数。</li>
+                    <li>如果提供了 <code>$min</code> 和 <code>$max</code>，则生成范围在 <code>$min</code> 到
+                        <code>$max</code> (包含边界) 之间的随机数。
+                    </li>
+                    <li>如果不提供参数，则返回 0 到 <code>getrandmax()</code> 之间的随机数。</li>
+                    <li><b>注意：</b><code>rand()</code> 使用的是 libc 的随机数生成器，在某些平台上可能不够随机且速度较慢。<b>通常推荐使用
+                        <code>mt_rand()</code></b>。
+                    </li>
+                </ul>
+            </li>
+            <li class="mt-2"><b><code>mt_rand(int $min, int $max): int</code></b> / <b><code>mt_rand(): int</code></b>
+                <ul>
+                    <li>使用 <a
+                            href="[https://en.wikipedia.org/wiki/Mersenne_Twister](https://en.wikipedia.org/wiki/Mersenne_Twister)"
+                            target="_blank">Mersenne Twister</a> 算法生成更高质量的伪随机整数。速度通常比
+                        <code>rand()</code> 快 4 倍。
+                    </li>
+                    <li>用法与 <code>rand()</code> 相同。<b>这是生成普通随机数的推荐函数。</b></li>
+                    <li>不带参数时返回 0 到 <code>mt_getrandmax()</code> 之间的随机数。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+// 生成 1 到 100 之间的随机整数 (推荐方式)
+$random_number = mt_rand(1, 100);
+echo "随机数 (1-100): " . $random_number . "\n";
+
+// 生成一个更大范围的随机数
+echo "随机数 (0-" . mt_getrandmax() . "): " . mt_rand() . "\n";
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>random_int(int $min, int $max): int</code></b> (PHP 7+)
+                <ul>
+                    <li>生成一个<b>密码学安全的伪随机整数</b>。</li>
+                    <li>当你需要生成用于安全相关目的的随机数时（例如：生成随机密码、令牌、盐值 - 虽然
+                        <code>password_hash</code> 自动处理盐值，加密密钥等），<b>必须使用这个函数</b>。
+                    </li>
+                    <li>它依赖于操作系统的安全随机数源 (如 <code>/dev/urandom</code>)。如果系统无法提供安全的随机源，它会抛出
+                        <code>Exception</code>。
+                    </li>
+                    <li>性能通常比 <code>mt_rand()</code> 慢。</li>
+                </ul>
+            </li>
+            <li class="mt-2"><b><code>random_bytes(int $length): string</code></b> (PHP 7+)
+                <ul>
+                    <li>生成一个指定长度 (<code>$length</code>) 的密码学安全的伪随机字节串。</li>
+                    <li>返回的是原始的二进制字符串，可能需要进行编码（如 Base64 或 Hex）才能安全地存储或传输。</li>
+                    <li>同样依赖于安全的系统随机源，失败时抛出 <code>Exception</code>。</li>
+                    <li>非常适合生成加密密钥、初始化向量 (IV)、CSRF 令牌、随机盐等。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+try {
+// 生成一个用于密码重置的安全令牌 (16 字节 = 128 位)
+$token_bytes = random_bytes(16);
+// 将二进制字节转换为十六进制字符串以便使用
+$token_hex = bin2hex($token_bytes);
+echo "安全令牌 (Hex): " . $token_hex . "\n";
+
+// 生成一个 1 到 1000 之间的安全随机整数
+$secure_random_int = random_int(1, 1000);
+echo "安全随机整数 (1-1000): " . $secure_random_int . "\n";
+} catch (Exception $e) {
+// 如果系统无法提供安全的随机源
+echo "无法生成安全的随机数: " . $e->getMessage() . "\n";
+}
+?&gt;</code></pre>
+                <p class="danger"><b>安全总结：</b></p>
+                <ul>
+                    <li>普通用途（如游戏、模拟）用 <code>mt_rand()</code>。</li>
+                    <li>安全相关（密码、令牌、密钥、盐）<b>必须</b>用 <code>random_int()</code> 或
+                        <code>random_bytes()</code>。
+                    </li>
+                </ul>
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="sb-5">B.5 最大值与最小值</h2>
+        <ul>
+            <li><b><code>max(mixed $value, mixed ...$values): mixed</code></b> / <b><code>max(array $value_array):
+                mixed</code></b>
+                <ul>
+                    <li>返回参数列表或数组中的最大值。</li>
+                    <li>
+                        比较规则：如果参数中有浮点数，所有参数会转为浮点数比较；否则，如果都是数字（或数字字符串），按数字比较；否则按字符串比较。数组和对象不可比较（除非对象实现了比较逻辑）。
+                    </li>
+                </ul>
+            </li>
+            <li><b><code>min(mixed $value, mixed ...$values): mixed</code></b> / <b><code>min(array $value_array):
+                mixed</code></b>
+                <ul>
+                    <li>返回参数列表或数组中的最小值。比较规则同 <code>max()</code>。</li>
+                </ul>
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+echo "max(1, 5, 2, 8, 3) = " . max(1, 5, 2, 8, 3) . "\n"; // 输出: 8
+echo "min(1, 5, 2, 8, 3) = " . min(1, 5, 2, 8, 3) . "\n"; // 输出: 1
+
+$numbers = [10, 20, -5, 15];
+echo "max in array = " . max($numbers) . "\n"; // 输出: 20
+echo "min in array = " . min($numbers) . "\n"; // 输出: -5
+
+// 混合类型比较 (数字优先)
+echo "max(10, '20', 5.5) = "; var_dump(max(10, '20', 5.5)); // 输出: float(20)
+echo "&lt;br&gt;";
+
+// 字符串比较 (按字典序)
+echo "max('apple', 'banana') = " . max('apple', 'banana') . "\n"; // 输出: banana
+?&gt;</code></pre>
+
+        <hr/>
+
+        <h2 id="sb-6">B.6 三角函数 (Trigonometric Functions)</h2>
+        <p>PHP 提供标准的三角函数，如 <code>sin()</code>, <code>cos()</code>, <code>tan()</code>（参数为弧度），以及它们的反函数
+            <code>asin()</code>, <code>acos()</code>, <code>atan()</code>。还有用于角度和弧度转换的
+            <code>deg2rad()</code> 和 <code>rad2deg()</code>。</p>
+        <p class="note">除非你在进行科学计算或图形相关的开发，否则可能较少直接用到这些函数。注意参数通常是弧度制。</p>
+        <pre><code class="language-php">&lt;?php
+$degrees = 90;
+$radians = deg2rad($degrees); // 角度转弧度
+
+echo "sin(90 degrees) = " . sin($radians) . "\n"; // 输出: 1
+echo "cos(0 degrees) = " . cos(0) . "\n";         // 输出: 1
+?&gt;</code></pre>
+
+        <hr/>
+
+        <h2 id="sb-7">B.7 数字格式化</h2>
+        <ul>
+            <li><b><code>number_format(float $num, int $decimals = 0, ?string $decimal_separator = ".", ?string
+                $thousands_separator = ","): string</code></b>
+                <ul>
+                    <li>将浮点数 <code>$num</code> 格式化为更易读的字符串。</li>
+                    <li><code>$decimals</code>: 保留的小数位数。</li>
+                    <li><code>$decimal_separator</code>: 小数点的字符（默认是 <code>.</code>）。</li>
+                    <li><code>$thousands_separator</code>: 千位分隔符的字符（默认是 <code>,</code>）。</li>
+                    <li>返回格式化后的字符串。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$number = 1234567.8912;
+
+// 格式化为带两位小数和千位分隔符的字符串
+$formatted1 = number_format($number, 2);
+echo $formatted1; // 输出: 1,234,567.89
+
+echo "\n";
+
+// 使用不同的分隔符 (欧洲常用)
+$formatted2 = number_format($number, 2, ',', ' ');
+echo $formatted2; // 输出: 1 234 567,89
+
+echo "\n";
+
+// 不带小数，带千位分隔符
+$formatted3 = number_format($number, 0);
+echo $formatted3; // 输出: 1,234,568 (会四舍五入)
+
+echo "\n";
+
+// 只格式化千位分隔符 (PHP 8+)
+// $formatted4 = number_format($number, thousands_separator: ' ');
+// echo $formatted4; // 输出: 1 234 567.8912 (PHP 8+ only)
+?&gt;</code></pre>
+                <p class="note"><code>number_format()</code> 非常适合在网页上显示价格、统计数据等数字。</p>
+            </li>
+        </ul>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义补充章节 B 结束 ---</p>
+
+</div>
+</body>
+</html>

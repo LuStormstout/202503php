@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP - Supplement A: 变量处理函数</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+        }
+
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre;
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>PHP - Supplement A: 变量处理函数</h1>
+    <p class="text-gray-500 text-sm">这是补充章节的第一部分 (A)。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="sa-intro">引言：为何需要变量处理函数？</h2>
+        <p>PHP 是一种动态、弱类型语言。这意味着变量的类型可以在运行时改变，并且 PHP
+            会在需要时自动进行类型转换（类型杂耍）。虽然这带来了灵活性，但也可能导致预期之外的行为或错误。</p>
+        <p>因此，PHP 提供了一系列内建函数来帮助我们：</p>
+        <ul>
+            <li><b>检查 (Check):</b> 准确地判断一个变量当前是什么类型。</li>
+            <li><b>获取 (Get):</b> 获取变量的类型信息。</li>
+            <li><b>设置 (Set):</b> 显式地改变变量的类型。</li>
+            <li><b>转换 (Convert):</b> 获取变量转换为特定类型后的值（不改变原变量）。</li>
+            <li><b>判断状态 (State):</b> 检查变量是否已定义、是否为空等。</li>
+        </ul>
+        <p>熟练使用这些函数是编写健壮、可靠 PHP 代码的基础。</p>
+
+        <hr/>
+
+        <h2 id="sa-1">A.1 类型检查函数 (<code>is_*</code> 系列)</h2>
+        <p>这一系列函数都用于检查一个变量是否属于某种特定的类型，返回布尔值 <code>true</code> 或 <code>false</code>。</p>
+        <ul>
+            <li><code>is_int(mixed $value): bool</code> (别名: <code>is_integer</code>, <code>is_long</code>): 是否为整型。
+            </li>
+            <li><code>is_float(mixed $value): bool</code> (别名: <code>is_double</code>, <code>is_real</code>): 是否为浮点型。
+            </li>
+            <li><code>is_string(mixed $value): bool</code>: 是否为字符串。</li>
+            <li><code>is_bool(mixed $value): bool</code>: 是否为布尔型。</li>
+            <li><code>is_null(mixed $value): bool</code>: 是否为 <code>NULL</code>。</li>
+            <li><code>is_array(mixed $value): bool</code>: 是否为数组。</li>
+            <li><code>is_object(mixed $value): bool</code>: 是否为对象。</li>
+            <li><code>is_resource(mixed $value): bool</code>: 是否为资源类型 (如文件句柄、数据库连接)。</li>
+            <li><code>is_callable(mixed $value, bool $syntax_only = false, string &$callable_name = null): bool</code>:
+                是否为可调用类型（如函数名字符串、<code>[$object, 'method']</code> 数组、匿名函数等）。
+            </li>
+            <li><code>is_numeric(mixed $value): bool</code>: 是否为**数字**或**数字字符串** (例如 <code>"123"</code>,
+                <code>"-1.5e3"</code> 也是 <code>true</code>)。<b>注意：</b>它与 <code>is_int</code> 或
+                <code>is_float</code> 不同。
+            </li>
+            <li><code>is_scalar(mixed $value): bool</code>: 是否为标量类型（即 <code>int</code>, <code>float</code>,
+                <code>string</code>, <code>bool</code>）。
+            </li>
+        </ul>
+
+        <p><b>示例：</b></p>
+        <pre><code class="language-php">&lt;?php
+$var1 = 123;
+$var2 = "Hello";
+$var3 = 3.14;
+$var4 = true;
+$var5 = null;
+$var6 = ["a", "b"];
+$var7 = fopen("php://memory", "r"); // 创建一个内存流资源
+$var8 = function() {}; // 匿名函数
+$var9 = "456"; // 数字字符串
+
+echo '$var1 (123): ';
+var_dump(is_int($var1));    // bool(true)
+var_dump(is_numeric($var1)); // bool(true)
+var_dump(is_scalar($var1));  // bool(true)
+echo "&lt;br&gt;";
+
+echo '$var2 ("Hello"): ';
+var_dump(is_string($var2)); // bool(true)
+var_dump(is_numeric($var2)); // bool(false)
+var_dump(is_scalar($var2));  // bool(true)
+echo "&lt;br&gt;";
+
+echo '$var3 (3.14): ';
+var_dump(is_float($var3));   // bool(true)
+var_dump(is_numeric($var3)); // bool(true)
+echo "&lt;br&gt;";
+
+echo '$var4 (true): ';
+var_dump(is_bool($var4));    // bool(true)
+var_dump(is_scalar($var4));  // bool(true)
+echo "&lt;br&gt;";
+
+echo '$var5 (null): ';
+var_dump(is_null($var5));    // bool(true)
+var_dump(is_scalar($var5));  // bool(false)
+echo "&lt;br&gt;";
+
+echo '$var6 (["a", "b"]): ';
+var_dump(is_array($var6));   // bool(true)
+var_dump(is_scalar($var6));  // bool(false)
+echo "&lt;br&gt;";
+
+echo '$var7 (resource): ';
+var_dump(is_resource($var7)); // bool(true)
+var_dump(is_scalar($var7));   // bool(false)
+if(is_resource($var7)) fclose($var7); // 关闭资源
+echo "&lt;br&gt;";
+
+echo '$var8 (closure): ';
+var_dump(is_callable($var8)); // bool(true)
+echo "&lt;br&gt;";
+
+echo '$var9 ("456"): ';
+var_dump(is_string($var9));  // bool(true)
+var_dump(is_numeric($var9)); // bool(true) <-- 注意！数字字符串也是 numeric
+var_dump(is_int($var9));     // bool(false)
+echo "&lt;br&gt;";
+?&gt;</code></pre>
+
+        <hr/>
+
+        <h2 id="sa-2">A.2 获取变量类型 (<code>gettype()</code>)</h2>
+        <ul>
+            <li><b><code>gettype(mixed $value): string</code></b>
+                <ul>
+                    <li>返回变量 <code>$value</code> 的类型名称字符串。</li>
+                    <li>可能的返回值："boolean", "integer", "double" (历史原因，对应 float), "string", "array", "object",
+                        "resource", "NULL", "unknown type"。
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+$data = 100;
+$typeString = gettype($data);
+
+echo "变量 $data 的类型是: {$typeString}\n"; // 输出: 变量 $data 的类型是: integer
+
+switch ($typeString) {
+case 'integer':
+echo "这是一个整数。\n";
+break;
+case 'string':
+echo "这是一个字符串。\n";
+break;
+// ... 其他 case ...
+default:
+echo "这是一个其他类型。\n";
+}
+?&gt;</code></pre>
+        <p class="note"><code>gettype()</code> 返回的是类型的通用名称，对于对象，它只返回
+            "object"，不会返回具体的类名。如果需要获取对象所属的类名，应该使用 <code>get_class($object)</code> 函数。</p>
+
+        <hr/>
+
+        <h2 id="sa-3">A.3 设置变量类型 (<code>settype()</code>)</h2>
+        <ul>
+            <li><b><code>settype(mixed &amp;$var, string $type): bool</code></b>
+                <ul>
+                    <li>尝试将变量 <code>$var</code> 的类型强制转换为 <code>$type</code>
+                        指定的类型。<b>直接修改原变量</b>。
+                    </li>
+                    <li><code>$type</code> 可以是："boolean" (或 "bool"), "integer" (或 "int"), "float" (或 "double"),
+                        "string", "array", "object", "null"。
+                    </li>
+                    <li>成功时返回 <code>true</code>，失败时 <code>false</code>。</li>
+                </ul>
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+$value = "123.45"; // 初始是字符串
+echo "初始类型: " . gettype($value) . ", 值: "; var_dump($value); // string(6) "123.45"
+echo "&lt;br&gt;";
+
+// 转换为整数
+settype($value, "integer");
+echo "转换为 int 后: " . gettype($value) . ", 值: "; var_dump($value); // integer, int(123) (小数部分截断)
+echo "&lt;br&gt;";
+
+// 再次设置为字符串
+settype($value, "string");
+echo "转换为 string 后: " . gettype($value) . ", 值: "; var_dump($value); // string(3) "123"
+echo "&lt;br&gt;";
+
+// 转换为布尔值
+settype($value, "bool");
+echo "转换为 bool 后: " . gettype($value) . ", 值: "; var_dump($value); // boolean, bool(true) (非空字符串转为 true)
+
+?&gt;</code></pre>
+        <p class="warning"><code>settype()</code> 因为直接修改原变量，有时会让代码流程不清晰，通常不如使用下面的类型转换函数或显式类型转换操作符
+            <code>(type)</code> 更受欢迎。</p>
+
+        <hr/>
+
+        <h2 id="sa-4">A.4 类型转换函数</h2>
+        <p>这些函数用于获取变量转换为特定类型后的<b>值</b>，但<b>不会</b>改变原始变量的类型。</p>
+        <ul>
+            <li><b><code>intval(mixed $value, int $base = 10): int</code></b>
+                <ul>
+                    <li>获取变量 <code>$value</code> 的整数值。</li>
+                    <li><code>$base</code> (可选): 仅当 <code>$value</code> 是字符串时有效，指定字符串表示的数字的进制（如
+                        2, 8, 10, 16）。
+                    </li>
+                    <li>转换规则：
+                        <ul>
+                            <li>布尔 <code>true</code> 转为 <code>1</code>, <code>false</code> 转为 <code>0</code>。</li>
+                            <li>浮点数会被截断小数部分（向下取整）。</li>
+                            <li>字符串会从开头尝试解析数字，直到遇到非数字字符停止。如果开头不是数字，返回 <code>0</code>。
+                            </li>
+                            <li>数组：空数组返回 <code>0</code>，非空数组返回 <code>1</code>。</li>
+                            <li>对象：通常返回 <code>1</code> (除非定义了转换行为)。</li>
+                            <li><code>null</code> 返回 <code>0</code>。</li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+            <li><b><code>floatval(mixed $value): float</code></b> (别名 <code>doubleval</code>)
+                <ul>
+                    <li>获取变量的浮点数值。转换规则类似 <code>intval</code>，但对于字符串会解析到第一个非数字（允许小数点和科学计数法e/E）字符。
+                    </li>
+                </ul>
+            </li>
+            <li><b><code>strval(mixed $value): string</code></b>
+                <ul>
+                    <li>获取变量的字符串表示。</li>
+                    <li>转换规则：
+                        <ul>
+                            <li>布尔 <code>true</code> 转为 <code>"1"</code>, <code>false</code> 转为 <code>""</code>
+                                (空字符串)。
+                            </li>
+                            <li>数字直接转为对应的数字字符串。</li>
+                            <li>数组通常转为字符串 <code>"Array"</code>。</li>
+                            <li>对象通常转为字符串 <code>"Object"</code> (除非定义了 <code>__toString()</code> 魔术方法)。
+                            </li>
+                            <li><code>null</code> 转为空字符串 <code>""</code>。</li>
+                            <li>资源转为类似 <code>"Resource id #N"</code> 的字符串。</li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+            <li><b><code>boolval(mixed $value): bool</code></b>
+                <ul>
+                    <li>获取变量的布尔值。转换规则遵循 PHP 的 "truthy" / "falsy" 规则（见 Part 2 Data Types 或 Part 4 if
+                        语句）。
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        <p><b>示例：</b></p>
+        <pre><code class="language-php">&lt;?php
+$str_num = "123 apples";
+$str_float = "3.14159 is pi";
+$str_hex = "0xFF"; // 十六进制字符串
+$float_num = 99.9;
+$is_valid = true;
+$nothing = null;
+$my_array = [1];
+
+// intval 示例
+echo "intval('{$str_num}'): "; var_dump(intval($str_num));        // 输出: int(123)
+echo "&lt;br&gt;";
+echo "intval('{$str_hex}', 16): "; var_dump(intval($str_hex, 16)); // 输出: int(255) (按16进制转换)
+echo "&lt;br&gt;";
+echo "intval({$float_num}): "; var_dump(intval($float_num));      // 输出: int(99) (截断小数)
+echo "&lt;br&gt;";
+echo "intval({$is_valid}): "; var_dump(intval($is_valid));        // 输出: int(1)
+echo "&lt;br&gt;";
+
+// floatval 示例
+echo "floatval('{$str_float}'): "; var_dump(floatval($str_float)); // 输出: float(3.14159)
+echo "&lt;br&gt;";
+
+// strval 示例
+echo "strval({$float_num}): "; var_dump(strval($float_num));      // 输出: string(4) "99.9"
+echo "&lt;br&gt;";
+echo "strval({$is_valid}): "; var_dump(strval($is_valid));        // 输出: string(1) "1"
+echo "&lt;br&gt;";
+echo "strval({$nothing}): "; var_dump(strval($nothing));         // 输出: string(0) ""
+echo "&lt;br&gt;";
+echo "strval($my_array): "; var_dump(strval($my_array));          // 输出: string(5) "Array"
+echo "&lt;br&gt;";
+
+// boolval 示例
+$zero_str = "0";
+$empty_str = "";
+echo "boolval({$zero_str}): "; var_dump(boolval($zero_str));     // 输出: bool(false)
+echo "&lt;br&gt;";
+echo "boolval({$empty_str}): "; var_dump(boolval($empty_str));    // 输出: bool(false)
+echo "&lt;br&gt;";
+echo "boolval('hello'): "; var_dump(boolval('hello'));           // 输出: bool(true)
+echo "&lt;br&gt;";
+
+// 对比显式类型转换操作符 (结果通常相同)
+$cast_int = (int) $str_num;
+echo "(int)'{$str_num}': "; var_dump($cast_int); // 输出: int(123)
+
+?&gt;</code></pre>
+        <p class="note">使用这些转换函数通常比依赖 PHP 的自动类型杂耍更清晰地表达你的意图。</p>
+
+        <hr/>
+
+        <h2 id="sa-5">A.5 变量状态检查 (<code>isset</code>, <code>empty</code>, <code>unset</code> - 深入)</h2>
+
+        <h3 id="s5-5-1"><code>isset(mixed ...$vars): bool</code></h3>
+        <ul>
+            <li><b>作用：</b>检查一个或多个变量是否<b>已声明</b>并且其值<b>不是 <code>NULL</code></b>。</li>
+            <li><b>关键点：</b>
+                <ul>
+                    <li>对于未声明的变量，<code>isset()</code> 返回 <code>false</code> 且<b>不会</b>产生 Notice
+                        错误（这使得它在检查可能不存在的变量时很有用）。
+                    </li>
+                    <li>对于已声明但值为 <code>NULL</code> 的变量，<code>isset()</code> 返回 <code>false</code>。</li>
+                    <li>可以同时检查多个变量，只有**所有**变量都满足“已声明且非 NULL”条件时才返回 <code>true</code>。</li>
+                </ul>
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+$a = 1;
+$b = null;
+// $c 没有声明
+
+var_dump(isset($a));       // 输出: bool(true)
+var_dump(isset($b));       // 输出: bool(false) (因为值是 null)
+var_dump(isset($c));       // 输出: bool(false) (因为未声明)
+var_dump(isset($a, $b));   // 输出: bool(false) (因为 $b 不满足)
+var_dump(isset($a, $d));   // 输出: bool(false) (因为 $d 未声明)
+
+// 对比 array_key_exists
+$myArray = ['key1' => 'value', 'key2' => null];
+var_dump(isset($myArray['key1']));          // bool(true)
+var_dump(array_key_exists('key1', $myArray)); // bool(true)
+
+var_dump(isset($myArray['key2']));          // bool(false) (值是 null)
+var_dump(array_key_exists('key2', $myArray)); // bool(true) (键存在)
+
+var_dump(isset($myArray['key3']));          // bool(false)
+var_dump(array_key_exists('key3', $myArray)); // bool(false)
+?&gt;</code></pre>
+        <p class="note"><code>isset()</code> 是检查用户输入（如 <code>$_GET['param']</code> 或
+            <code>$_POST['field']</code>）是否存在的最常用方法。</p>
+
+        <h3 id="s5-5-2"><code>empty(mixed $value): bool</code></h3>
+        <ul>
+            <li><b>作用：</b>检查一个变量是否被认为是“空”。</li>
+            <li><b>被认为是“空”的值包括：</b>
+                <ul>
+                    <li><code>""</code> (空字符串)</li>
+                    <li><code>0</code> (整数 0)</li>
+                    <li><code>0.0</code> (浮点数 0.0)</li>
+                    <li><code>"0"</code> (字符串 "0")</li>
+                    <li><code>null</code></li>
+                    <li><code>false</code></li>
+                    <li><code>[]</code> (空数组)</li>
+                    <li>未声明的变量</li>
+                </ul>
+            </li>
+            <li>与 <code>isset()</code> 类似，对未声明的变量使用 <code>empty()</code> 也不会产生 Notice 错误。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+$var1 = "";
+$var2 = 0;
+$var3 = "0";
+$var4 = null;
+$var5 = false;
+$var6 = [];
+// $var7 未声明
+$var8 = "hello";
+$var9 = 1;
+
+var_dump(empty($var1)); // bool(true)
+var_dump(empty($var2)); // bool(true)
+var_dump(empty($var3)); // bool(true) <-- 注意字符串 "0" 也是 empty
+var_dump(empty($var4)); // bool(true)
+var_dump(empty($var5)); // bool(true)
+var_dump(empty($var6)); // bool(true)
+var_dump(empty($var7)); // bool(true)
+var_dump(empty($var8)); // bool(false)
+var_dump(empty($var9)); // bool(false)
+
+echo "&lt;br&gt;isset 对比:&lt;br&gt;";
+var_dump(isset($var1)); // bool(true)
+var_dump(isset($var2)); // bool(true)
+var_dump(isset($var3)); // bool(true)
+var_dump(isset($var4)); // bool(false)
+var_dump(isset($var5)); // bool(true) <-- 注意 false 不是 null
+var_dump(isset($var6)); // bool(true)
+var_dump(isset($var7)); // bool(false)
+?&gt;</code></pre>
+        <p class="warning"><code>empty()</code> 的判断范围比 <code>!isset()</code> 更广，特别是它将 <code>0</code>,
+            <code>"0"</code> 和 <code>false</code> 也视为空。在需要区分这些值和 <code>null</code>/未设置/空字符串/空数组时，要小心使用。
+        </p>
+
+        <h3 id="s5-5-3"><code>unset(mixed ...$vars): void</code></h3>
+        <ul>
+            <li><b>作用：</b>销毁一个或多个指定的变量。销毁后，变量不再存在于符号表中，对其使用 <code>isset()</code> 会返回
+                <code>false</code>，<code>empty()</code> 会返回 <code>true</code>，直接访问会产生 Notice 错误。
+            </li>
+            <li>可以同时销毁多个变量：<code>unset($var1, $var2, $obj-&gt;prop);</code></li>
+            <li>在函数内部 <code>unset()</code> 一个全局变量（通过 <code>global</code> 或 <code>$GLOBALS</code>
+                引用）会销毁全局变量本身。
+            </li>
+            <li><code>unset()</code> 一个通过引用传递的变量，只会断开引用关系，不会销毁原始值（除非是最后一个引用）。</li>
+            <li><code>unset()</code> 一个对象属性（如 <code>unset($obj-&gt;prop)</code>）会触发 <code>__unset()</code>
+                魔术方法（如果定义了）。
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+$myVar = "some value";
+var_dump(isset($myVar)); // bool(true)
+
+unset($myVar);
+var_dump(isset($myVar)); // bool(false)
+// echo $myVar; // Notice: Undefined variable: myVar
+
+$arr = ['a' => 1, 'b' => 2];
+unset($arr['a']);
+print_r($arr); // Array ( [b] => 2 )
+?&gt;</code></pre>
+        <p class="note"><code>unset()</code> 主要用于释放不再需要的变量所占用的内存（虽然 PHP
+            有自动垃圾回收），或者明确移除数组/对象中的元素/属性。</p>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义补充章节 A 结束 ---</p>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laravel 详细讲义 - Part 4: 视图与 Blade 模板引擎</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+        }
+
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre;
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>Laravel 详细讲义 - Part 4: 视图与 Blade 模板引擎</h1>
+    <p class="text-gray-500 text-sm">这是 Laravel 系列讲义的第四部分 (共 17 部分)。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="s4-1">4.1 视图 (Views) 基础</h2>
+
+        <h3 id="s4-1-1">视图的作用与位置</h3>
+        <p>视图的主要职责是呈现应用程序的数据给用户，也就是生成用户最终在浏览器中看到的 HTML 页面。在 MVC
+            架构中，视图层负责“表现”，它应该尽量只包含展示逻辑，而将复杂的业务逻辑、数据处理逻辑放在控制器和模型中。</p>
+        <p><b>好处：</b></p>
+        <ul>
+            <li><b>关注点分离：</b> 让 PHP 逻辑与 HTML 结构分开，代码更清晰。</li>
+            <li><b>协作方便：</b> 前端开发者或设计师可以更方便地修改页面结构和样式，而不需要深入理解 PHP 逻辑。</li>
+            <li><b>可维护性：</b> 修改页面展示通常只需要改动视图文件。</li>
+        </ul>
+        <p>Laravel 的视图文件默认存放在 <code>resources/views/</code> 目录下。你可以使用子目录来组织视图，例如将所有用户相关的视图放在
+            <code>resources/views/users/</code> 目录下。</p>
+        <p>视图文件通常使用 <code>.blade.php</code> 扩展名，表示它们是 Blade 模板文件。你也可以使用纯 <code>.php</code>
+            文件作为视图，但在 Laravel 中使用 Blade 会方便得多。</p>
+
+        <h3 id="s4-1-2">从控制器或路由返回视图</h3>
+        <p>最常用的方式是使用全局辅助函数 <code>view()</code>。</p>
+        <p><b>语法：</b> <code>view(string $viewName, array $data = [], array $mergeData = [])</code></p>
+        <ul>
+            <li><b><code>$viewName</code>:</b> 视图文件的名称（相对于 <code>resources/views/</code> 目录），使用点
+                <code>.</code> 表示目录层级。例如：
+                <ul>
+                    <li><code>'welcome'</code> 对应 <code>resources/views/welcome.blade.php</code>。</li>
+                    <li><code>'users.profile'</code> 对应 <code>resources/views/users/profile.blade.php</code>。</li>
+                </ul>
+            </li>
+            <li><b><code>$data</code> (可选):</b> 一个关联数组，用于将数据传递给视图。数组的键会成为视图中可用的变量名，数组的值就是对应变量的值。
+            </li>
+            <li><b><code>$mergeData</code> (可选):</b> 也是传递数据的数组，通常较少直接使用。</li>
+        </ul>
+        <p><b>示例 (在控制器方法中):</b></p>
+        <pre><code class="language-php">&lt;?php
+// In UserController.php
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use Illuminate\View\View;
+
+class UserController extends Controller
+{
+    public function show(string $id): View
+    {
+    $user = User::findOrFail($id); // 获取用户模型  
+
+        // 返回 'users.show' 视图，并传递 'user' 变量
+        return view('users.show', ['user' => $user]);
+    }
+
+    public function index(): View
+    {
+        $users = User::paginate(15); // 获取分页的用户数据
+
+        // 传递多个变量
+        $pageTitle = "用户列表";
+        // return view('users.index', ['users' => $users, 'title' => $pageTitle]);
+
+        // 或者使用 compact() 函数创建关联数组 (变量名需与键名一致)
+        return view('users.index', compact('users', 'pageTitle'));
+    }
+}
+?&gt;</code></pre>
+        <p><b>也可以通过 <code>with()</code> 方法传递数据（可以链式调用）：</b></p>
+        <pre><code class="language-php">&lt;?php
+// 在控制器中
+public function edit(string $id): View
+{
+    $user = User::findOrFail($id);
+    return view('users.edit')
+        ->with('user', $user) // 传递 $user 变量
+        ->with('pageTitle', '编辑用户'); // 传递 $pageTitle 变量
+}
+?&gt;</code></pre>
+
+        <h3 id="s4-1-3">检查视图是否存在</h3>
+        <p>可以使用 <code>View</code> Facade 的 <code>exists()</code> 方法来检查视图文件是否存在。</p>
+        <pre><code class="language-php">&lt;?php
+use Illuminate\Support\Facades\View;
+
+if (View::exists('emails.customer_invoice')) {
+    // 视图存在，可以安全地使用它
+    // return view('emails.customer_invoice', $data);
+} else {
+    // 视图不存在，可能需要回退或记录错误
+}
+?&gt;</code></pre>
+
+        <hr/>
+
+        <h2 id="s4-2">4.2 Blade 模板引擎基础</h2>
+        <p>Blade 是 Laravel 强大而简洁的模板引擎。它不限制你使用原生 PHP
+            代码，但提供了很多方便的“语法糖”（指令）来处理常见的模板任务，如显示变量、控制结构、模板继承等。</p>
+        <p>Blade 视图文件会被编译成普通的 PHP 代码并缓存起来，因此它<b>不会给应用带来额外的性能负担</b>。</p>
+
+        <h3 id="s4-2-1">显示数据</h3>
+        <ul>
+            <li><b><code>{{ $variable }}</code>:</b> 这是最常用的显示数据的方式。花括号中的 PHP 变量或表达式的结果会先经过
+                PHP 的 <code>htmlspecialchars()</code> 函数处理，然后才输出到 HTML 中。<b>这能有效防止 XSS
+                    攻击，是默认且推荐的方式。</b></li>
+            <li><b><code>{!! $rawHtml !!}</code>:</b> 用于输出**未转义**的 HTML 内容。<b>必须极其谨慎使用！</b>
+                只有当你完全确定变量中的内容是安全的、可信的（例如来自管理员后台富文本编辑器且经过了严格过滤的内容），并且确实需要渲染其中的
+                HTML 标签时，才可以使用它。<b>绝对不要用它来输出用户提交的原始数据！</b></li>
+        </ul>
+        <pre><code class="language-php">&lt;!-- 在 welcome.blade.php 中 --&gt;
+&lt;h1&gt;你好, {{ $name }}!&lt;/h1&gt; &lt;!-- 假设控制器传递了 $name 变量 --&gt;
+
+&lt;p&gt;当前时间: {{ date('Y-m-d H:i:s') }}&lt;/p&gt; &lt;!-- 可以直接写 PHP 表达式 --&gt;
+
+&lt;!-- 假设 $userContent 是用户输入，可能包含恶意脚本 --&gt;
+&lt;div class="user-content"&gt;
+    {{ $userContent }} &lt;!-- 安全！HTML 特殊字符会被转义 --&gt;
+&lt;/div&gt;
+
+&lt;!-- 假设 $trustedHtml 是确认安全的、需要渲染的 HTML --&gt;
+&lt;div class="trusted-html"&gt;
+    {!! $trustedHtml !!} &lt;!-- 不安全，除非 $trustedHtml 来源可靠且已被清理 --&gt;
+&lt;/div&gt;
+</code></pre>
+
+        <h3 id="s4-2-2">Blade 与 JavaScript 框架</h3>
+        <p>像 Vue 或 React 这样的 JavaScript 框架也经常使用花括号 <code>{{ ... }}</code> 作为它们的模板语法。为了避免与
+            Blade 冲突，你可以：</p>
+        <ul>
+            <li>在花括号前加上 <code>@</code> 符号，告诉 Blade 不要处理它：<code>var app = new Vue({ el: '#app', data: {
+                message: '@{{ vueMessage }}' } });</code></li>
+            <li>使用 <code>@verbatim</code> 指令包裹大段的 JavaScript 代码：
+                <pre><code class="language-php">@verbatim
+&lt;div id="app">
+    {{ message }}
+&lt;/div>
+&lt;script>
+    var app = new Vue({
+        el: '#app',
+        data: {message: 'Hello from Vue!'}
+    });
+&lt;/script>
+@endverbatim
+</code></pre>
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s4-3">4.3 Blade 指令 (Directives)</h2>
+        <p>Blade 指令以 <code>@</code> 符号开头，提供了流程控制、模板继承等便捷功能。</p>
+
+        <h3 id="s4-3-1">条件语句</h3>
+        <ul>
+            <li><b><code>@if (条件) ... @elseif (条件) ... @else ... @endif</code>:</b> 对应 PHP 的 if/elseif/else。</li>
+            <li><b><code>@unless (条件) ... @endunless</code>:</b> 相当于 <code>@if (!条件)</code>。</li>
+            <li><b><code>@isset ($variable) ... @endisset</code>:</b> 检查变量是否存在且不为 null。</li>
+            <li><b><code>@empty ($variable) ... @endempty</code>:</b> 检查变量是否为空。</li>
+            <li><b><code>@auth / @guest</code>:</b> 检查用户是否已登录/未登录。
+                <pre><code class="language-php">@auth
+&lt;p>欢迎回来, {{ Auth::user()->name }}!&lt;/p>
+@endauth
+
+@guest
+&lt;p>请 &lt;a href="/login">登录&lt;/a>。&lt;/p>
+@endguest</code></pre>
+            </li>
+            <li><b><code>@production / @env('...')</code>:</b> 根据应用环境 (<code>APP_ENV</code>) 显示内容。
+                <pre><code class="language-php">@env('local')
+&lt;p class="text-red-500">当前处于本地开发环境&lt;/p>
+@endenv
+
+@production
+&lt;script> // 加载生产环境的统计代码 &lt;/script>
+@endproduction</code></pre>
+            </li>
+            <li><b><code>@switch / @case / @break / @default / @endswitch</code>:</b> Switch 语句。</li>
+        </ul>
+
+        <h3 id="s4-3-2">循环语句</h3>
+        <ul>
+            <li><b><code>@for ($i = 0; $i < 10; $i++) ... @endfor</code></b></li>
+            <li><b><code>@foreach ($collection as $item) ... @endforeach</code></b></li>
+            <li><b><code>@forelse ($collection as $item) ... @empty // 如果 $collection 为空时执行 ...
+                @endforelse</code></b></li>
+            <li><b><code>@while (条件) ... @endwhile</code></b></li>
+        </ul>
+        <p><b><code>$loop</code> 变量:</b> 在 <code>@foreach</code> 或 <code>@forelse</code> 循环内部，可以使用特殊的
+            <code>$loop</code> 变量来获取关于当前循环状态的信息：</p>
+        <ul>
+            <li><code>$loop->index</code>: 当前迭代从 0 开始的索引。</li>
+            <li><code>$loop->iteration</code>: 当前迭代从 1 开始的序号。</li>
+            <li><code>$loop->remaining</code>: 循环中剩余的迭代次数。</li>
+            <li><code>$loop->count</code>: 正在迭代的数组的总元素个数。</li>
+            <li><code>$loop->first</code>: 布尔值，是否为第一次迭代。</li>
+            <li><code>$loop->last</code>: 布尔值，是否为最后一次迭代。</li>
+            <li><code>$loop->odd</code>: 布尔值，迭代序号是否为奇数。</li>
+            <li><code>$loop->even</code>: 布尔值，迭代序号是否为偶数。</li>
+            <li><code>$loop->depth</code>: 当前循环的嵌套深度。</li>
+            <li><code>$loop->parent</code>: (在嵌套循环中) 指向上层循环的 <code>$loop</code> 变量。</li>
+        </ul>
+        <pre><code class="language-php">@forelse ($users as $user)
+&lt;li class="{{ $loop-&gt;odd ? 'bg-gray-100' : '' }}"&gt;
+    {{ $loop-&gt;iteration }}. {{ $user-&gt;name }}
+    @if ($loop-&gt;first) (这是第一个) @endif
+    @if ($loop-&gt;last) (这是最后一个) @endif
+&lt;/li&gt;
+@empty
+&lt;p&gt;没有找到用户。&lt;/p&gt;
+@endforelse
+</code></pre>
+
+        <hr/>
+
+        <h2 id="s4-4">4.4 模板继承 (Template Inheritance) - 布局</h2>
+        <p>这是 Blade 最强大的功能之一，用于创建一致的网站布局。</p>
+        <ol>
+            <li><b>创建主布局文件：</b> 在 <code>resources/views/layouts/</code> (或其他你选择的目录) 下创建一个主布局文件，例如
+                <code>app.blade.php</code>。这个文件包含所有页面共享的 HTML 结构（如 <code>&lt;!DOCTYPE&gt;</code>, <code>&lt;html&gt;</code>,
+                <code>&lt;head&gt;</code>, 导航栏, 页脚等）。
+            </li>
+            <li><b>在布局中定义区块：</b> 使用 <code>@yield('section_name')</code> 指令在布局文件中标记出那些需要由子视图来填充内容的可变区域。可以为
+                <code>@yield</code> 提供默认内容。
+                <pre><code class="language-html">&lt;!-- resources/views/layouts/app.blade.php --&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html lang="zh-CN"&gt;
+&lt;head&gt;
+&lt;meta charset="UTF-8"&gt;
+&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+&lt;title&gt;@yield('title', config('app.name', 'Laravel'))&lt;/title&gt; &lt;!-- 标题区块，带默认值 --&gt;
+&lt;script src="https://cdn.tailwindcss.com"&gt;&lt;/script&gt;
+@stack('styles') &lt;!-- 用于子视图注入 CSS (见 Stacks) --&gt;
+&lt;/head&gt;
+&lt;body class="bg-gray-100"&gt;
+&lt;nav class="bg-white shadow p-4"&gt;
+&lt;!-- 导航栏内容 --&gt;
+网站导航...
+&lt;/nav&gt;  
+
+&lt;main class="container mx-auto py-8"&gt;
+    @yield('content') &lt;!-- 主要内容区块 --&gt;
+&lt;/main&gt;
+
+&lt;footer class="text-center text-gray-500 py-4 mt-8"&gt;
+    &copy; {{ date('Y') }} 我的网站
+&lt;/footer&gt;
+
+@stack('scripts') &lt;!-- 用于子视图注入 JS (见 Stacks) --&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+            </li>
+            <li><b>创建子视图并继承布局：</b> 在需要使用该布局的子视图文件（例如
+                <code>resources/views/home.blade.php</code>）的<b>第一行</b>，使用 <code>@extends('layouts.app')</code>
+                指令来声明它继承自主布局。
+            </li>
+            <li><b>填充区块内容：</b> 使用 <code>@section('section_name') ... @endsection</code> 来定义要填充到父布局中对应
+                <code>@yield</code> 位置的内容。对于简单的字符串内容（如标题），可以使用简洁语法 <code>@section('title',
+                    '首页')</code>。
+            </li>
+            <li><b>追加父区块内容：</b> 如果你想在父布局区块已有内容的基础上追加内容（如果父布局的 <code>@section</code>
+                有默认内容的话），可以在子视图的 <code>@section</code> 中使用 <code>@parent</code> 指令。
+            </li>
+            <pre><code class="language-php">&lt;!-- resources/views/home.blade.php --&gt;
+@extends('layouts.app') {{-- 继承主布局 --}}
+
+@section('title', '欢迎来到首页') {{-- 定义标题区块的内容 --}}
+
+@section('content') {{-- 定义主内容区块 --}}
+&lt;div class="bg-white p-6 rounded shadow"&gt;
+&lt;h1 class="text-2xl font-bold"&gt;欢迎!&lt;/h1&gt;
+&lt;p class="mt-4"&gt;这是首页的主要内容区域。&lt;/p&gt;
+&lt;/div&gt;
+@endsection
+
+@push('scripts') {{-- 向布局中的 'scripts' 堆栈推送内容 (见 Stacks) --}}
+&lt;script src="/js/home-specific.js"&gt;&lt;/script&gt;
+@endpush
+</code></pre>
+        </ol>
+        <p class="note">通过模板继承，你可以轻松地维护网站的统一外观，同时让每个页面的内容保持独立。</p>
+
+        <hr/>
+
+        <h2 id="s4-5">4.5 包含子视图 (Includes)</h2>
+        <p>使用 <code>@include('view.name', ['data' => $value])</code> 指令可以将另一个 Blade
+            视图文件包含到当前视图中。这对于创建可重用的**视图片段 (Partials)** 非常有用，例如页眉、页脚、侧边栏（如果不使用布局）、表单元素等。
+        </p>
+        <pre><code class="language-php">&lt;!-- 假设 resources/views/partials/alert.blade.php 存在 --&gt;
+&lt;div class="alert alert-{{ $type ?? 'info' }}"&gt;
+{{ $message }}
+&lt;/div&gt;
+
+&lt;!-- 在其他视图中包含它 --&gt;
+@include('partials.alert', ['type' => 'success', 'message' => '操作成功！'])
+
+@include('partials.alert', ['message' => '这是一个提示信息。']) {{-- type 会使用默认的 'info' --}}
+</code></pre>
+        <p>还有 <code>@includeIf('view.name', ...)</code>（视图存在才包含）、<code>@includeWhen($condition, 'view.name',
+            ...)</code>（条件满足才包含）、<code>@includeFirst(['view1', 'view2'], ...)</code>（包含找到的第一个视图）等变体。
+        </p>
+
+        <hr/>
+
+        <h2 id="s4-6">4.6 组件 (Components)</h2>
+        <p>组件是比 <code>@include</code> 更强大、更封装的创建可复用 UI 元素的方式。Laravel 支持两种类型的组件：</p>
+        <ul>
+            <li><b>类组件 (Class-Based Components):</b> 包含一个 PHP 类（处理逻辑和数据）和一个 Blade 视图（负责渲染）。通过
+                <code>php artisan make:component Alert</code> 创建。
+            </li>
+            <li><b>匿名组件 (Anonymous Components):</b> 只有 Blade 视图文件（位于
+                <code>resources/views/components/</code> 目录下），没有对应的类。更简单，适合纯展示性组件。
+            </li>
+        </ul>
+        <p><b>使用组件标签：</b> 在 Blade 视图中使用类似 HTML 标签的语法来渲染组件。标签名通常是
+            <code>&lt;x-组件名&gt;</code> 或 <code>&lt;x-目录名.组件名&gt;</code>。</p>
+        <p><b>传递数据：</b> 通过标签属性传递数据给组件。静态值直接写，PHP 变量或表达式需要前缀冒号 <code>:</code>。</p>
+        <p><b>属性包 (Attribute Bag):</b> 在组件视图内部，可以使用特殊的 <code>$attributes</code> 变量来访问传递给组件标签的
+            HTML 属性（如 <code>class</code>, <code>id</code> 等），并可以使用 <code>$attributes-&gt;merge([...])</code>
+            来合并默认属性。</p>
+        <p><b>插槽 (Slots):</b> 组件标签之间的内容会传递给组件视图中的默认 <code>$slot</code> 变量。也可以定义**具名插槽
+            (Named Slots)** 使用 <code>&lt;x-slot name="title"&gt;...&lt;/x-slot&gt;</code>。</p>
+
+        <p><b>示例：创建一个简单的匿名警告框组件</b></p>
+        <p>1. 创建文件 <code>resources/views/components/alert.blade.php</code>:</p>
+        <pre><code class="language-html">&lt;!-- 定义组件视图 --&gt;
+@props([
+'type' => 'info', // 定义可接收的属性，并设置默认值
+'message' => ''
+])
+
+@php
+// 根据 type 决定 CSS 类
+$baseClass = 'p-4 mb-4 border rounded ';
+$colorClasses = [
+'info' => 'bg-blue-100 border-blue-400 text-blue-700',
+'warning' => 'bg-yellow-100 border-yellow-400 text-yellow-700',
+'danger' => 'bg-red-100 border-red-400 text-red-700',
+'success' => 'bg-green-100 border-green-400 text-green-700',
+];
+$class = $baseClass . ($colorClasses[$type] ?? $colorClasses['info']);
+@endphp
+
+&lt;div {{ $attributes->merge(['class' => $class, 'role' => 'alert']) }}&gt;
+&lt;!-- 默认插槽，显示标签之间的内容 --&gt;
+@if ($slot->isNotEmpty())
+{{ $slot }}
+@else
+{{-- 如果没有提供插槽内容，显示 message 属性 --}}
+{{ $message }}
+@endif
+&lt;/div&gt;
+</code></pre>
+        <p>2. 在其他视图中使用该组件：</p>
+        <pre><code class="language-php">&lt;!-- 使用组件标签 --&gt;
+&lt;!-- 基础用法，使用 message 属性 --&gt;
+&lt;x-alert type="success" message="操作已成功完成！" /&gt;
+
+&lt;!-- 使用默认插槽传递内容 --&gt;
+&lt;x-alert type="warning" class="mt-4"&gt; &lt;!-- 可以传递额外的 HTML 属性 --&gt;
+&lt;b&gt;警告:&lt;/b&gt; 请检查你的输入。
+&lt;/x-alert&gt;
+
+&lt;!-- 使用默认 type ('info') --&gt;
+&lt;x-alert&gt;
+这是一条提示信息。
+&lt;/x-alert&gt;
+</code></pre>
+        <p class="note">组件是构建模块化、可维护前端界面的推荐方式。</p>
+
+        <hr/>
+
+        <h2 id="s4-7">4.7 堆栈 (Stacks)</h2>
+        <p>
+            堆栈允许你在子视图或组件中“推送”内容到父布局中预定义的命名“堆栈”中，然后在布局的特定位置渲染整个堆栈的内容。</p>
+        <ul>
+            <li><b><code>@push('stack_name') ... @endpush</code>:</b> 将括号内的内容添加到名为 <code>stack_name</code>
+                的堆栈末尾。可以从多个地方向同一个堆栈推送内容。
+            </li>
+            <li><b><code>@stack('stack_name')</code>:</b> 在布局文件中，渲染指定名称的堆栈中所有被推送的内容。</li>
+            <li><b><code>@prepend('stack_name') ... @endprepend</code>:</b> 将内容添加到堆栈的<b>开头</b>。</li>
+        </ul>
+        <p><b>主要用途：</b> 从子视图或组件中向主布局的 <code>&lt;head&gt;</code> 添加特定的 CSS 链接，或者在 <code>&lt;/body&gt;</code>
+            前添加特定的 JavaScript 文件或代码块。</p>
+        <p><b>示例：</b> (参考上面布局示例中 <code>@stack('scripts')</code> 的用法)</p>
+        <pre><code class="language-php">&lt;!-- 在子视图 a.blade.php 中 --&gt;
+@push('scripts')
+&lt;script src="/js/a-specific.js"&gt;&lt;/script&gt;
+@endpush
+
+&lt;!-- 在子视图 b.blade.php 中 --&gt;
+@push('scripts')
+&lt;script src="/js/b-specific.js"&gt;&lt;/script&gt;
+@endpush
+
+&lt;!-- 在布局文件 layouts/app.blade.php 中 --&gt;
+&lt;body&gt;
+&lt;!-- ... 其他内容 ... --&gt;
+&lt;script src="/js/app.js"&gt;&lt;/script&gt; &lt;!-- 主要 JS 文件 --&gt;
+@stack('scripts') &lt;!-- 这里会渲染出 a-specific.js 和 b-specific.js 的 script 标签 --&gt;
+&lt;/body&gt;
+</code></pre>
+
+        <hr/>
+
+        <h2 id="s4-8">4.8 其他有用的 Blade 指令</h2>
+        <ul>
+            <li><b><code>@csrf</code>:</b> (极其重要) 在 HTML 表单中生成一个包含 CSRF 令牌的隐藏
+                <code>&lt;input&gt;</code> 字段。用于防止跨站请求伪造攻击。<b>所有非 GET 请求的表单都应包含此指令！</b>
+            </li>
+            <li><b><code>@method('PUT')</code> / <code>@method('PATCH')</code> / <code>@method('DELETE')</code>:</b>
+                HTML 表单本身只支持 GET 和 POST 方法。当你想提交 PUT, PATCH, 或 DELETE 请求（通常用于资源更新或删除）时，需要在表单中使用
+                POST 方法，并包含这个指令。它会生成一个名为 <code>_method</code> 的隐藏字段，Laravel 会根据这个字段的值来识别真实的请求方法。
+            </li>
+            <li><b><code>@php ... @endphp</code>:</b> 用于在 Blade 视图中直接嵌入原生的 PHP 代码块。<b>应谨慎使用</b>，尽量将逻辑放在控制器或模型中，保持视图的简洁性。
+            </li>
+            <li><b><code>@json($phpVariable, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)</code>:</b> 安全地将 PHP
+                数组或对象转换为 JSON 字符串，并进行 HTML 转义，适合直接嵌入到 JavaScript 代码中。
+            </li>
+            <li><b><code>@inject('variableName', 'ServiceName')</code>:</b> 从 Laravel 服务容器中解析一个服务，并将其注入到视图中，赋值给
+                <code>$variableName</code>。
+            </li>
+            <li><b>View Composers & Service Injection:</b> (了解即可) View Composers 允许你为特定的视图绑定数据（每次渲染该视图时自动传递）。<code>@inject</code>
+                是在视图中直接注入服务的一种方式。这些属于更进阶的主题。
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s4-9">4.9 视图缓存</h2>
+        <p>为了提高性能，Blade 模板在首次被使用时会被编译成普通的 PHP 文件，并存储在 <code>storage/framework/views/</code>
+            目录下。后续请求会直接使用这些缓存的 PHP 文件，除非原始的 Blade 文件被修改了。</p>
+        <p>在生产环境中，你可以预先编译所有视图来提升首次加载速度：</p>
+        <ul>
+            <li><b>编译并缓存所有视图：</b> <code>php artisan view:cache</code></li>
+            <li><b>清除视图缓存：</b> <code>php artisan view:clear</code></li>
+        </ul>
+        <p>在本地开发时通常不需要运行 <code>view:cache</code>。</p>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 4 部分结束 ---</p>
+
+</div>
+</body>
+</html>

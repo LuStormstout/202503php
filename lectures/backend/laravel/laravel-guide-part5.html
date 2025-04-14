@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laravel 详细讲义 - Part 5: 数据库 - 迁移与填充</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+        }
+
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre;
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>Laravel 详细讲义 - Part 5: 数据库 - 迁移与填充</h1>
+    <p class="text-gray-500 text-sm">这是 Laravel 系列讲义的第五部分 (共 17
+        部分)。(已重点检查代码缩进及&lt;&gt;符号转义)</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="s5-intro">引言：用代码管理数据库</h2>
+        <p>直接在数据库管理工具（如 phpMyAdmin, Navicat, Sequel
+            Ace/Pro）中手动创建和修改数据库表结构，对于个人小项目或许可行，但在团队协作和项目部署中会带来诸多问题：</p>
+        <ul>
+            <li><b>难以追踪变更：</b> 谁修改了什么？为什么修改？无从得知。</li>
+            <li><b>协作困难：</b> 团队成员数据库结构不一致，导致代码在不同人电脑上运行结果不同。</li>
+            <li><b>部署复杂：</b> 需要手动在生产服务器上执行 SQL 语句来更新数据库结构，容易出错且难以回滚。</li>
+            <li><b>无法版本控制：</b> 数据库结构的变化没有纳入 Git 等版本控制系统。</li>
+        </ul>
+        <p>Laravel 的**迁移 (Migrations)** 和**数据填充 (Seeding)** 机制就是为了解决这些问题。</p>
+        <ul>
+            <li><b>迁移 (Migrations):</b> 允许你使用 PHP
+                代码来定义数据库的表结构（创建表、添加/修改/删除列、添加索引等）。这些代码文件可以纳入版本控制，团队成员和部署流程可以通过运行迁移命令来保持数据库结构的一致性，并且可以轻松地回滚更改。<b>它相当于数据库结构的版本控制。</b>
+            </li>
+            <li><b>数据填充 (Seeding):</b> 允许你使用 PHP 代码向数据库中插入初始数据（如默认的管理员用户、产品分类等）或大量的测试数据。这对于初始化应用状态和方便测试非常有用。
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s5-1">5.1 数据库配置回顾</h2>
+        <p>在开始迁移和填充之前，请确保你的数据库连接配置正确。主要涉及两个地方：</p>
+        <ol>
+            <li><b><code>.env</code> 文件:</b> 这是配置数据库连接凭证的主要地方。你需要根据你使用的数据库类型和本地环境设置以下变量：
+                <pre><code class="language-ini">DB_CONNECTION=mysql     # 连接类型 (mysql, pgsql, sqlite, sqlsrv)
+DB_HOST=127.0.0.1       # 数据库服务器地址 (使用 Sail 通常是 mysql 或 pgsql)
+DB_PORT=3306            # 数据库端口
+DB_DATABASE=laravel       # 数据库名称 (需要预先创建好)
+DB_USERNAME=root          # 数据库用户名
+DB_PASSWORD=your_password # 数据库密码 (如果为空，则留空)</code></pre>
+                <p class="warning"><b>重要：</b> <code>DB_DATABASE</code> 指定的数据库必须是你<b>手动预先创建好</b>的空数据库（除非使用
+                    SQLite，Laravel 会自动创建文件）。Laravel 迁移不会自动创建数据库本身。</p>
+                <p class="note">如果使用 Laravel Sail，<code>DB_HOST</code> 通常是服务名（如 <code>mysql</code> 或 <code>pgsql</code>），端口、数据库名、用户名、密码通常有默认值（参见
+                    Sail 的 <code>docker-compose.yml</code>），你可以在 <code>.env</code> 中覆盖它们。</p>
+            </li>
+            <li><b><code>config/database.php</code> 文件:</b> 这个文件定义了所有可用的数据库连接配置。它会读取
+                <code>.env</code> 文件中的值。通常你不需要直接修改这个文件，除非需要配置更高级的选项（如读写分离、连接池等）或添加新的数据库连接。
+            </li>
+        </ol>
+
+        <hr/>
+
+        <h2 id="s5-2">5.2 数据库迁移 (Migrations)</h2>
+
+        <h3 id="s5-2-1">概念</h3>
+        <p>
+            迁移就像是数据库模式（Schema）的版本控制。每个迁移文件代表对数据库结构的一次更改（创建表、添加列等）。通过运行迁移命令，你可以按顺序应用这些更改，使数据库达到期望的状态。这使得团队成员可以轻松地共享和同步数据库结构变更。</p>
+
+        <h3 id="s5-2-2">创建迁移</h3>
+        <p>使用 Artisan 命令 <code>make:migration</code> 来创建迁移文件。文件名通常包含时间戳前缀，以确保按创建顺序执行。
+        </p>
+        <ul>
+            <li><b>创建新表的迁移：</b>
+                <pre><code class="language-bash"># 命名规范：create_表名_table
+php artisan make:migration create_users_table --create=users</code></pre>
+                这会在 <code>database/migrations/</code> 目录下生成一个类似 <code>YYYY_MM_DD_HHMMSS_create_users_table.php</code>
+                的文件，并预先填充了创建 <code>users</code> 表的 <code>up()</code> 和 <code>down()</code> 方法代码。
+            </li>
+            <li><b>修改现有表的迁移：</b>
+                <pre><code class="language-bash"># 命名规范：描述性名称，例如 add_votes_to_users_table
+php artisan make:migration add_votes_to_users_table --table=users</code></pre>
+                这会生成一个迁移文件，并预先填充了用于修改 <code>users</code> 表的 <code>Schema::table()</code> 代码框架。
+            </li>
+        </ul>
+
+        <h3 id="s5-2-3">迁移文件结构</h3>
+        <p>每个迁移文件都是一个 PHP 类，继承自 <code>Illuminate\Database\Migrations\Migration</code>，并包含两个主要方法：
+        </p>
+        <ul>
+            <li><b><code>up()</code>:</b> 定义<b>应用</b>该迁移时需要执行的操作（例如创建表、添加列）。运行 <code>php
+                artisan migrate</code> 时会调用此方法。
+            </li>
+            <li><b><code>down()</code>:</b> 定义<b>回滚</b>该迁移时需要执行的操作（例如删除表、移除列）。运行 <code>php
+                artisan migrate:rollback</code> 时会调用此方法。<b>编写可逆的 <code>down()</code> 方法非常重要！</b></li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+// database/migrations/YYYY_MM_DD_HHMMSS_create_posts_table.php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema; // 引入 Schema Facade
+
+return new class extends Migration // PHP 8+ 匿名类语法
+{
+/**
+* 运行迁移 (应用更改)
+*/
+public function up(): void
+{
+// 使用 Schema::create 创建新表 'posts'
+Schema::create('posts', function (Blueprint $table) {
+// 定义表结构
+// $table 是一个 Blueprint 对象，提供了各种定义列的方法
+
+        $table->id(); // 创建自增 ID 主键 (等同于 bigIncrements('id'))
+
+        $table->string('title'); // 创建 VARCHAR 类型的 title 列 (默认长度 255)
+        $table->text('content'); // 创建 TEXT 类型的 content 列
+        $table->boolean('is_published')->default(false); // BOOLEAN 类型，默认 false
+        $table->timestamp('published_at')->nullable(); // TIMESTAMP 类型，允许 NULL
+
+        // 添加创建时间和更新时间戳 (created_at 和 updated_at)
+        $table->timestamps();
+    });
+}
+
+/**
+ * 回滚迁移 (撤销更改)
+ * down 方法应该能完全撤销 up 方法所做的操作
+ */
+public function down(): void
+{
+    // 删除 'posts' 表
+    Schema::dropIfExists('posts');
+}
+}; // 注意匿名类结尾的分号
+?></code></pre>
+
+        <h3 id="s5-2-4">Schema 构建器 (Schema Builder)</h3>
+        <p>Laravel 的 <code>Schema</code> Facade 提供了与数据库无关的方式来创建和修改表结构。它主要通过传递给 <code>Schema::create()</code>
+            或 <code>Schema::table()</code> 闭包的 <code>Blueprint</code> 对象 (<code>$table</code>) 来工作。</p>
+        <p><b>常用列类型：</b></p>
+        <ul>
+            <li><code>$table->id();</code> / <code>$table->increments('id');</code> /
+                <code>$table->bigIncrements('id');</code> (自增主键)
+            </li>
+            <li><code>$table->string('name', 100);</code> (VARCHAR, 可指定长度)</li>
+            <li><code>$table->text('description');</code> (TEXT)</li>
+            <li><code>$table->longText('body');</code> (LONGTEXT)</li>
+            <li><code>$table->integer('votes');</code> / <code>$table->unsignedInteger('count');</code></li>
+            <li><code>$table->bigInteger('large_num');</code> / <code>$table->unsignedBigInteger('user_id');</code></li>
+            <li><code>$table->float('amount', 8, 2);</code> (总位数 8, 小数位 2)</li>
+            <li><code>$table->double('latitude', 10, 7);</code></li>
+            <li><code>$table->decimal('price', 10, 2);</code> (用于精确数值，如货币)</li>
+            <li><code>$table->boolean('is_active');</code> (BOOLEAN/TINYINT)</li>
+            <li><code>$table->date('birthday');</code> (DATE)</li>
+            <li><code>$table->dateTime('created_at');</code> (DATETIME) / <code>$table->dateTimeTz(...)</code> (带时区)
+            </li>
+            <li><code>$table->timestamp('published_at');</code> (TIMESTAMP) / <code>$table->timestampTz(...)</code>
+                (带时区)
+            </li>
+            <li><code>$table->timestamps();</code> (添加 <code>created_at</code> 和 <code>updated_at</code> nullable
+                TIMESTAMP 列)
+            </li>
+            <li><code>$table->timestampsTz();</code> (带时区版本)</li>
+            <li><code>$table->softDeletes();</code> (添加 <code>deleted_at</code> nullable TIMESTAMP 列，用于软删除)</li>
+            <li><code>$table->softDeletesTz();</code> (带时区版本)</li>
+            <li><code>$table->rememberToken();</code> (添加 <code>remember_token</code> VARCHAR(100) nullable
+                列，用于“记住我”功能)
+            </li>
+            <li><code>$table->foreignId('user_id');</code> (创建与 <code>id</code> 列类型匹配的外键列，通常是
+                unsignedBigInteger)
+            </li>
+            <li><code>$table->uuid('id')->primary();</code> (使用 UUID 作为主键)</li>
+            <li><code>$table->ipAddress('visitor');</code></li>
+            <li><code>$table->macAddress('device');</code></li>
+            <li><code>$table->json('options');</code> / <code>$table->jsonb('settings');</code> (PostgreSQL)</li>
+            <li><code>$table->enum('status', ['active', 'inactive']);</code></li>
+            <li>等等... 查阅 Laravel 文档获取完整列表。</li>
+        </ul>
+        <p><b>常用列修改器 (链式调用):</b></p>
+        <ul>
+            <li><code>->nullable()</code>: 允许该列为 NULL。</li>
+            <li><code>->default($value)</code>: 设置列的默认值。</li>
+            <li><code>->unsigned()</code>: 用于整型列，表示无符号。</li>
+            <li><code>->after('column_name')</code>: 将当前列放在指定列之后（仅限 MySQL）。</li>
+            <li><code>->comment('说明文字')</code>: 为列添加注释（数据库支持的话）。</li>
+            <li><code>->first()</code>: 将列设为表的第一列（仅限 MySQL）。</li>
+            <li><code>->storedAs('expression')</code> / <code>->virtualAs('expression')</code>: 定义生成列 (Generated
+                Columns)（数据库支持的话）。
+            </li>
+            <li><code>->charset(...)</code> / <code>->collation(...)</code>: 指定列的字符集和排序规则。</li>
+        </ul>
+        <p><b>索引 (Indexes):</b></p>
+        <ul>
+            <li><code>$table->primary('id');</code> / <code>$table->primary(['col1', 'col2']);</code> (定义主键)</li>
+            <li><code>$table->unique('email');</code> / <code>$table->unique(['col1', 'col2'],
+                'custom_unique_name');</code> (定义唯一索引)
+            </li>
+            <li><code>$table->index('state');</code> / <code>$table->index(['col1', 'col2'],
+                'custom_index_name');</code> (定义普通索引)
+            </li>
+            <li><code>$table->fulltext('body');</code> (全文索引)</li>
+            <li><code>$table->spatialIndex('location');</code> (空间索引)</li>
+            <li><b>删除索引:</b> <code>$table->dropPrimary(...)</code>, <code>$table->dropUnique(...)</code>, <code>$table->dropIndex(...)</code>
+                (需要提供索引名称或涉及的列)。
+            </li>
+        </ul>
+        <p><b>外键约束 (Foreign Key Constraints):</b></p>
+        <ul>
+            <li><code>$table->foreignId('user_id')->constrained();</code>: 这是最简洁的方式。它假设：
+                <ul>
+                    <li>外键列是 <code>user_id</code>。</li>
+                    <li>它引用 <code>users</code> 表 (模型名 <code>User</code> 的复数蛇形)。</li>
+                    <li>它引用 <code>users</code> 表的 <code>id</code> 列。</li>
+                </ul>
+            </li>
+            <li><b>显式指定：</b> <code>$table->foreignId('author_id')->constrained('users',
+                'user_id')->onDelete('cascade');</code>
+                <ul>
+                    <li><code>constrained('关联表名', '关联表列名')</code></li>
+                    <li><code>onDelete('action')</code> / <code>onUpdate('action')</code>: 定义参照完整性动作，常见的
+                        action 有:
+                        <ul>
+                            <li><code>cascade</code>: 当父表记录被删除/更新时，自动删除/更新子表关联记录。</li>
+                            <li><code>restrict</code>: 如果存在子表记录，则阻止删除/更新父表记录（通常是默认行为）。</li>
+                            <li><code>set null</code>: 当父表记录被删除/更新时，将子表的外键列设为 NULL (外键列必须允许
+                                NULL)。
+                            </li>
+                            <li><code>no action</code>: 类似 RESTRICT (取决于数据库)。</li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+            <li><b>删除外键：</b> <code>$table->dropForeign(['user_id']);</code> (传入外键列名组成的数组) 或 <code>$table->dropForeign('table_column_foreign');</code>
+                (传入 Laravel 自动生成的外键约束名)。
+            </li>
+        </ul>
+
+
+        <h3 id="s5-2-5">修改现有表</h3>
+        <p>使用 <code>Schema::table('table_name', function (Blueprint $table) { ... });</code>。</p>
+        <ul>
+            <li><b>添加列：</b> 使用上面介绍的列类型方法，例如 <code>$table->string('nickname')->nullable()->after('name');</code>。
+            </li>
+            <li><b>重命名列：</b> <code>$table->renameColumn('from_name', 'to_name');</code></li>
+            <li><b>删除列：</b> <code>$table->dropColumn('column_name');</code> 或 <code>$table->dropColumn(['col1',
+                'col2']);</code></li>
+            <li><b>修改列属性：</b>
+                <ul>
+                    <li>需要先安装 <code>doctrine/dbal</code> 包：<code>composer require doctrine/dbal</code>。</li>
+                    <li>然后可以使用 <code>$table->string('name', 100)->nullable()->comment('New
+                        comment')->change();</code>。
+                    </li>
+                    <li><b>注意：</b> 并非所有列类型和属性都能被安全地修改，查阅 Laravel 文档了解限制。修改列类型可能导致数据丢失！
+                    </li>
+                </ul>
+            </li>
+            <li><b>添加/删除索引/外键：</b> 与创建表时类似，在 <code>Schema::table</code> 的闭包中使用 <code>$table->index(...)</code>,
+                <code>$table->dropIndex(...)</code> 等。
+            </li>
+        </ul>
+        <p><b>示例：给 users 表添加 age 列</b></p>
+        <pre><code class="language-php">&lt;?php
+// database/migrations/YYYY_MM_DD_HHMMSS_add_age_to_users_table.php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+public function up(): void
+{
+Schema::table('users', function (Blueprint $table) {
+// 在 email 列之后添加一个 nullable 的 unsignedTinyInteger 类型的 age 列
+$table->unsignedTinyInteger('age')->nullable()->after('email');
+});
+}
+
+public function down(): void
+{
+    Schema::table('users', function (Blueprint $table) {
+        // 回滚时删除 age 列
+        $table->dropColumn('age');
+    });
+}
+};
+?></code></pre>
+
+        <h3 id="s5-2-6">运行与回滚迁移</h3>
+        <p>使用 Artisan 命令来管理迁移：</p>
+        <ul>
+            <li><b><code>php artisan migrate</code>:</b> 运行所有<b>尚未运行</b>的迁移文件中的 <code>up()</code>
+                方法。Laravel 会在数据库中创建一个 <code>migrations</code> 表来记录哪些迁移已经运行过。
+            </li>
+            <li><b><code>php artisan migrate:rollback [--step=N]</code>:</b> 回滚**上一次**执行迁移操作中运行的所有迁移（执行它们的
+                <code>down()</code> 方法）。<code>--step=N</code> 可以指定回滚 N 步操作。
+            </li>
+            <li><b><code>php artisan migrate:reset</code>:</b> 回滚**所有**已运行的迁移。</li>
+            <li><b><code>php artisan migrate:refresh [--seed] [--step=N]</code>:</b> 先回滚所有（或指定步骤）迁移，然后再重新运行所有迁移。<code>--seed</code>
+                选项表示在重新迁移后运行数据填充。
+            </li>
+            <li><b><code>php artisan migrate:fresh [--seed]</code>:</b> **删除数据库中的所有表**，然后重新运行所有迁移。比
+                <code>refresh</code> 更彻底，用于完全重建数据库结构。<code>--seed</code> 选项同样可用。
+            </li>
+            <li><b><code>php artisan migrate:status</code>:</b> 显示每个迁移文件的状态（是否已运行）。</li>
+        </ul>
+        <p class="danger"><code>reset</code>, <code>refresh</code>, <code>fresh</code>
+            命令都会导致数据丢失（<code>fresh</code> 最彻底），在生产环境务必谨慎使用！<code>rollback</code> 相对安全，但也要确保
+            <code>down()</code> 方法编写正确。</p>
+
+
+        <hr/>
+
+        <h2 id="s5-3">5.3 数据填充 (Seeding)</h2>
+
+        <h3 id="s5-3-1">概念</h3>
+        <p>数据填充用于向数据库中插入初始的或测试用的数据。例如：</p>
+        <ul>
+            <li>创建默认的管理员账号。</li>
+            <li>填充一些基础的分类或标签数据。</li>
+            <li>为本地开发或自动化测试生成大量的虚拟用户、文章等数据。</li>
+        </ul>
+
+        <h3 id="s5-3-2">创建 Seeder</h3>
+        <p>使用 Artisan 命令创建 Seeder 类：</p>
+        <pre><code class="language-bash">php artisan make:seeder UsersTableSeeder</code></pre>
+        <p>这会在 <code>database/seeders/</code> 目录下创建 <code>UsersTableSeeder.php</code> 文件。</p>
+
+        <h3 id="s5-3-3">Seeder 结构与编写</h3>
+        <p>Seeder 类通常包含一个 <code>run()</code> 方法。你在这个方法里编写插入数据的逻辑，可以使用**查询构建器**或
+            **Eloquent 模型**。</p>
+        <pre><code class="language-php">&lt;?php
+namespace Database\Seeders;
+
+// use Illuminate\Database\Console\Seeds\WithoutModelEvents; // 可以取消注释以禁用模型事件
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB; // 使用查询构建器需要引入 DB Facade
+use Illuminate\Support\Facades\Hash; // 用于密码哈希
+use App\Models\User; // 使用 Eloquent 模型需要引入
+
+class UsersTableSeeder extends Seeder
+{
+/**
+* Run the database seeds.
+/
+public function run(): void
+{
+// 方法一：使用查询构建器插入数据 (更底层)
+/
+DB::table('users')->insert([
+[ // 插入第一行数据
+'name' => 'Admin User',
+'email' => 'admin@example.com',
+'password' => Hash::make('password'), // 使用 Hash Facade 生成密码哈希
+'is_admin' => true,
+'created_at' => now(),
+'updated_at' => now(),
+],
+[ // 插入第二行数据
+'name' => 'Test User',
+'email' => '[移除了电子邮件地址]',
+'password' => Hash::make('password'),
+'is_admin' => false,
+'created_at' => now(),
+'updated_at' => now(),
+]
+]);
+*/
+
+    // 方法二：使用 Eloquent 模型插入数据 (更常用，可以触发模型事件等)
+    // (需要先确保 App\Models\User 模型存在)
+
+    // 先删除可能已存在的用户 (可选，确保幂等性)
+    // User::truncate(); // 清空表，如果需要的话
+
+    // 创建管理员用户
+    User::create([
+        'name' => '管理员',
+        'email' => 'admin@example.com',
+        'password' => Hash::make('password123'), // 务必使用强密码并哈希
+        'is_admin' => true, // 假设 User 模型有 is_admin 字段
+    ]);
+
+    // 创建一个普通用户
+    User::create([
+        'name' => '普通用户',
+        'email' => 'user@example.com',
+        'password' => Hash::make('password'),
+        'is_admin' => false,
+    ]);
+
+    // 如果需要创建大量测试用户，可以使用模型工厂 (见下节)
+    // User::factory()->count(10)->create();
+
+    // 可以在这里输出信息
+    $this->command->info('用户表填充完成！');
+}
+}
+?></code></pre>
+
+        <h3 id="s5-3-4">运行 Seeder</h3>
+        <ol>
+            <li><b>配置 <code>DatabaseSeeder</code>:</b> Laravel 提供了一个主 Seeder 类 <code>database/seeders/DatabaseSeeder.php</code>。你应该在这个类的
+                <code>run()</code> 方法中调用你想要执行的其他 Seeder 类。
+                <pre><code class="language-php">&lt;?php
+namespace Database\Seeders;
+
+// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Seeder;
+
+class DatabaseSeeder extends Seeder
+{
+/**
+* Seed the application's database.
+*/
+public function run(): void
+{
+// 调用其他 Seeder
+$this->call([
+UsersTableSeeder::class,
+PostsTableSeeder::class, // 假设你还创建了 Post 的 Seeder
+// ... 其他 Seeder ...
+]);
+
+    // 或者直接在这里写一些简单的填充逻辑
+    // \App\Models\User::factory(10)->create();
+}
+}
+?></code></pre>
+            </li>
+            <li><b>执行填充命令：</b>
+                <ul>
+                    <li><b><code>php artisan db:seed</code>:</b> 运行 <code>DatabaseSeeder</code> 类，从而执行你在其中调用的所有
+                        Seeder。
+                    </li>
+                    <li><b><code>php artisan db:seed --class=UsersTableSeeder</code>:</b> 只运行指定的 Seeder 类。</li>
+                    <li><b><code>php artisan migrate:fresh --seed</code>:</b> （常用）先删除所有表，再运行所有迁移，最后运行
+                        <code>db:seed</code>。用于完全重建数据库并填充初始数据。
+                    </li>
+                </ul>
+            </li>
+        </ol>
+
+        <hr/>
+
+        <h2 id="s5-4">5.4 模型工厂 (Model Factories)</h2>
+        <p>当你需要为测试或本地开发生成大量**伪数据 (Fake Data)** 时，模型工厂是非常方便的工具。它允许你为每个 Eloquent
+            模型定义一个“工厂”，指定如何生成该模型的虚拟实例。</p>
+        <ul>
+            <li><b>依赖 Faker 库：</b> Laravel 的模型工厂底层使用了流行的 Faker PHP 库来生成各种类型的伪数据（姓名、地址、邮箱、文本、日期、图片
+                URL 等）。
+            </li>
+            <li><b>创建工厂：</b>
+                <pre><code class="language-bash">php artisan make:factory PostFactory --model=Post</code></pre>
+                这会在 <code>database/factories/</code> 目录下创建 <code>PostFactory.php</code>，并关联到 <code>App\Models\Post</code>
+                模型。
+            </li>
+            <li><b>定义工厂：</b> 在工厂类的 <code>definition()</code> 方法中，返回一个包含模型属性默认状态的数组。使用
+                <code>$this->faker</code> 属性来调用 Faker 提供的各种数据生成器。
+                <pre><code class="language-php">&lt;?php
+namespace Database\Factories;
+
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str; // 可能需要引入 Str Facade
+
+/**
+
+@extends \Illuminate\Database\Eloquent\Factories\Factory&lt;\App\Models\Post>
+/
+class PostFactory extends Factory
+{
+/*
+
+Define the model's default state.
+@return array&lt;string, mixed> */ public function definition(): array { // 返回一个包含 Post 模型属性和对应伪数据的数组 return [ // 'user_id' => User::factory(), // 可以关联其他工厂来创建关联数据 'title' => $this->faker->sentence(6), // 生成一个包含 6 个单词的句子作为标题 'slug' => fn (array $attributes) => Str::slug($attributes['title']), // 根据标题生成 slug 'content' => $this->faker->paragraphs(3, true), // 生成 3 段文本，连接成字符串 'is_published' => $this->faker->boolean(80), // 80% 的概率为 true 'published_at' => $this->faker->optional(0.9, null)->dateTimeBetween('-1 year', 'now'), // 90% 概率生成过去一年内的日期时间，否则为 null // 'created_at' => now(), // 通常 Laravel 会自动处理时间戳 // 'updated_at' => now(), ]; }
+/**
+
+Indicate that the post is published. (定义一个状态) */ public function published(): static { return $this->state(fn (array $attributes) => [ 'is_published' => true, 'published_at' => now(), ]); } } ?></code></pre>
+            </li>
+            <li><b>使用工厂：</b>
+                <ul>
+                    <li><b>在 Seeder 中：</b>
+                        <pre><code class="language-php">// DatabaseSeeder.php 或其他 Seeder 的 run() 方法中 use App\Models\User; use App\Models\Post;
+// 创建 10 个随机用户，并为每个用户创建 3 篇随机文章
+User::factory()
+->count(10)
+->has(Post::factory()->count(3)) // 创建关联的 Post
+->create();
+
+// 创建 5 篇已发布的文章 (使用状态)
+Post::factory()->count(5)->published()->create([
+'user_id' => User::first()->id // 假设指定一个用户 ID
+]);</code></pre>
+                    </li>
+                    <li><b>在测试中：</b> 非常常用，用于快速准备测试所需的数据库状态。</li>
+                    <li><b>基本用法：</b>
+                        <ul>
+                            <li><code>Model::factory()</code>: 获取模型的工厂实例。</li>
+                            <li><code>->count(int N)</code>: 指定要创建 N 个模型实例。</li>
+                            <li><code>->make([...override...])</code>: 创建模型实例（<b>不</b>保存到数据库），可以覆盖默认属性。
+                            </li>
+                            <li><code>->create([...override...])</code>: 创建模型实例并将其<b>保存</b>到数据库。</li>
+                            <li><code>->state([...])</code> / <code>->published()</code>: 应用定义的状态。</li>
+                            <li><code>->has(RelatedFactory::factory()->count(N), 'relationshipName')</code>: 创建关联模型。
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        <p class="note">模型工厂与 Seeding 结合使用，是高效生成测试和开发数据的利器。</p>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 5 部分结束 ---</p>
+
+</div>
+</body>
+</html>

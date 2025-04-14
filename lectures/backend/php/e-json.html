@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP - Supplement E: JSON 函数</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+        }
+
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre;
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>PHP - Supplement E: JSON 函数</h1>
+    <p class="text-gray-500 text-sm">这是补充章节的第五部分 (E)。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="se-intro">引言：JSON - Web 数据交换的通用语言</h2>
+        <p><b>JSON (JavaScript Object Notation)</b> 是一种轻量级的<b>数据交换格式</b>。它基于 JavaScript
+            语法的子集，但非常易于人类阅读和编写，同时也易于机器解析和生成。</p>
+        <p>在现代 Web 开发中，JSON 无处不在：</p>
+        <ul>
+            <li><b>Web API：</b> 大多数 Web API（应用程序接口）使用 JSON 格式来传输请求数据和响应数据。</li>
+            <li><b>配置文件：</b> 很多现代工具和应用使用 JSON 文件进行配置。</li>
+            <li><b>前端与后端通信：</b> 前端 JavaScript 代码经常通过 AJAX/Fetch 与后端 PHP 交互，交换的数据通常是 JSON 格式。
+            </li>
+            <li><b>NoSQL 数据库：</b> 像 MongoDB 这样的文档数据库直接使用类似 JSON 的 BSON 格式存储数据。</li>
+        </ul>
+        <p>相比于 XML，JSON 通常更简洁、更易于解析。</p>
+        <p><b>基本 JSON 语法回顾：</b></p>
+        <ul>
+            <li><b>对象 (Object):</b> 由花括号 <code>{}</code> 包裹，包含一系列无序的 <code>"键": 值</code>
+                对，键必须是<b>双引号</b>包裹的字符串。<code>{"name": "Alice", "age": 30}</code></li>
+            <li><b>数组 (Array):</b> 由方括号 <code>[]</code> 包裹，包含一系列有序的值。<code>["apple", "banana", 123,
+                true]</code></li>
+            <li><b>值 (Value):</b> 可以是字符串（必须用双引号 <code>""</code>）、数字（整数或浮点数）、布尔值
+                (<code>true</code> 或 <code>false</code>)、<code>null</code>，或者嵌套的对象或数组。
+            </li>
+        </ul>
+        <p>PHP 提供了两个核心函数来处理 JSON 数据：<code>json_encode()</code> 用于将 PHP 数据转换为 JSON 字符串，<code>json_decode()</code>
+            用于将 JSON 字符串转换为 PHP 数据。</p>
+
+        <hr/>
+
+        <h2 id="se-1">E.1 将 PHP 数据编码为 JSON: <code>json_encode()</code></h2>
+        <ul>
+            <li><b><code>json_encode(mixed $value, int $flags = 0, int $depth = 512): string|false</code></b>
+                <ul>
+                    <li>将一个 PHP 变量 <code>$value</code> (可以是标量、数组、具有公共属性的对象或实现了 <code>JsonSerializable</code>
+                        接口的对象) 转换成 JSON 格式的字符串。
+                    </li>
+                    <li><code>$flags</code> (可选): 一个位掩码 (bitmask)，用于控制编码的行为。多个标志可以用位或运算符
+                        <code>|</code> 组合。
+                    </li>
+                    <li><code>$depth</code> (可选): 最大嵌套深度，默认为 512。</li>
+                    <li><b>返回值:</b> 成功时返回 JSON 编码的字符串，失败时返回 <code>false</code>（除非使用了 <code>JSON_THROW_ON_ERROR</code>
+                        标志）。
+                    </li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3 id="se-1-1">常用 <code>$flags</code> 选项</h3>
+        <ul>
+            <li><b><code>JSON_PRETTY_PRINT</code>:</b> 使用空格和换行符格式化输出的 JSON 字符串，使其更易于人类阅读（主要用于调试或显示）。
+            </li>
+            <li><b><code>JSON_UNESCAPED_UNICODE</code>:</b> <b>非常重要！</b> 默认情况下，<code>json_encode</code> 会将多字节
+                Unicode 字符（如中文）转义成 <code>\uXXXX</code> 格式。使用此标志可以使它们按原样（UTF-8
+                编码）输出，对于需要直接显示中文的场景（如 API 响应）通常是必需的。
+            </li>
+            <li><b><code>JSON_UNESCAPED_SLASHES</code>:</b> 默认情况下，<code>/</code> 会被转义成 <code>\/</code>。使用此标志可以阻止转义斜杠，对于
+                JSON 中包含 URL 的情况比较有用。
+            </li>
+            <li><b><code>JSON_FORCE_OBJECT</code>:</b> 强制将一个空的 PHP 索引数组 <code>[]</code> 编码为空的 JSON 对象
+                <code>{}</code>，而不是空的 JSON 数组 <code>[]</code>。在某些需要 JavaScript 期望得到对象的情况下可能有用。
+            </li>
+            <li><b><code>JSON_NUMERIC_CHECK</code>:</b> (谨慎使用) 尝试将看起来像数字的字符串（例如 <code>"123"</code>）编码为
+                JSON 数字 (<code>123</code>)。可能导致数据类型意外改变。
+            </li>
+            <li><b><code>JSON_THROW_ON_ERROR</code> (PHP 7.3+):</b> <b>强烈推荐！</b> 当编码过程中发生错误时（如递归、不支持的类型、无效的
+                UTF-8 字符），抛出一个 <code>JsonException</code> 异常，而不是返回 <code>false</code>。这使得错误处理更符合现代
+                PHP 的异常处理流程。
+            </li>
+        </ul>
+
+        <h3 id="se-1-2">编码示例</h3>
+        <pre><code class="language-php">&lt;?php
+// 编码一个关联数组
+$data = [
+    "name" => "张三",
+    "age" => 30,
+    "isStudent" => false,
+    "courses" => ["PHP", "MySQL", "JavaScript"],
+    "address" => null
+];
+
+// 1. 默认编码
+$json_default = json_encode($data);
+echo "<b>默认编码:</b>&lt;br>";
+echo htmlspecialchars($json_default);
+// 输出类似: {"name":"\u5f20\u4e09","age":30,"isStudent":false,"courses":["PHP","MySQL","JavaScript"],"address":null}
+echo "&lt;hr>";
+
+// 2. 使用常用 Flags
+$json_nice = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+echo "<b>使用 Flags (Pretty Print, Unescaped Unicode/Slashes):</b>&lt;br>";
+echo "&lt;pre>" . htmlspecialchars($json_nice) . "&lt;/pre>";
+/* 输出类似 (带换行和缩进):
+{
+    "name": "张三",
+    "age": 30,
+    "isStudent": false,
+    "courses": [
+        "PHP",
+        "MySQL",
+        "JavaScript"
+    ],
+    "address": null
+}
+*/
+echo "&lt;hr>";
+
+// 3. 编码索引数组
+$indexed_array = ["apple", "banana"];
+echo "<b>编码索引数组:</b> " . json_encode($indexed_array) . "&lt;br>"; // 输出: ["apple","banana"]
+
+// 4. 使用 JSON_FORCE_OBJECT 编码空数组
+$empty_array = [];
+echo "<b>编码空数组 (默认):</b> " . json_encode($empty_array) . "&lt;br>"; // 输出: []
+echo "<b>编码空数组 (FORCE_OBJECT):</b> " . json_encode($empty_array, JSON_FORCE_OBJECT) . "&lt;br>"; // 输出: {}
+echo "&lt;hr>";
+
+// 5. 编码简单对象 (默认只编码公共属性)
+class User {
+    public $name = "Public Name";
+    private $email = "[移除了电子邮件地址]";
+}
+$user_obj = new User();
+echo "<b>编码对象 (默认公共属性):</b> " . json_encode($user_obj) . "&lt;br>"; // 输出: {"name":"Public Name"}
+echo "&lt;hr>";
+
+// 6. 编码实现 JsonSerializable 的对象
+class Product implements JsonSerializable {
+    private $id;
+    private $productName;
+
+    public function __construct(int $id, string $name) {
+        $this->id = $id;
+        $this->productName = $name;
+    }
+
+    // 实现 jsonSerialize 方法来自定义序列化输出
+    public function jsonSerialize(): mixed {
+        return [
+            'product_id' => $this->id,
+            'name' => $this->productName,
+            'type' => 'gadget' // 可以添加额外信息
+        ];
+    }
+}
+$product = new Product(101, "鼠标");
+echo "<b>编码 JsonSerializable 对象:</b> " . json_encode($product, JSON_UNESCAPED_UNICODE);
+// 输出: {"product_id":101,"name":"鼠标","type":"gadget"}
+
+?></code></pre>
+
+        <h3 id="se-1-3">错误处理</h3>
+        <p><b>使用 <code>JSON_THROW_ON_ERROR</code> (PHP 7.3+, 推荐):</b></p>
+        <pre><code class="language-php">&lt;?php
+// 尝试编码一个包含无效 UTF-8 字节的字符串
+$invalid_utf8 = "\xB1\x31"; // 无效的 UTF-8 序列
+
+try {
+    // 使用 JSON_THROW_ON_ERROR 标志
+    $json = json_encode($invalid_utf8, JSON_THROW_ON_ERROR);
+    echo "编码成功: " . $json; // 这句不会执行
+} catch (JsonException $e) {
+    // 捕获 JsonException
+    echo "<b>JSON 编码错误 (使用异常):</b> " . $e->getMessage(); // 输出类似: Malformed UTF-8 characters, possibly incorrectly encoded
+}
+?></code></pre>
+        <p><b>PHP 7.3 之前 (或不使用标志):</b></p>
+        <pre><code class="language-php">&lt;?php
+$invalid_utf8 = "\xB1\x31";
+$json = json_encode($invalid_utf8); // 不使用标志
+
+if ($json === false) {
+    // 检查错误
+    $error_code = json_last_error();
+    $error_msg = json_last_error_msg();
+    echo "<b>JSON 编码错误 (手动检查):</b> [{$error_code}] {$error_msg}"; // 输出类似: [5] Malformed UTF-8 characters, possibly incorrectly encoded
+} else {
+    echo "编码成功: " . $json;
+}
+?></code></pre>
+        <p class="note">常用的错误码常量包括 <code>JSON_ERROR_NONE</code> (无错误), <code>JSON_ERROR_DEPTH</code>
+            (超出最大深度), <code>JSON_ERROR_CTRL_CHAR</code> (遇到控制字符), <code>JSON_ERROR_SYNTAX</code> (语法错误 -
+            主要用于解码), <code>JSON_ERROR_UTF8</code> (无效 UTF-8), <code>JSON_ERROR_RECURSION</code> (递归引用),
+            <code>JSON_ERROR_UNSUPPORTED_TYPE</code> (遇到不支持的类型如资源)。</p>
+
+        <hr/>
+
+        <h2 id="se-2">E.2 将 JSON 解码为 PHP 数据: <code>json_decode()</code></h2>
+        <ul>
+            <li><b><code>json_decode(string $json, ?bool $associative = null, int $depth = 512, int $flags = 0):
+                mixed</code></b>
+                <ul>
+                    <li>将一个 JSON 编码的字符串 <code>$json</code> 转换回 PHP 变量（对象、数组、标量或 NULL）。</li>
+                    <li><b><code>$associative</code> (重要!):</b>
+                        <ul>
+                            <li><code>null</code> 或 <code>false</code> (默认): JSON 对象 <code>{}</code> 被解码为 PHP 的
+                                <b><code>stdClass</code> 匿名对象</b>。
+                            </li>
+                            <li><code>true</code>: JSON 对象 <code>{}</code> 被解码为 PHP 的<b>关联数组</b>。</li>
+                            <li>JSON 数组 <code>[]</code> 总是被解码为 PHP 的索引数组。</li>
+                            <li><b>通常，将 <code>$associative</code> 设为 <code>true</code> 会让在 PHP 中处理数据更方便。</b>
+                            </li>
+                        </ul>
+                    </li>
+                    <li><code>$depth</code>: 最大嵌套深度。</li>
+                    <li><code>$flags</code> (可选): 控制解码行为的位掩码。
+                        <ul>
+                            <li><code>JSON_BIGINT_AS_STRING</code>: 将 JSON 中无法精确表示为 PHP 浮点数的大整数解码为字符串，以避免精度丢失。
+                            </li>
+                            <li><code>JSON_OBJECT_AS_ARRAY</code>: 效果同 <code>$associative = true</code>。</li>
+                            <li><code>JSON_THROW_ON_ERROR</code> (PHP 7.3+): <b>强烈推荐！</b> 在解码出错时（如 JSON
+                                语法错误、超出深度）抛出 <code>JsonException</code>，而不是返回 <code>null</code>。
+                            </li>
+                        </ul>
+                    </li>
+                    <li><b>返回值:</b> 成功时返回解码后的 PHP 变量，失败时返回 <code>null</code>（除非使用了 <code>JSON_THROW_ON_ERROR</code>）。
+                    </li>
+                    <li class="warning"><b>失败返回 <code>null</code> 的歧义：</b> 因为 <code>null</code> 本身也是一个有效的
+                        JSON 值 (<code>"null"</code>)，所以当 <code>json_decode()</code> 返回 <code>null</code>
+                        时，你无法直接判断是解码失败了，还是成功解码了一个 JSON null 值。因此，如果不使用 <code>JSON_THROW_ON_ERROR</code>，<b>必须</b>在得到
+                        <code>null</code> 结果后调用 <code>json_last_error()</code> 来确认是否真的发生了错误。
+                    </li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3 id="se-2-1">解码示例</h3>
+        <pre><code class="language-php">&lt;?php
+$json_string = '{
+    "name": "Alice",
+    "age": 30,
+    "city": "New York",
+    "hobbies": ["reading", "hiking"],
+    "contact": null
+}';
+
+// 1. 解码为对象 (默认行为)
+$obj = json_decode($json_string);
+
+if ($obj !== null) { // 基本检查 (不能完全排除解码了 "null" 的情况)
+    echo "<b>解码为对象:</b>&lt;br>";
+    echo "Name: " . htmlspecialchars($obj->name) . "&lt;br>"; // 使用 -> 访问对象属性
+    echo "Age: " . $obj->age . "&lt;br>";
+    echo "First hobby: " . htmlspecialchars($obj->hobbies[0]) . "&lt;br>";
+    echo "Contact: "; var_dump($obj->contact); // 输出: NULL
+} else {
+    echo "JSON 解码失败 (或解码结果是 null)。错误: " . json_last_error_msg();
+}
+echo "&lt;hr>";
+
+// 2. 解码为关联数组 (常用方式)
+$assoc_array = json_decode($json_string, true); // 第二个参数设为 true
+
+if ($assoc_array !== null) {
+    echo "<b>解码为关联数组:</b>&lt;br>";
+    echo "Name: " . htmlspecialchars($assoc_array['name']) . "&lt;br>"; // 使用 ['key'] 访问数组元素
+    echo "Age: " . $assoc_array['age'] . "&lt;br>";
+    echo "First hobby: " . htmlspecialchars($assoc_array['hobbies'][0]) . "&lt;br>";
+    echo "Contact: "; var_dump($assoc_array['contact']); // 输出: NULL
+} else {
+    echo "JSON 解码失败 (或解码结果是 null)。错误: " . json_last_error_msg();
+}
+echo "&lt;hr>";
+
+// 3. 解码 JSON 数组
+$json_array = '["apple", "banana", 123]';
+$php_array = json_decode($json_array); // 默认解码为索引数组
+echo "<b>解码 JSON 数组:</b>&lt;br>";
+print_r($php_array); // 输出: Array ( [0] => apple [1] => banana [2] => 123 )
+echo "&lt;hr>";
+
+// 4. 解码 JSON null
+$json_null = 'null';
+$php_null = json_decode($json_null);
+echo "<b>解码 JSON null:</b>&lt;br>";
+var_dump($php_null); // 输出: NULL
+// 此时如果不用异常处理，需要检查 json_last_error()
+if (json_last_error() !== JSON_ERROR_NONE) {
+    echo "解码 'null' 时发生错误: " . json_last_error_msg();
+} else {
+    echo "'null' 字符串成功解码为 PHP NULL。";
+}
+
+?></code></pre>
+
+        <h3 id="se-2-2">错误处理</h3>
+        <p><b>使用 <code>JSON_THROW_ON_ERROR</code> (PHP 7.3+, 推荐):</b></p>
+        <pre><code class="language-php">&lt;?php
+$invalid_json = '{"name": "Alice", "age": 30,}'; // 注意最后多余的逗号，这是无效 JSON
+
+try {
+    // 使用 JSON_THROW_ON_ERROR 标志，并解码为关联数组
+    $data = json_decode($invalid_json, true, 512, JSON_THROW_ON_ERROR);
+    echo "解码成功!"; // 不会执行
+    print_r($data);
+} catch (JsonException $e) {
+    // 捕获 JsonException
+    echo "<b>JSON 解码错误 (使用异常):</b> " . $e->getMessage(); // 输出类似: Syntax error
+}
+?></code></pre>
+        <p><b>PHP 7.3 之前 (或不使用标志):</b></p>
+        <pre><code class="language-php">&lt;?php
+$invalid_json = '{"name": "Alice", "age": 30,}';
+$data = json_decode($invalid_json, true); // 不使用标志
+
+// 必须在判断 $data 为 null 后检查错误
+if ($data === null && json_last_error() !== JSON_ERROR_NONE) {
+    // 确实是解码出错了
+    $error_code = json_last_error();
+    $error_msg = json_last_error_msg();
+    echo "<b>JSON 解码错误 (手动检查):</b> [{$error_code}] {$error_msg}"; // 输出类似: [4] Syntax error
+} elseif ($data === null) {
+    // 解码结果确实是 null
+    echo "成功解码了一个 JSON null 值。";
+} else {
+    // 解码成功
+    echo "解码成功!";
+    print_r($data);
+}
+?></code></pre>
+        <p class="note">使用 <code>JSON_THROW_ON_ERROR</code> 标志让 JSON 编解码的错误处理与其他 PHP 操作（如
+            PDO）的异常处理流程保持一致，是现代 PHP 的推荐做法。</p>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义补充章节 E 结束 ---</p>
+
+</div>
+</body>
+</html>

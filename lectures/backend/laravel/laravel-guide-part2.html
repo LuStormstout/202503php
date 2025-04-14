@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laravel 详细讲义 - Part 2: 路由与请求生命周期</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+        }
+        .prose code::before, .prose code::after { content: none !important; }
+        .prose code { background-color: #f3f4f6; color: #374151; padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.875em; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+        .prose pre code { background-color: transparent; color: inherit; padding: 0; font-size: inherit; white-space: pre; }
+        .prose ul > li::marker { color: #6b7280; }
+        .prose ol > li::marker { color: #6b7280; }
+        .prose a { color: #2563eb; }
+        .prose a:hover { color: #1d4ed8; text-decoration: underline;}
+        .prose b { font-weight: 600; }
+        .prose strong { font-weight: 600; }
+        .prose hr { border-color: #e5e7eb; margin-top: 2em; margin-bottom: 2em;}
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; font-weight: 700; margin-bottom: 0.8em; padding-bottom: 0.3em; border-bottom: 1px solid #e5e7eb;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; font-weight: 600; margin-top: 1.8em; margin-bottom: 0.8em; padding-bottom: 0.3em; border-bottom: 1px solid #e5e7eb;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; font-weight: 600; margin-top: 1.5em; margin-bottom: 0.6em;}
+        .prose h4 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; margin-top: 1.2em; margin-bottom: 0.5em;}
+        .prose p { margin-top: 1.25em; margin-bottom: 1.25em; }
+        .prose ul, .prose ol { margin-top: 1.25em; margin-bottom: 1.25em; padding-left: 1.625em; }
+        .prose li { margin-top: 0.5em; margin-bottom: 0.5em; }
+        .note { background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 1em; margin: 1.5em 0; border-radius: 0 0.375rem 0.375rem 0; color: #1e40af;}
+        .warning { background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 1em; margin: 1.5em 0; border-radius: 0 0.375rem 0.375rem 0; color: #92400e;}
+        .danger { background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 1em; margin: 1.5em 0; border-radius: 0 0.375rem 0.375rem 0; color: #991b1b;}
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>Laravel 详细讲义 - Part 2: 路由与请求生命周期</h1>
+    <p class="text-gray-500 text-sm">这是 Laravel 系列讲义的第二部分 (共 17 部分)。</p>
+
+    <hr />
+
+    <div>
+        <h2 id="s2-1">2.1 请求生命周期概览 (Request Lifecycle Overview)</h2>
+        <p>在深入路由之前，先大致了解一个用户的 HTTP 请求是如何进入 Laravel 应用并最终得到响应的，这有助于理解框架的运作方式。一个简化的流程如下：</p>
+        <ol>
+            <li><b>入口点 (Entry Point):</b> 所有的 Web 请求都首先指向项目的 <code>public/index.php</code> 文件。这个文件是 Laravel 应用的唯一入口。</li>
+            <li><b>自动加载 (Autoloading):</b> <code>index.php</code> 加载 Composer 生成的自动加载器 (<code>vendor/autoload.php</code>)，使得项目中的类可以被自动加载。</li>
+            <li><b>应用实例 (Application Instance):</b> 创建 Laravel 应用的核心实例 (服务容器)。</li>
+            <li><b>HTTP 内核 (HTTP Kernel):</b> 请求被传递给 HTTP 内核 (<code>app/Http/Kernel.php</code>)。</li>
+            <li><b>服务提供者引导 (Boot Service Providers):</b> 内核会引导 (Boot) 注册的服务提供者 (Service Provider)，这些提供者负责注册框架的各种核心服务（如路由、数据库、视图等）。</li>
+            <li><b>中间件 (Middleware):</b> 请求会穿过一系列在 HTTP 内核中定义的全局**中间件**。这些中间件可以对请求进行预处理（例如检查维护模式、处理 Cookie 加密、启动 Session 等）。</li>
+            <li><b>路由分发 (Router Dispatch):</b> 请求被传递给**路由器 (Router)**。</li>
+            <li><b>查找路由 (Route Found):</b> 路由器根据请求的 URI 和 HTTP 方法，在路由表（通常在 <code>routes/web.php</code> 或 <code>routes/api.php</code> 中定义）中查找匹配的路由。</li>
+            <li><b>路由中间件 (Route Middleware):</b> 如果找到的路由或其所属的路由组定义了特定的**路由中间件**，请求会先穿过这些中间件（例如身份验证 <code>auth</code>、节流 <code>throttle</code> 等）。</li>
+            <li><b>控制器/闭包 (Controller/Closure):</b> 如果所有中间件都通过了，请求最终会被分发给路由定义的**控制器方法**或**闭包函数**来处理。</li>
+            <li><b>业务逻辑 (Business Logic):</b> 控制器方法或闭包执行应用程序的业务逻辑，可能需要与模型 (Model) 交互来处理数据。</li>
+            <li><b>响应生成 (Response Generation):</b> 控制器或闭包通常会返回一个**响应 (Response)**。这可以是一个视图 (<code>view()</code>)、JSON 数据 (<code>response()->json()</code>)、重定向 (<code>redirect()</code>) 或其他类型的 HTTP 响应。</li>
+            <li><b>响应中间件 (Response Middleware / Terminable Middleware):</b> 生成的响应会“反向”穿过之前经过的中间件，允许中间件对响应进行后处理。一些中间件还有 <code>terminate()</code> 方法，在响应发送给浏览器之后执行（例如记录日志、发送邮件等耗时任务）。</li>
+            <li><b>发送响应 (Send Response):</b> HTTP 内核将最终的响应对象发送回用户的浏览器。</li>
+        </ol>
+        <p class="note">这个流程看起来复杂，但 Laravel 已经为你处理好了大部分细节。你需要关注的主要部分是：定义路由、编写中间件（如果需要）、编写控制器处理逻辑、创建视图。</p>
+
+        <hr />
+
+        <h2 id="s2-2">2.2 路由基础 (Routing Basics)</h2>
+        <p>路由的核心作用是：<b>定义哪个 URL 和 HTTP 方法应该由哪段代码来处理</b>。</p>
+
+        <h3 id="s2-2-1">路由文件</h3>
+        <p>Laravel 的路由主要定义在 <code>routes/</code> 目录下的文件中：</p>
+        <ul>
+            <li><b><code>routes/web.php</code>:</b> 定义用于浏览器访问的路由。这些路由会自动应用 <code>web</code> 中间件组，该组提供了 Session 支持、Cookie 处理、CSRF 保护等功能。<b>这是最常用的路由文件。</b></li>
+            <li><b><code>routes/api.php</code>:</b> 定义用于 API 的路由。这些路由会自动应用 <code>api</code> 中间件组，通常是无状态的（不使用 Session），并可能包含 API 认证和请求频率限制（节流）中间件。路由会自动添加 <code>/api</code> 前缀（可在 <code>RouteServiceProvider</code> 中修改）。</li>
+            <li><b><code>routes/console.php</code>:</b> 定义基于闭包的 Artisan 命令行命令。</li>
+            <li><b><code>routes/channels.php</code>:</b> 定义事件广播使用的频道路由。</li>
+        </ul>
+        <p>我们主要关注 <code>web.php</code>。</p>
+
+        <h3 id="s2-2-2">定义基本路由</h3>
+        <p>使用 <code>Route</code> Facade (门面) 来定义路由。你需要先在文件顶部引入它：<code>use Illuminate\Support\Facades\Route;</code> (通常 <code>routes/web.php</code> 已经引入了)。</p>
+        <p>最常见的路由定义方法对应于 HTTP 请求方法：</p>
+        <ul>
+            <li><code>Route::get(string $uri, callable|array|string $action)</code></li>
+            <li><code>Route::post(string $uri, callable|array|string $action)</code></li>
+            <li><code>Route::put(string $uri, callable|array|string $action)</code></li>
+            <li><code>Route::patch(string $uri, callable|array|string $action)</code></li>
+            <li><code>Route::delete(string $uri, callable|array|string $action)</code></li>
+            <li><code>Route::options(string $uri, callable|array|string $action)</code></li>
+        </ul>
+        <p>参数说明：</p>
+        <ul>
+            <li><code>$uri</code>: 路由的 URL 路径（相对于应用根 URL），例如 <code>'/'</code>, <code>'/about'</code>, <code>'/users/{id}'</code>。</li>
+            <li><code>$action</code>: 指定处理该路由的代码。可以是：
+                <ul>
+                    <li><b>闭包 (Closure):</b> 一个匿名函数，直接处理逻辑。适合非常简单的路由。</li>
+                    <li><b>控制器动作数组 (Controller Action Array):</b> 格式为 <code>[UserController::class, 'methodName']</code>。<b>这是推荐的方式</b>，需要先 <code>use App\Http\Controllers\UserController;</code> 导入控制器类。</li>
+                    <li>(旧版/可选) 字符串语法: <code>'UserController@methodName'</code>。需要确保 Laravel 能正确解析到控制器。现代版本更推荐数组语法。</li>
+                </ul>
+            </li>
+        </ul>
+        <p><b>匹配多种请求方法：</b></p>
+        <ul>
+            <li><code>Route::match(['get', 'post'], '/', $action)</code>: 匹配 GET 或 POST 请求。</li>
+            <li><code>Route::any('/', $action)</code>: 匹配所有 HTTP 请求方法。</li>
+        </ul>
+
+        <p><b>示例 (在 <code>routes/web.php</code> 中):</b></p>
+        <pre><code class="language-php">&lt;?php
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\UserController; // 引入控制器
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "web" middleware group. Make something great!
+|
+*/
+
+// 1. 使用闭包定义根路由 ('/') 的 GET 请求
+Route::get('/', function () {
+    // 返回一个简单的字符串
+    return '欢迎来到首页！';
+    // 或者返回一个视图
+    // return view('welcome'); // 假设 resources/views/welcome.blade.php 存在
+});
+
+// 2. 定义 /about 页面的 GET 请求，也使用闭包
+Route::get('/about', function () {
+    return view('about'); // 假设 resources/views/about.blade.php 存在
+});  
+
+// 3. 使用控制器处理 /users 的 GET 请求 (通常用于显示用户列表)
+//    指向 UserController 的 index 方法
+Route::get('/users', [UserController::class, 'index']);
+
+// 4. 使用控制器处理 /contact 的 POST 请求 (通常用于处理联系表单提交)
+//    指向 ContactController 的 store 方法 (假设 ContactController 存在)
+// use App\Http\Controllers\ContactController;
+// Route::post('/contact', [ContactController::class, 'store']);
+
+// 5. 匹配 GET 或 POST 到 /login
+Route::match(['get', 'post'], '/login', function () {
+    // 根据请求方法执行不同逻辑 (通常在 Controller 中做)
+    if (request()->isMethod('post')) {
+    // 处理登录逻辑
+    return '处理登录...';
+    }
+    // 显示登录表单
+    return '这是登录页面';
+});
+
+?></code></pre>
+        <p class="note">对于需要处理复杂逻辑的路由，强烈建议使用控制器而不是闭包，以保持路由文件的简洁。</p>
+
+        <hr />
+
+        <h2 id="s2-3">2.3 路由参数 (Route Parameters)</h2>
+        <p>路由可以包含参数，用于从 URL 中捕获动态数据。</p>
+
+        <h3 id="s2-3-1">必需参数 (Required Parameters)</h3>
+        <p>参数包含在花括号 <code>{}</code> 中，且名称必须是字母，不能包含 <code>-</code>。</p>
+        <pre><code class="language-php">// routes/web.php
+use App\Http\Controllers\UserController;
+
+// 定义一个路由，可以匹配 /users/1, /users/15, /users/abc 等
+Route::get('/users/{id}', [UserController::class, 'show']);
+
+// 也可以有多个参数
+Route::get('/posts/{postId}/comments/{commentId}', function (string $postId, string $commentId) {
+    // $postId 和 $commentId 会自动接收 URL 中对应部分的值
+    return "显示文章 ID: " . $postId . " 的评论 ID: " . $commentId;
+});
+</code></pre>
+        <p>在对应的控制器方法或闭包中，可以通过同名参数接收这些值。PHP 8+ 支持类型提示。</p>
+        <pre><code class="language-php">// app/Http/Controllers/UserController.php
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request; // 通常会用到 Request 对象
+
+class UserController extends Controller
+{
+    // ... 其他方法 ...
+
+    // show 方法接收来自路由参数 {id} 的值
+    public function show(string $id) // 可以添加类型提示
+    {
+        // 使用 $id 来查找用户等操作
+        // 例如: $user = User::find($id);
+        return "显示用户 ID 为: " . htmlspecialchars($id) . " 的信息";
+    }
+}
+</code></pre>
+
+        <h3 id="s2-3-2">可选参数 (Optional Parameters)</h3>
+        <p>在参数名后添加问号 <code>?</code>，表示该参数是可选的。<b>必须</b>为可选参数在控制器方法或闭包中提供一个<b>默认值</b>。</p>
+        <pre><code class="language-php">// routes/web.php
+// 可以匹配 /users 或 /users/john
+Route::get('/users/{name?}', function (?string $name = 'Guest') { // 参数类型提示也用 ?
+    return '用户名: ' . htmlspecialchars($name);
+});
+</code></pre>
+
+        <h3 id="s2-3-3">正则表达式约束 (Regular Expression Constraints)</h3>
+        <p>可以使用 <code>where()</code> 方法为路由参数添加正则表达式约束，确保参数符合特定格式。</p>
+        <pre><code class="language-php">// routes/web.php
+// 限制 id 必须是数字
+Route::get('/products/{id}', function (string $id) {
+    return '产品 ID: ' . $id;
+})->where('id', '[0-9]+'); // 使用正则表达式 [0-9]+ 匹配一个或多个数字
+
+// 限制 name 必须是字母
+Route::get('/category/{name}', function (string $name) {
+    return '分类名称: ' . $name;
+})->where('name', '[A-Za-z]+');
+
+// 对多个参数使用约束
+Route::get('/item/{id}/{slug}', function ($id, $slug) {
+    return "Item ID: {$id}, Slug: {$slug}";
+})->where(['id' => '[0-9]+', 'slug' => '[a-z0-9-]+']); // 可以用数组传递多个约束
+
+// 也可以使用 whereNumber, whereAlpha, whereAlphaNumeric, whereUuid, whereUlid 等辅助方法 (Laravel 8+)
+// Route::get('/user/{id}', ...)->whereNumber('id');
+// Route::get('/user/{name}', ...)->whereAlpha('name');
+</code></pre>
+        <p class="note"><b>全局约束：</b> 如果某个参数（如 <code>id</code>）在很多路由中都需要相同的约束，可以在 <code>app/Providers/RouteServiceProvider.php</code> 文件的 <code>boot()</code> 方法中使用 <code>Route::pattern('id', '[0-9]+');</code> 定义全局约束。</p>
+
+        <hr />
+
+        <h2 id="s2-4">2.4 命名路由 (Named Routes)</h2>
+        <p>为路由指定一个唯一的名称，可以让你在应用程序的其他地方（如生成 URL 或重定向时）方便地引用它，而无需硬编码 URI。</p>
+        <ul>
+            <li><b>好处：</b> 如果将来需要修改路由的 URI，只需要修改路由定义处即可，所有引用该路由名称的地方会自动更新，提高了可维护性。</li>
+            <li><b>定义：</b> 在路由定义链式调用 <code>name()</code> 方法。
+                <pre><code class="language-php">Route::get('/user/profile', [UserProfileController::class, 'show'])->name('profile.show');</code></pre>
+            </li>
+            <li><b>命名约定：</b> 通常使用点 <code>.</code> 分隔，形成有意义的结构，例如 <code>posts.index</code>, <code>posts.create</code>, <code>posts.store</code>, <code>posts.show</code>, <code>posts.edit</code>, <code>posts.update</code>, <code>posts.destroy</code>（这对应于资源路由的命名）。</li>
+            <li><b>生成 URL：</b> 使用 <code>route()</code> 辅助函数。
+                <ul>
+                    <li>无参数路由：<code>$url = route('profile.show');</code></li>
+                    <li>带参数路由：将参数以关联数组形式作为第二个参数传入。数组的键应与路由参数名匹配。
+                        <pre><code class="language-php">Route::get('/posts/{post}', [PostController::class, 'show'])->name('posts.show');
+// 生成 URL: /posts/123
+$url = route('posts.show', ['post' => 123]);
+
+// 如果传递的是 Eloquent 模型，Laravel 会自动提取其路由键（通常是 id）
+// $post = Post::find(123);
+// $url = route('posts.show', ['post' => $post]); // 效果同上
+$url = route('posts.show', $post); // 也可以直接传递模型
+</code></pre>
+                    </li>
+                </ul>
+            </li>
+            <li><b>检查当前路由名称：</b> 在代码中，可以使用 <code>$request->route()->named('profile.show')</code> 来检查当前请求是否匹配指定的命名路由。</li>
+        </ul>
+        <p class="note">强烈建议为你应用中的大部分路由命名。</p>
+
+        <hr />
+
+        <h2 id="s2-5">2.5 路由组 (Route Groups)</h2>
+        <p>路由组允许你将共享相同属性（如中间件、路径前缀、命名空间、名称前缀等）的一组路由包裹起来，避免在每个路由上重复定义这些属性。</p>
+        <p>使用 <code>Route::group([...attributes...], function () { ... })</code> 或链式调用 <code>middleware()</code>, <code>prefix()</code>, <code>name()</code>, <code>namespace()</code>, <code>domain()</code> 等方法。</p>
+
+        <ul>
+            <li><b>中间件 (Middleware):</b> 将一个或多个中间件应用于组内所有路由。
+                <pre><code class="language-php">Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+// ... 其他需要登录和邮箱验证的路由 ...
+});</code></pre>
+            </li>
+            <li><b>路径前缀 (Prefix):</b> 为组内所有路由的 URI 添加一个共同的前缀。
+                <pre><code class="language-php">Route::prefix('admin')->group(function () {
+    Route::get('/users', [AdminUserController::class, 'index']); // 实际 URI: /admin/users
+    Route::get('/settings', [AdminSettingController::class, 'index']); // 实际 URI: /admin/settings
+});</code></pre>
+            </li>
+            <li><b>名称前缀 (Name Prefix):</b> 为组内所有路由的名称添加一个共同的前缀。
+                <pre><code class="language-php">Route::name('admin.')->prefix('admin')->group(function () {
+    Route::get('/users', [AdminUserController::class, 'index'])->name('users.index'); // 路由全名: admin.users.index
+    Route::get('/settings', [AdminSettingController::class, 'index'])->name('settings.index'); // 路由全名: admin.settings.index
+});</code></pre>
+            </li>
+            <li><b>子域名路由 (Domain Routing):</b> 将路由限制在特定的子域名下。
+                <pre><code class="language-php">// routes/web.php
+Route::domain('{account}https://www.google.com/search?q=.myapp.com')->group(function () {
+    Route::get('user/{id}', function (string $account, string $id) {
+        // $account 会自动接收子域名部分的值
+        return 'Account: ' . $account . ', User ID: ' . $id;
+    });
+});</code></pre>
+            </li>
+            <li><b>组合使用：</b> 可以将多个属性组合或嵌套使用。
+                <pre><code class="language-php">Route::middleware('auth')->prefix('account')->name('account.')->group(function () {
+    Route::get('/', [AccountController::class, 'index'])->name('index'); // /account, name: account.index
+        Route::prefix('billing')->name('billing.')->group(function () {
+        Route::get('/', [BillingController::class, 'index'])->name('index'); // /account/billing, name: account.billing.index
+    });
+});</code></pre>
+            </li>
+            <li><b>控制器命名空间 (Namespace - 现代较少用):</b> 在旧版或特定情况下，如果控制器不在默认的 <code>App\Http\Controllers</code> 下，可以使用 <code>namespace()</code> 指定。但现代 Laravel 更推荐直接在 <code>use</code> 语句或控制器数组语法中写完整的类名。</li>
+        </ul>  
+
+        <hr />
+
+        <h2 id="s2-6">2.6 路由模型绑定 (Route Model Binding) 简介</h2>
+        <p>路由模型绑定是 Laravel 提供的一个便捷功能，它可以自动将路由 URI 中的参数（通常是模型 ID）解析为对应的 Eloquent 模型实例，并将其注入到你的控制器方法或闭包中。</p>
+
+        <h3 id="s2-6-1">隐式绑定 (Implicit Binding)</h3>
+        <p>这是最常用的方式。只要满足两个条件，Laravel 就会自动执行：</p>
+        <ol>
+            <li>路由参数的名称（例如 <code>{user}</code>）与控制器方法中类型提示的变量名（<code>$user</code>）<b>匹配</b>。</li>
+            <li>控制器方法中该变量的类型提示（<code>User $user</code>）是一个 Eloquent 模型类。</li>
+        </ol>
+        <p>Laravel 会自动从 URI 中提取参数值（例如 <code>/users/123</code> 中的 <code>123</code>），并使用这个值作为主键（默认为 <code>id</code>）去数据库中查找对应的模型实例 (<code>User::find(123)</code>)。</p>
+        <ul>
+            <li>如果找到了模型，就将其注入到方法中。</li>
+            <li>如果<b>未找到</b>模型，Laravel 会自动生成一个 **404 Not Found** HTTP 响应。</li>
+        </ul>
+        <p><b>示例对比：</b></p>
+        <p><b>传统方式 (手动查找):</b></p>
+        <pre><code class="language-php">// routes/web.php
+// Route::get('/users/{id}', [UserController::class, 'show']);
+
+// app/Http/Controllers/UserController.php
+public function show(string $id) {
+    // 手动查找用户，如果找不到会抛出 ModelNotFoundException (通常渲染为 404)
+    $user = \App\Models\User::findOrFail($id);
+
+    // 使用 $user 对象...
+    return view('users.show', ['user' => $user]);
+}
+</code></pre>
+        <p><b>使用隐式路由模型绑定:</b></p>
+        <pre><code class="language-php">&lt;?php
+// routes/web.php
+use App\Http\Controllers\UserController;
+use App\Models\User; // 引入模型
+
+// 路由参数名 {user} 与方法参数 $user 匹配
+Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
+
+// app/Http/Controllers/UserController.php
+namespace App\Http\Controllers;
+
+use App\Models\User; // 引入模型
+use Illuminate\Http\Request;
+
+class UserController extends Controller
+{
+    // ...
+
+    // 直接类型提示 User 模型，变量名 $user 匹配路由参数 {user}
+    public function show(User $user) // Laravel 会自动查找 ID 匹配的模型实例
+    {
+        // 如果能执行到这里，$user 就一定是找到的 User 对象实例
+        // 如果找不到，Laravel 已经自动返回 404 了
+
+        // 直接使用 $user 对象
+        return view('users.show', ['user' => $user]);
+    }
+}
+?></code></pre>
+        <p class="note">可以看到，路由模型绑定大大简化了 Controller 中的代码，不再需要手动查找模型和处理找不到的情况。</p>
+
+        <h3 id="s2-6-2">自定义键名</h3>
+        <p>默认情况下，隐式绑定使用模型的主键 (通常是 <code>id</code>) 进行查找。如果你想使用其他列（例如 <code>username</code>）作为路由键：</p>
+        <ol>
+            <li><b>在路由定义中指定列名：</b> <code>Route::get('/users/{user:username}', ...);</code></li>
+            <li><b>(或者) 在 Eloquent 模型中重写 <code>getRouteKeyName()</code> 方法：</b>
+                <pre><code class="language-php">public function getRouteKeyName(): string {
+    return 'username'; // 告诉 Laravel 用 username 列进行模型绑定
+}</code></pre>
+            </li>
+        </ol>
+
+        <h3 id="s2-6-3">显式绑定 (Explicit Binding)</h3>
+        <p>你也可以在 <code>app/Providers/RouteServiceProvider.php</code> 的 <code>boot()</code> 方法中使用 <code>Route::model()</code> 或 <code>Route::bind()</code> 来自定义模型绑定的解析逻辑。这在需要更复杂查找逻辑时有用，但初学阶段通常隐式绑定就足够了。</p>
+
+
+        <hr />
+
+        <h2 id="s2-7">2.7 路由缓存 (Route Caching)</h2>
+        <p>对于大型应用程序，定义大量的路由可能会稍微影响性能，因为每次请求都需要解析路由文件。Laravel 提供了路由缓存功能来解决这个问题。</p>
+        <ul>
+            <li><b>生成缓存：</b> 运行 <code>php artisan route:cache</code> 命令。Laravel 会将所有路由定义编译并序列化到一个缓存文件中 (<code>bootstrap/cache/routes-v7.php</code>)。之后，所有请求将直接加载这个缓存文件，速度更快。</li>
+            <li><b>清除缓存：</b> 运行 <code>php artisan route:clear</code> 命令来删除缓存文件。</li>
+            <li class="danger"><b>限制：</b> 使用路由缓存时，<b>不能</b>在路由定义中使用**闭包 (Closure)**！所有路由必须指向控制器动作。</li>
+            <li><b>使用场景：</b> 只应在**生产环境部署**过程中运行 <code>route:cache</code>。在本地开发时，每次修改路由文件后都需要运行 <code>route:clear</code>（或者干脆不缓存），否则新的路由不会生效。</li>
+        </ul>
+
+    </div>
+
+    <hr />
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 2 部分结束 ---</p>
+
+</div>
+</body>
+</html>

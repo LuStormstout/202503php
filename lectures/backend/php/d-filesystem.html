@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP - Supplement D: 文件系统函数</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+        }
+
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre;
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>PHP - Supplement D: 文件系统函数</h1>
+    <p class="text-gray-500 text-sm">这是补充章节的第四部分 (D)。(已重新检查并修正代码缩进和注释)</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="sd-intro">引言：与文件系统交互</h2>
+        <p>PHP 作为一种服务器端脚本语言，经常需要与服务器的文件系统进行交互，例如读取配置文件、写入日志、处理用户上传的文件、管理缓存文件等。Part
+            9 介绍了基本的文件读写操作 (如 <code>fopen</code>/<code>fread</code>/<code>fwrite</code>, <code>file_get_contents</code>,
+            <code>file_put_contents</code>)，本部分将补充更多用于处理文件路径、检查文件/目录属性、操作目录以及获取文件元数据的常用函数。
+        </p>
+        <p class="warning"><b>安全注意：</b> 文件系统操作通常涉及到权限问题。运行 PHP 的用户（通常是 Web 服务器用户，如
+            <code>www-data</code>, <code>apache</code>, <code>nginx</code>）必须拥有对相关文件和目录的读、写或执行权限，操作才能成功。此外，如果文件路径或名称受到用户输入的影响，必须进行严格的过滤和验证，以防止<b>目录遍历
+                (Directory Traversal)</b> 等安全漏洞。</p>
+        <p class="note">PHP 的 <code>open_basedir</code> 配置指令可以限制 PHP 脚本能够访问的文件系统路径范围，增加安全性，但配置不当也可能导致正常的文件操作失败。
+        </p>
+
+        <hr/>
+
+        <h2 id="sd-1">D.1 路径处理函数</h2>
+        <p>处理文件路径是文件系统操作的基础。</p>
+        <ul>
+            <li><b><code>basename(string $path, string $suffix = ""): string</code></b>
+                <ul>
+                    <li>返回路径 <code>$path</code> 中的文件名部分。</li>
+                    <li>如果提供了可选的 <code>$suffix</code>，并且文件名以该后缀结尾，则后缀也会被去掉。</li>
+                </ul>
+<pre><code class="language-php">&lt;?php
+$path1 = "/var/www/html/images/logo.png";
+$path2 = "C:\\Users\\John\\Documents\\report.pdf";
+$path3 = "myfile.txt"; // 只有文件名
+$path4 = "/etc/php/";    // 目录
+
+echo basename($path1); // 输出: logo.png
+echo "&lt;br&gt;";
+echo basename($path1, ".png"); // 输出: logo
+echo "&lt;br&gt;";
+echo basename($path2); // 输出: report.pdf (能处理 Windows 路径)
+echo "&lt;br&gt;";
+echo basename($path3); // 输出: myfile.txt
+echo "&lt;br&gt;";
+echo basename($path4); // 输出: php (返回最后的组件)
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>dirname(string $path, int $levels = 1): string</code></b>
+                <ul>
+                    <li>返回路径 <code>$path</code> 中的目录部分。</li>
+                    <li><code>$levels</code> (PHP 7.0+) 指定向上返回几级目录。</li>
+                </ul>
+<pre><code class="language-php">&lt;?php
+$path = "/var/www/html/images/logo.png";
+
+echo dirname($path);      // 输出: /var/www/html/images
+echo "&lt;br&gt;";
+echo dirname($path, 2); // 输出: /var/www/html (向上两级)
+echo "&lt;br&gt;";
+echo dirname("/var/www/html"); // 输出: /var/www
+echo "&lt;br&gt;";
+echo dirname("myfile.txt"); // 输出: . (当前目录)
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>pathinfo(string $path, int $flags = PATHINFO_ALL): array|string</code></b>
+                <ul>
+                    <li>返回关于文件路径的详细信息。</li>
+                    <li><code>$flags</code> (可选) 控制返回内容：
+                        <ul>
+                            <li><code>PATHINFO_ALL</code> (默认): 返回包含 <code>dirname</code>, <code>basename</code>,
+                                <code>extension</code> (文件扩展名), <code>filename</code> (不含扩展名的文件名) 的关联数组。
+                            </li>
+                            <li><code>PATHINFO_DIRNAME</code>: 只返回目录名。</li>
+                            <li><code>PATHINFO_BASENAME</code>: 只返回完整文件名（含扩展名）。</li>
+                            <li><code>PATHINFO_EXTENSION</code>: 只返回文件扩展名（小写，如果存在）。</li>
+                            <li><code>PATHINFO_FILENAME</code>: 只返回不含扩展名的文件名。</li>
+                        </ul>
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$path = "/var/www/html/images/logo.PNG";
+
+// 获取所有信息
+$info_all = pathinfo($path);
+echo "&lt;pre&gt;All info: "; print_r($info_all); echo "&lt;/pre&gt;";
+/*
+输出:
+All info: Array
+(
+    [dirname] => /var/www/html/images
+    [basename] => logo.PNG
+    [extension] => PNG
+    [filename] => logo
+)
+*/
+
+// 只获取扩展名
+$extension = pathinfo($path, PATHINFO_EXTENSION);
+echo "Extension: " . $extension; // 输出: Extension: PNG
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>realpath(string $path): string|false</code></b>
+                <ul>
+                    <li>解析路径中的所有符号链接、<code>/./</code>、<code>/../</code> 以及多余的 <code>/</code>，返回一个绝对的、规范化的路径名。
+                    </li>
+                    <li>如果路径不存在或因权限问题无法访问，返回 <code>false</code>。</li>
+                    <li><b>用途：</b> 获取一个明确、真实的绝对路径，有助于避免目录遍历等问题，或在包含文件时确保路径正确。
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+// 假设 /var/www/html/../logs 指向 /var/www/logs
+// $real_logs_path = realpath("/var/www/html/../logs/app.log");
+// if ($real_logs_path) {
+//     echo $real_logs_path; // 可能输出: /var/www/logs/app.log
+// } else {
+//     echo "路径无效或不存在。";
+// }
+
+// 处理相对路径 (相对于当前工作目录)
+// touch('temp.txt'); // 先创建一个文件
+// $real_temp_path = realpath("./temp.txt");
+// echo "\nReal path for ./temp.txt: " . $real_temp_path;
+// unlink('temp.txt'); // 清理
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>DIRECTORY_SEPARATOR</code> (常量)</b>
+                <ul>
+                    <li>这是一个 PHP 内建常量，它包含了当前操作系统使用的目录分隔符（Windows 上是 <code>\</code>，Linux/macOS
+                        上是 <code>/</code>）。
+                    </li>
+                    <li><b>用途：</b> 当你需要动态构建跨平台兼容的文件路径时，应该使用这个常量而不是硬编码 <code>/</code>
+                        或 <code>\</code>。
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+// 构建跨平台的路径
+$configDir = __DIR__ . DIRECTORY_SEPARATOR . 'config';
+$configFile = $configDir . DIRECTORY_SEPARATOR . 'database.php';
+
+echo "配置文件路径: " . $configFile;
+// 在 Linux/macOS 上输出类似: /path/to/script/config/database.php
+// 在 Windows 上输出类似: C:\path\to\script\config\database.php
+?&gt;</code></pre>
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="sd-2">D.2 检查文件和目录属性</h2>
+        <ul>
+            <li><b><code>file_exists(string $filename): bool</code></b>: 检查文件或目录是否存在。</li>
+            <li><b><code>is_file(string $filename): bool</code></b>: 检查路径是否存在且为一个<b>常规文件</b>。</li>
+            <li><b><code>is_dir(string $filename): bool</code></b>: 检查路径是否存在且为一个<b>目录</b>。</li>
+            <li><b><code>is_link(string $filename): bool</code></b>: 检查路径是否存在且为一个符号链接。</li>
+            <li><b><code>is_readable(string $filename): bool</code></b>: 检查路径是否存在且当前 PHP 进程**可以读取**。
+            </li>
+            <li><b><code>is_writable(string $filename): bool</code></b> (别名 <code>is_writeable</code>): 检查路径是否存在且当前
+                PHP 进程**可以写入**。这对于检查日志目录、上传目录、缓存目录的权限非常重要！
+            </li>
+            <li><b><code>is_executable(string $filename): bool</code></b>: 检查路径是否存在且可以执行（通常用于检查脚本或程序文件）。
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+$file = 'my_document.txt';
+$dir = 'my_directory';
+$link = 'my_link'; // 假设这是一个符号链接
+
+// 假设先创建它们
+// file_put_contents($file, "content");
+// mkdir($dir);
+// symlink($file, $link); // 创建符号链接
+
+if (file_exists($file)) {
+    echo "'{$file}' exists.\n";
+if (is_file($file)) {
+    echo "'{$file}' is a regular file.\n";
+}
+if (is_readable($file)) {
+    echo "'{$file}' is readable.\n";
+}
+if (is_writable($file)) {
+    echo "'{$file}' is writable.\n";
+}
+} else {
+    echo "'{$file}' does not exist.\n";
+}
+echo "&lt;br>";
+
+if (file_exists($dir)) {
+    echo "'{$dir}' exists.\n";
+    if (is_dir($dir)) {
+        echo "'{$dir}' is a directory.\n";
+    }
+    if (is_writable($dir)) {
+        echo "'{$dir}' is writable (important for creating files inside!).\n";
+    }
+}
+echo "&lt;br>";
+
+// if (file_exists($link)) {
+//     echo "'{$link}' exists.\n";
+//     if (is_link($link)) {
+//         echo "'{$link}' is a symbolic link.\n";
+//     }
+//     // 注意: is_file/is_dir/is_readable 等作用在 link 上时，通常会检查 link 指向的目标
+//     if (is_file($link)) { echo "'{$link}' points to a file.\n"; }
+// }
+
+// 清理
+// unlink($link);
+// unlink($file);
+// rmdir($dir);
+
+?></code></pre>
+
+        <hr/>
+
+        <h2 id="sd-3">D.3 获取文件元数据</h2>
+        <ul>
+            <li><b><code>filesize(string $filename): int|false</code></b>: 返回文件大小（字节）。</li>
+            <li><b><code>filemtime(string $filename): int|false</code></b>: 返回文件最后修改时间（Unix 时间戳）。</li>
+            <li><b><code>fileatime(string $filename): int|false</code></b>: 返回文件最后访问时间（Unix
+                时间戳）。（注意：某些文件系统可能会禁用访问时间更新以提高性能）。
+            </li>
+            <li><b><code>filectime(string $filename): int|false</code></b>: 返回文件的 inode 修改时间（Unix
+                时间戳，文件元数据如权限、所有者更改或内容更改时更新）。
+            </li>
+            <li><b><code>filetype(string $filename): string|false</code></b>: 返回文件类型字符串，如 "file", "dir",
+                "link", "fifo", "char", "block", "unknown"。
+            </li>
+            <li><b><code>stat(string $filename): array|false</code></b>: 返回包含文件详细统计信息的数组。信息更全，键名如
+                <code>size</code>, <code>mtime</code>, <code>atime</code>, <code>ctime</code>, <code>mode</code> (权限),
+                <code>uid</code> (用户ID), <code>gid</code> (组ID), <code>ino</code> (inode号) 等。
+            </li>
+            <li><b><code>fstat(resource $stream): array|false</code></b>: 同 <code>stat</code>，但作用于一个已打开的文件流资源。
+            </li>
+            <li><b><code>disk_free_space(string $directory): float|false</code></b>: 获取指定目录所在分区（磁盘）的可用空间（字节）。别名
+                <code>diskfreespace()</code>。
+            </li>
+            <li><b><code>disk_total_space(string $directory): float|false</code></b>: 获取指定目录所在分区的总空间（字节）。
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+$filename = 'my_temp_file.txt';
+file_put_contents($filename, "Hello again!"); // 创建/覆盖文件
+
+if (file_exists($filename)) {
+    $size = filesize($filename);
+    $mtime = filemtime($filename);
+    $type = filetype($filename);
+
+    echo "文件: {$filename}\n";
+    echo "大小: {$size} bytes\n";
+    echo "类型: {$type}\n";
+    echo "最后修改时间: " . date('Y-m-d H:i:s', $mtime) . "\n"; // 格式化时间戳
+
+    // 使用 stat 获取更详细信息
+    $stats = stat($filename);
+    if ($stats) {
+        echo "权限 (八进制): " . decoct($stats['mode'] & 0777) . "\n"; // & 0777 只取权限位
+        echo "所有者 UID: " . $stats['uid'] . "\n";
+    }
+
+    unlink($filename); // 清理
+}
+
+// 获取当前目录所在分区的可用空间
+$free_space = disk_free_space(DIR);
+if ($free_space !== false) {
+    // 转换为更易读的单位 (GB)
+    $free_gb = round($free_space / 1024 / 1024 / 1024, 2);
+    echo "\n当前分区可用空间: {$free_gb} GB\n";
+}
+?></code></pre>
+
+        <hr/>
+
+        <h2 id="sd-4">D.4 目录操作</h2>
+        <ul>
+            <li><b><code>mkdir(string $pathname, int $mode = 0777, bool $recursive = false, ?resource $context = null):
+                bool</code></b>
+                <ul>
+                    <li>创建目录 <code>$pathname</code>。</li>
+                    <li><code>$mode</code>: 权限模式（八进制，如 <code>0755</code>），实际权限受 umask 影响。</li>
+                    <li><code>$recursive</code>: 如果为
+                        <code>true</code>，会尝试创建路径中不存在的父目录。<b>非常实用！</b></li>
+                </ul>
+            </li>
+            <li><b><code>rmdir(string $dirname, ?resource $context = null): bool</code></b>
+                <ul>
+                    <li>删除一个<b>空</b>目录。如果目录不为空或无权限，返回 <code>false</code>。</li>
+                </ul>
+            </li>
+            <li><b><code>scandir(string $directory, int $sorting_order = SCANDIR_SORT_ASCENDING, ?resource $context =
+                null): array|false</code></b>
+                <ul>
+                    <li>返回一个包含指定目录 <code>$directory</code> 中所有文件和子目录名称（包括 <code>.</code> 和
+                        <code>..</code>）的数组。
+                    </li>
+                    <li><code>$sorting_order</code>: 可以是 <code>SCANDIR_SORT_ASCENDING</code> (默认), <code>SCANDIR_SORT_DESCENDING</code>,
+                        或 <code>SCANDIR_SORT_NONE</code>。
+                    </li>
+                </ul>
+            </li>
+            <li><b><code>opendir() / readdir() / closedir()</code> (旧式方法)</b>
+                <ul>
+                    <li>用于逐个读取目录条目的旧方法，通常不如 <code>scandir</code> 或 <code>DirectoryIterator</code>
+                        (OOP方式) 方便。
+                    </li>
+                </ul>
+            </li>
+            <li><b><code>glob(string $pattern, int $flags = 0): array|false</code></b>
+                <ul>
+                    <li>根据指定的模式 <code>$pattern</code> (类似 shell 的通配符，<b>不是正则表达式</b>) 查找匹配的文件或目录路径。
+                    </li>
+                    <li>常用通配符：<code>*</code> (匹配任意字符序列，除了 <code>/</code>), <code>?</code> (匹配任意单个字符),
+                        <code>[...]</code> (匹配括号内任一字符), <code>{...,...}</code> (匹配括号内任一字符串 - 需要
+                        <code>GLOB_BRACE</code> 标志)。
+                    </li>
+                    <li><code>$flags</code> (可选):
+                        <ul>
+                            <li><code>GLOB_MARK</code>: 在返回的每个目录路径后附加一个斜杠。</li>
+                            <li><code>GLOB_ONLYDIR</code>: 只返回匹配的目录。</li>
+                            <li><code>GLOB_BRACE</code>: 扩展 {a,b,c} 来匹配 'a', 'b', 或 'c'。</li>
+                            <li>等等...</li>
+                        </ul>
+                    </li>
+                    <li>返回包含匹配路径的数组，或在出错时返回 <code>false</code>。</li>
+                </ul>
+            </li>
+        </ul>
+        <p><b>示例：</b></p>
+        <pre><code class="language-php">&lt;?php
+$baseDir = 'test_dir';
+$subDir = $baseDir . DIRECTORY_SEPARATOR . 'subdir'; // 构建子目录路径
+
+// 1. 创建目录 (递归创建)
+if (!is_dir($subDir)) {
+    if (mkdir($subDir, 0755, true)) { // 使用 true 递归创建
+        echo "目录 '{$subDir}' 创建成功。\n";
+    } else {
+        echo "创建目录 '{$subDir}' 失败！\n";
+    }
+}
+
+// 2. 在目录中创建一些文件
+file_put_contents($baseDir . DIRECTORY_SEPARATOR . 'file1.txt', 'content1');
+file_put_contents($subDir . DIRECTORY_SEPARATOR . 'file2.log', 'content2');
+file_put_contents($subDir . DIRECTORY_SEPARATOR . 'image.jpg', 'content3');
+
+// 3. 扫描目录
+echo "\n扫描目录 '{$baseDir}':\n";
+$entries = scandir($baseDir);
+if ($entries !== false) {
+    foreach ($entries as $entry) {
+        // 跳过 '.' 和 '..'
+        if ($entry != "." && $entry != "..") {
+            $entryPath = $baseDir . DIRECTORY_SEPARATOR . $entry;
+            $type = is_dir($entryPath) ? '目录' : '文件';
+            echo "- {$entry} ({$type})\n";
+        }
+    }
+}
+
+// 4. 使用 glob 查找文件
+echo "\n使用 glob 查找 .log 文件:\n";
+// 注意：glob 的路径相对于当前工作目录，或者使用绝对路径
+// 这里假设脚本就在 test_dir 的父目录运行
+$logFiles = glob($baseDir . DIRECTORY_SEPARATOR . '/*.log'); // 查找子目录下的 .log 文件
+if ($logFiles !== false) {
+    print_r($logFiles);
+} else {
+    echo "查找失败或没有匹配项。\n";
+}
+
+// 5. 清理 (先删除文件，再删除空目录)
+unlink($subDir . DIRECTORY_SEPARATOR . 'file2.log');
+unlink($subDir . DIRECTORY_SEPARATOR . 'image.jpg');
+rmdir($subDir); // 现在 subdir 是空的，可以删除了
+unlink($baseDir . DIRECTORY_SEPARATOR . 'file1.txt');
+rmdir($baseDir); // 现在 baseDir 也是空的
+
+echo "\n清理完成。\n";
+?></code></pre>
+
+        <hr/>
+
+        <h2 id="sd-5">D.5 文件操作 (补充)</h2>
+        <ul>
+            <li><b><code>copy(string $source, string $dest, ?resource $context = null): bool</code></b>:
+                复制文件。如果目标文件已存在会被覆盖。
+            </li>
+            <li><b><code>rename(string $oldname, string $newname, ?resource $context = null): bool</code></b>:
+                重命名或移动文件/目录。如果在同一分区内移动，通常非常快。
+            </li>
+            <li><b><code>unlink(string $filename, ?resource $context = null): bool</code></b>: 删除文件。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+$source = 'original.txt';
+$copyDest = 'copy_of_original.txt';
+$renameDest = 'renamed_original.txt';
+
+// 1. 创建源文件
+file_put_contents($source, 'Original content.');
+
+// 2. 复制文件
+if (copy($source, $copyDest)) {
+    echo "'{$source}' 复制到 '{$copyDest}' 成功。\n";
+} else {
+    echo "复制失败！\n";
+}
+
+// 3. 重命名/移动文件
+if (rename($copyDest, $renameDest)) {
+    echo "'{$copyDest}' 重命名为 '{$renameDest}' 成功。\n";
+} else {
+    echo "重命名失败！\n";
+}
+
+// 4. 删除文件
+if (file_exists($renameDest)) {
+    unlink($renameDest);
+    echo "'{$renameDest}' 已删除。\n";
+}
+if (file_exists($source)) {
+    unlink($source);
+    echo "'{$source}' 已删除。\n";
+}
+?></code></pre>
+
+        <hr/>
+
+        <h2 id="sd-6">D.6 文件权限与所有权 (了解即可)</h2>
+        <p>这些函数用于修改文件的权限和所有者/组，通常在 Linux/Unix-like 系统上更有意义，并且需要 PHP
+            进程拥有足够的系统权限才能成功执行。</p>
+        <ul>
+            <li><b><code>chmod(string $filename, int $mode): bool</code></b>: 改变文件模式（权限）。<code>$mode</code>
+                是一个八进制数，例如 <code>0644</code> (所有者读写，组用户和其他用户只读)，<code>0755</code>
+                (所有者读写执行，组和其他用户读执行)。
+            </li>
+            <li><b><code>chown(string $filename, string|int $user): bool</code></b>: 改变文件所有者。<code>$user</code>
+                可以是用户名或用户 ID。通常需要 root 权限。
+            </li>
+            <li><b><code>chgrp(string $filename, string|int $group): bool</code></b>: 改变文件所属组。<code>$group</code>
+                可以是组名或组 ID。
+            </li>
+            <li><b><code>fileperms(string $filename): int|false</code></b>: 获取文件的权限模式（整数）。通常需要配合 <code>decoct()</code>
+                和位运算来解读。
+            </li>
+        </ul>
+        <p class="warning">
+            在共享主机等受限环境中，这些函数可能被禁用或无法成功执行。即使在有权限的环境中，也应谨慎修改权限，避免带来安全风险。</p>
+
+        <hr/>
+
+        <h2 id="sd-7">D.7 MIME 类型检测 (补充)</h2>
+        <p>在处理文件上传或需要确定文件内容类型时，准确检测 MIME 类型很重要。</p>
+        <ul>
+            <li><b><code>mime_content_type(string $filename): string|false</code></b>: (可能需要启用 fileinfo
+                扩展，或依赖系统配置) 尝试检测文件的 MIME 类型。简单易用，但不一定在所有系统上都准确或可用。
+            </li>
+            <li><b><code>finfo</code> 扩展 (面向对象，推荐):</b> 提供更可靠和灵活的方式来检测 MIME 类型。
+                <ol>
+                    <li><code>finfo_open(int $flags = FILEINFO_MIME_TYPE | FILEINFO_MIME_ENCODING, ?string $magic_file =
+                        null): finfo|false</code>: 创建一个新的 finfo 资源。常用 flags: <code>FILEINFO_MIME_TYPE</code>
+                        (返回 "text/plain" 格式), <code>FILEINFO_MIME_ENCODING</code> (返回 "us-ascii" 格式), <code>FILEINFO_MIME</code>
+                        (返回 "text/plain; charset=us-ascii" 格式)。
+                    </li>
+                    <li><code>finfo_file(finfo $finfo, string $filename, int $flags = FILEINFO_NONE, ?resource $context
+                        = null): string|false</code>: 检测指定文件的 MIME 类型。
+                    </li>
+                    <li><code>finfo_buffer(...)</code>: 检测字符串内容的 MIME 类型。</li>
+                    <li><code>finfo_close(finfo $finfo): bool</code>: 关闭 finfo 资源。</li>
+                </ol>
+                <pre><code class="language-php">&lt;?php
+$filename = 'my_image.png'; // 假设这是一个 PNG 图片文件
+// file_put_contents($filename, file_get_contents('https://www.php.net/images/logo.php.png')); // 下载一个示例图片
+
+if (function_exists('finfo_open') && file_exists($filename)) {
+// 打开 finfo 数据库，获取 MIME 类型和编码
+$finfo = finfo_open(FILEINFO_MIME); // 获取类似 "image/png; charset=binary" 的结果
+
+if ($finfo) {
+    $mime_type = finfo_file($finfo, $filename);
+    echo "文件的 MIME 类型 (finfo): " . $mime_type . "\n";
+    finfo_close($finfo);
+
+    // 你可以只获取 MIME 类型部分
+    $finfo_type_only = finfo_open(FILEINFO_MIME_TYPE);
+    if ($finfo_type_only) {
+         $mime_type_only = finfo_file($finfo_type_only, $filename);
+         echo "文件的 MIME 类型 (纯类型): " . $mime_type_only . "\n"; // 输出类似: image/png
+         finfo_close($finfo_type_only);
+    }
+} else {
+    echo "无法打开 finfo 数据库。\n";
+}
+} elseif (function_exists('mime_content_type') && file_exists($filename)) {
+    // 作为备选方案
+    $mime_type = mime_content_type($filename);
+    echo "文件的 MIME 类型 (mime_content_type): " . $mime_type . "\n";
+} else {
+    echo "无法检测文件类型。\n";
+}
+
+// 清理
+// if (file_exists($filename)) { unlink($filename); }
+?></code></pre>
+                <p class="note">为了准确检测 MIME 类型（尤其是在处理文件上传时），推荐使用 <code>finfo</code> 扩展。</p>
+            </li>
+        </ul>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义补充章节 D 结束 ---</p>
+
+</div>
+</body>
+</html>

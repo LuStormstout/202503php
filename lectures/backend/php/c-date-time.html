@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP - Supplement C: 日期与时间函数</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+        }
+
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre;
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>PHP - Supplement C: 日期与时间函数</h1>
+    <p class="text-gray-500 text-sm">这是补充章节的第三部分 (C)。(已重新检查并修正代码缩进和注释)</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="sc-intro">引言：处理时间和日期</h2>
+        <p>几乎所有的 Web 应用都需要处理日期和时间：记录用户操作的时间戳、显示文章发布日期、处理用户输入的生日、计算事件之间的间隔、设置定时任务等等。PHP
+            提供了一套丰富的函数和面向对象的类来处理这些任务。</p>
+        <p class="warning"><b>时区的重要性：</b>处理日期和时间时，<b>时区 (Timezone)</b> 是一个非常关键且容易出错的概念。同一个时间戳（例如
+            Unix 时间戳，它总是基于 GMT/UTC）在不同的时区表示的本地时间是不同的。为了避免混乱，建议：
+        <ol>
+            <li>在 <code>php.ini</code> 中明确设置 <code>date.timezone</code> 为你的应用主要使用的时区（例如 <code>"Asia/Shanghai"</code>,
+                <code>"Europe/London"</code>, <code>"UTC"</code>）。
+            </li>
+            <li>在处理来自不同时区的用户输入或需要进行跨时区计算时，优先使用 PHP 的 <code>DateTime</code> 和 <code>DateTimeZone</code>
+                对象，它们能更好地管理时区信息。
+            </li>
+            <li>如果可能，数据库中存储时间戳（如 Unix timestamp）或带时区的 UTC 时间格式通常是最佳实践。</li>
+        </ol>
+        </p>
+
+        <hr/>
+
+        <h2 id="sc-1">C.1 获取当前时间戳</h2>
+        <ul>
+            <li><b><code>time(): int</code></b>
+                <ul>
+                    <li><b>最常用</b>的函数之一，返回当前的 <b>Unix 时间戳</b>。</li>
+                    <li>Unix 时间戳是指从 **1970年1月1日 00:00:00 格林威治标准时间 (GMT/UTC)**
+                        起至当前时间的总秒数。它是一个整数，与时区无关。
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+// 获取当前 Unix 时间戳
+$current_timestamp = time();
+echo "当前 Unix 时间戳: " . $current_timestamp;
+// 输出类似: 当前 Unix 时间戳: 1713050083 (这个数字每秒都在变)
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>microtime(bool $as_float = false): string|float</code></b>
+                <ul>
+                    <li>获取当前 Unix 时间戳和<b>微秒数</b>。</li>
+                    <li>如果 <code>$as_float</code> 为 <code>false</code> (默认)，返回一个格式为 "msec sec" 的字符串，其中
+                        sec 是秒数，msec 是微秒部分。
+                    </li>
+                    <li>如果 <code>$as_float</code> 为 <code>true</code>，直接返回一个包含微秒的浮点数形式的时间戳。</li>
+                    <li><b>用途：</b> 主要用于需要更高精度计时或进行代码性能基准测试 (Benchmarking)。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+// 获取字符串形式
+$microtime_str = microtime();
+echo "Microtime (string): " . $microtime_str . "\n"; // 输出类似: Microtime (string): 0.12345600 1713050150
+
+// 获取浮点数形式
+$microtime_float = microtime(true);
+echo "Microtime (float): " . $microtime_float . "\n"; // 输出类似: Microtime (float): 1713050150.1235
+
+// 简单性能测试示例
+// $start_time = microtime(true);
+// // ... 执行一些耗时操作 ...
+// for ($i = 0; $i < 100000; $i++) { }
+// $end_time = microtime(true);
+// $execution_time = $end_time - $start_time;
+// echo "代码执行耗时: " . $execution_time . " 秒\n";
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>$_SERVER['REQUEST_TIME']</code> 和 <code>$_SERVER['REQUEST_TIME_FLOAT']</code></b>
+                <ul>
+                    <li>这些超全局变量（如果 Web 服务器提供）分别包含请求开始处理时的 Unix
+                        时间戳（整数）和带微秒的时间戳（浮点数）。这对于记录请求处理时间很有用。
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+// 显示请求开始的时间戳
+echo "请求开始时间 (秒): " . ($_SERVER['REQUEST_TIME'] ?? 'N/A') . "\n";
+echo "请求开始时间 (带微秒): " . ($_SERVER['REQUEST_TIME_FLOAT'] ?? 'N/A') . "\n";
+?&gt;</code></pre>
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="sc-2">C.2 格式化日期和时间：<code>date()</code></h2>
+        <ul>
+            <li><b><code>date(string $format, ?int $timestamp = null): string</code></b>
+                <ul>
+                    <li>将一个 Unix 时间戳 <code>$timestamp</code> 按照指定的 <code>$format</code> 格式化为**可读的日期时间字符串**。
+                    </li>
+                    <li>如果 <code>$timestamp</code> 省略或为 <code>null</code>，则使用当前的本地时间（由
+                        <code>time()</code> 返回，并受 <code>date.timezone</code> 设置影响）。
+                    </li>
+                    <li><code>$format</code> 字符串由一系列预定义的**格式化字符**组成，每个字符代表日期时间的不同部分。
+                    </li>
+                </ul>
+            </li>
+            <li><b>常用的格式化字符（区分大小写！）：</b>
+                <ul>
+                    <li><b>日 (Day):</b>
+                        <ul>
+                            <li><code>d</code>: 月份中的第几天，有前导零 (01-31)</li>
+                            <li><code>j</code>: 月份中的第几天，无前导零 (1-31)</li>
+                            <li><code>D</code>: 星期几的文本缩写 (Mon-Sun)</li>
+                            <li><code>l</code>: (L的小写) 星期几的完整文本名称 (Sunday-Saturday)</li>
+                            <li><code>N</code>: ISO-8601 格式数字表示星期中的第几天 (1 表示 Monday 到 7 表示 Sunday)
+                            </li>
+                            <li><code>w</code>: 数字表示星期中的第几天 (0 表示 Sunday 到 6 表示 Saturday)</li>
+                            <li><code>z</code>: 一年中的第几天 (0-365)</li>
+                        </ul>
+                    </li>
+                    <li><b>月 (Month):</b>
+                        <ul>
+                            <li><code>m</code>: 数字表示的月份，有前导零 (01-12)</li>
+                            <li><code>n</code>: 数字表示的月份，无前导零 (1-12)</li>
+                            <li><code>M</code>: 月份的文本缩写 (Jan-Dec)</li>
+                            <li><code>F</code>: 月份的完整文本名称 (January-December)</li>
+                            <li><code>t</code>: 指定月份的总天数 (28-31)</li>
+                        </ul>
+                    </li>
+                    <li><b>年 (Year):</b>
+                        <ul>
+                            <li><code>Y</code>: 4 位数字年份 (e.g., 2023)</li>
+                            <li><code>y</code>: 2 位数字年份 (e.g., 23)</li>
+                            <li><code>L</code>: 是否为闰年 (1 是闰年, 0 不是)</li>
+                        </ul>
+                    </li>
+                    <li><b>时间 (Time):</b>
+                        <ul>
+                            <li><code>a</code>: 小写的上午/下午 (am or pm)</li>
+                            <li><code>A</code>: 大写的上午/下午 (AM or PM)</li>
+                            <li><code>g</code>: 12 小时制小时，无前导零 (1-12)</li>
+                            <li><code>G</code>: 24 小时制小时，无前导零 (0-23)</li>
+                            <li><code>h</code>: 12 小时制小时，有前导零 (01-12)</li>
+                            <li><code>H</code>: 24 小时制小时，有前导零 (00-23)</li>
+                            <li><code>i</code>: 分钟，有前导零 (00-59)</li>
+                            <li><code>s</code>: 秒，有前导零 (00-59)</li>
+                            <li><code>u</code>: 微秒 (e.g., 654321)。注意 <code>date()</code> 产生的微秒总是 000000，需要结合
+                                <code>DateTime</code> 对象。
+                            </li>
+                            <li><code>v</code>: 毫秒 (e.g., 654) (PHP 7.0+)。同样，<code>date()</code> 产生的总是 000。
+                            </li>
+                        </ul>
+                    </li>
+                    <li><b>时区 (Timezone):</b>
+                        <ul>
+                            <li><code>e</code>: 时区标识符 (e.g., UTC, GMT, Atlantic/Azores)</li>
+                            <li><code>I</code>: (大写 i) 是否为夏令时 (1 是, 0 不是)</li>
+                            <li><code>O</code>: 与格林威治时间相差的小时数，带符号 (e.g., +0200)</li>
+                            <li><code>P</code>: 与格林威治时间相差的小时数，带冒号 (e.g., +02:00)</li>
+                            <li><code>T</code>: 时区缩写 (e.g., EST, MDT)</li>
+                            <li><code>Z</code>: 时区偏移秒数（西区为负）。(-43200 到 50400)</li>
+                        </ul>
+                    </li>
+                    <li><b>完整日期/时间格式:</b>
+                        <ul>
+                            <li><code>c</code>: ISO 8601 日期 (e.g., 2004-02-12T15:19:21+00:00) - <b>非常适合用于 API
+                                或日志</b></li>
+                            <li><code>r</code>: RFC 2822 格式化日期 (e.g., Thu, 21 Dec 2000 16:01:07 +0000) - <b>常用于
+                                HTTP 头</b></li>
+                            <li><code>U</code>: 秒数（即 Unix 时间戳）</li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+            <li><b><code>gmdate(string $format, ?int $timestamp = null): string</code></b>: 功能与 <code>date()</code>
+                相同，但<b>总是</b>使用格林威治标准时间 (GMT/UTC) 进行格式化，忽略本地时区设置。
+            </li>
+        </ul>
+        <p><b>示例：</b></p>
+        <pre><code class="language-php">&lt;?php
+// 获取当前时间戳
+$now = time();
+
+// 常用格式
+echo "标准日期时间 (Y-m-d H:i:s): " . date("Y-m-d H:i:s", $now) . "\n";
+echo "仅日期 (Y/m/d): " . date("Y/m/d", $now) . "\n";
+echo "仅时间 (H:i): " . date("H:i", $now) . "\n";
+echo "带 AM/PM 的时间 (h:i:s a): " . date("h:i:s a", $now) . "\n";
+echo "星期几 (l): " . date("l", $now) . "\n"; // 例如 "Monday"
+echo "月份全称 (F): " . date("F", $now) . "\n"; // 例如 "April"
+
+// 组合格式
+echo "易读格式: " . date("l, F jS, Y \a\t g:i A", $now) . "\n"; // \a\t 用于转义 a 和 t
+// 输出类似: Monday, April 14th, 2025 at 8:14 AM
+
+// ISO 8601 格式 (推荐用于交换)
+echo "ISO 8601 (c): " . date("c", $now) . "\n";
+// 输出类似: 2025-04-14T08:14:43+09:00 (取决于你的时区)
+
+// RFC 2822 格式 (常用于邮件/HTTP头)
+echo "RFC 2822 (r): " . date("r", $now) . "\n";
+// 输出类似: Mon, 14 Apr 2025 08:14:43 +0900
+
+// 使用 gmdate() 获取 UTC 时间
+echo "当前 UTC 时间 (Y-m-d H:i:s): " . gmdate("Y-m-d H:i:s", $now) . "\n";
+
+?&gt;</code></pre>
+
+        <hr/>
+
+        <h2 id="sc-3">C.3 解析日期时间字符串：<code>strtotime()</code> 与 <code>mktime()</code></h2>
+        <ul>
+            <li><b><code>strtotime(string $datetime, ?int $baseTimestamp = null): int|false</code></b>
+                <ul>
+                    <li>尝试将<b>英文文本</b>的日期时间描述 (<code>$datetime</code>) 解析为 Unix 时间戳。</li>
+                    <li><b>非常灵活：</b> 能理解多种格式，如 "now", "+1 day", "+2 weeks", "next Monday", "last Sunday",
+                        "YYYY-MM-DD", "YYYY/MM/DD HH:MM:SS", "10 September 2000" 等等。
+                    </li>
+                    <li><code>$baseTimestamp</code> (可选): 用于计算相对时间（如 "+1 day"）的基准时间戳，默认为当前时间
+                        <code>time()</code>。
+                    </li>
+                    <li><b>返回值：</b> 成功则返回对应的 Unix 时间戳 (整数)，失败则返回 <code>false</code>。</li>
+                    <li class="warning"><b>注意：</b><code>strtotime</code>
+                        的灵活性也带来了潜在的模糊性，对于非标准或有歧义的格式可能解析错误。对于固定格式的日期时间字符串，使用
+                        <code>DateTime::createFromFormat()</code> 通常更可靠。
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+// 解析各种字符串
+$ts1 = strtotime("now");
+$ts2 = strtotime("15 April 2025");
+$ts3 = strtotime("+1 week"); // 基于当前时间的一周后
+$ts4 = strtotime("next Thursday");
+$ts5 = strtotime("2025-12-25 14:30:00");
+
+echo date("Y-m-d H:i:s", $ts1) . "\n";
+echo date("Y-m-d", $ts2) . "\n";
+echo date("Y-m-d", $ts3) . "\n";
+echo date("Y-m-d", $ts4) . "\n";
+echo date("Y-m-d H:i:s", $ts5) . "\n";
+
+// 解析失败示例
+$invalid_ts = strtotime("Invalid Date String");
+var_dump($invalid_ts); // 输出: bool(false)
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>mktime(int $hour, ?int $minute = null, ?int $second = null, ?int $month = null,
+                ?int $day = null, ?int $year = null): int|false</code></b>
+                <ul>
+                    <li>根据给定的日期时间部分（时、分、秒、月、日、年）获取对应的 Unix 时间戳。</li>
+                    <li>参数从右到左可选，如果省略则使用当前本地时间的对应部分。</li>
+                    <li>参数是基于**服务器本地时区**的。</li>
+                    <li>如果参数无效（例如月份是 13），它会尝试“溢出”计算（例如第 13 个月会变成下一年的第 1
+                        个月），但结果可能不符合预期。使用 <code>checkdate()</code> 先验证更好。
+                    </li>
+                </ul>
+            </li>
+            <li class="mt-2"><b><code>gmmktime(...)</code></b>: 功能同 <code>mktime()</code>，但参数被假定为 GMT/UTC 时间。
+            </li>
+            <pre><code class="language-php">&lt;?php
+// 获取 2025年圣诞节 中午 12:00:00 的时间戳
+$christmas_ts = mktime(12, 0, 0, 12, 25, 2025);
+echo "2025 Christmas 12:00 timestamp: " . $christmas_ts . "\n";
+echo "Formatted: " . date("Y-m-d H:i:s", $christmas_ts) . "\n";
+
+// 获取当前月份第一天 0 点的时间戳
+$first_day_ts = mktime(0, 0, 0, date("n"), 1, date("Y"));
+echo "This month's first day: " . date("Y-m-d", $first_day_ts) . "\n";
+?&gt;</code></pre>
+        </ul>
+
+        <hr/>
+
+        <h2 id="sc-4">C.4 获取日期时间信息</h2>
+        <ul>
+            <li><b><code>getdate(?int $timestamp = null): array</code></b>
+                <ul>
+                    <li>返回一个包含指定时间戳（默认当前本地时间）详细信息的关联数组。键名如 'seconds', 'minutes', 'hours',
+                        'mday' (日), 'wday' (星期几 0-6), 'mon' (月 1-12), 'year', 'yday' (年中第几天), 'weekday'
+                        (星期全名), 'month' (月份全名), 0 (时间戳本身)。
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+$today_info = getdate();
+echo "&lt;pre&gt;";
+print_r($today_info);
+echo "&lt;/pre&gt;";
+echo "今天是: " . $today_info['year'] . "年" . $today_info['mon'] . "月" . $today_info['mday'] . "日, " . $today_info['weekday'];
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>checkdate(int $month, int $day, int $year): bool</code></b>
+                <ul>
+                    <li>
+                        检查给定的日期（月、日、年）是否是有效的格里高利历日期（考虑了闰年和大月小月天数）。对于验证用户输入的日期非常有用。
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+var_dump(checkdate(2, 29, 2024)); // 输出: bool(true) (2024是闰年)
+var_dump(checkdate(2, 29, 2025)); // 输出: bool(false) (2025不是闰年)
+var_dump(checkdate(4, 31, 2025)); // 输出: bool(false) (4月没有31天)
+var_dump(checkdate(13, 1, 2025)); // 输出: bool(false) (月份无效)
+?&gt;</code></pre>
+            </li>
+        </ul>
+
+
+        <hr/>
+
+        <h2 id="sc-5">C.5 面向对象的日期时间处理 (<code>DateTime</code> 等 - 推荐方式)</h2>
+        <p>PHP 5.2+ 引入了 <code>DateTime</code> 类及其相关类，提供了一套更强大、更可靠、更易于使用的面向对象 API 来处理日期和时间。<b>强烈推荐在新代码中使用这些类</b>，而不是依赖旧的函数式方法（尤其是
+            <code>strtotime</code>）。</p>
+
+        <h3 id="s5-5-1"><code>DateTime</code> 与 <code>DateTimeImmutable</code></h3>
+        <ul>
+            <li><b><code>DateTime</code>:</b> 代表一个可变的日期时间对象。调用其修改方法（如 <code>modify</code>, <code>add</code>,
+                <code>sub</code>, <code>setDate</code>, <code>setTime</code>,
+                <code>setTimezone</code>）会<b>直接改变对象自身</b>的状态。
+            </li>
+            <li><b><code>DateTimeImmutable</code> (PHP 5.5+):</b> 代表一个**不可变**的日期时间对象。调用其修改方法会返回一个**新的**、修改后的
+                <code>DateTimeImmutable</code> 对象，而**原始对象保持不变**。这使得代码更安全，不易产生意外的副作用。<b>通常更推荐使用
+                    <code>DateTimeImmutable</code>。</b></li>
+        </ul>
+
+        <h3 id="s5-5-2">创建对象</h3>
+        <pre><code class="language-php">&lt;?php
+// --- 使用 DateTimeImmutable (推荐) ---
+
+// 创建表示当前时间的对象 (使用 php.ini 的默认时区)
+$now = new DateTimeImmutable();
+echo "Now: " . $now->format('Y-m-d H:i:s e') . "\n"; // format() 用于格式化输出
+
+// 创建表示特定时间的对象 (接受多种 strtotime 能解析的格式)
+$specific_date = new DateTimeImmutable("2025-01-01 14:30:00");
+echo "Specific: " . $specific_date->format('Y-m-d H:i:s') . "\n";
+
+// 创建指定时区的对象
+$tokyo_tz = new DateTimeZone('Asia/Tokyo'); // 创建时区对象
+$tokyo_time = new DateTimeImmutable("now", $tokyo_tz); // 第二个参数指定时区
+echo "Tokyo Time: " . $tokyo_time->format('Y-m-d H:i:s e P') . "\n";
+
+// 从 Unix 时间戳创建
+$timestamp = 1700000000;
+$from_ts = new DateTimeImmutable("@{$timestamp}");
+echo "From Timestamp: " . $from_ts->format('Y-m-d H:i:s') . "\n";
+
+// 从特定格式创建 (更可靠的方式处理固定格式输入)
+$date_string = "15/04/2025";
+$format = 'd/m/Y'; // 定义输入字符串的格式
+$from_format = DateTimeImmutable::createFromFormat($format, $date_string);
+if ($from_format) {
+echo "From Format: " . $from_format->format('Y-m-d') . "\n";
+} else {
+echo "无法从格式 '{$format}' 解析 '{$date_string}'\n";
+}
+
+// --- 使用 DateTime (注意其可变性) ---
+// $mutable_now = new DateTime();
+// echo "Mutable Now: " . $mutable_now->format('Y-m-d H:i:s') . "\n";
+// $mutable_now->modify('+1 day'); // 直接修改了 $mutable_now 对象
+// echo "Mutable Now +1 day: " . $mutable_now->format('Y-m-d H:i:s') . "\n";
+
+?&gt;</code></pre>
+
+        <h3 id="s5-5-3">格式化输出: <code>format()</code></h3>
+        <p><code>DateTime</code> 和 <code>DateTimeImmutable</code> 对象都使用 <code>format()</code> 方法来格式化输出，它接受与
+            <code>date()</code> 函数相同的格式化字符。</p>
+        <pre><code class="language-php">&lt;?php
+$dt = new DateTimeImmutable("2025-07-04 10:05:30 America/New_York");
+echo $dt->format('Y-m-d H:i:s') . "\n";     // 2025-07-04 10:05:30
+echo $dt->format('l, F j, Y g:i A T') . "\n"; // Friday, July 4, 2025 10:05 AM EDT
+echo $dt->format('c') . "\n";                 // 2025-07-04T10:05:30-04:00 (ISO 8601)
+echo $dt->format('U') . "\n";                 // Unix timestamp
+?&gt;</code></pre>
+
+        <h3 id="s5-5-4">修改日期时间</h3>
+        <ul>
+            <li><b><code>modify(string $modifier): DateTime|DateTimeImmutable|false</code></b>: 使用
+                <code>strtotime()</code> 能理解的相对格式字符串 (如 "+1 day", "-2 months", "next Sunday") 来修改日期时间。<code>DateTime</code>
+                修改自身，<code>DateTimeImmutable</code> 返回新对象。
+            </li>
+            <li><b><code>add(DateInterval $interval): DateTime|DateTimeImmutable</code></b>: 增加一个
+                <code>DateInterval</code> 对象表示的时间间隔。
+            </li>
+            <li><b><code>sub(DateInterval $interval): DateTime|DateTimeImmutable</code></b>: 减去一个
+                <code>DateInterval</code> 对象表示的时间间隔。
+            </li>
+            <li><b><code>setDate(int $year, int $month, int $day): DateTime|DateTimeImmutable</code></b>: 设置日期部分。
+            </li>
+            <li><b><code>setTime(int $hour, int $minute, int $second = 0, int $microsecond = 0):
+                DateTime|DateTimeImmutable</code></b>: 设置时间部分。
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+$start_date = new DateTimeImmutable("2025-04-15");
+
+// 使用 modify (返回新对象)
+$next_day = $start_date->modify('+1 day');
+$last_month = $start_date->modify('-1 month');
+
+echo "Start: " . $start_date->format('Y-m-d') . "\n"; // 输出: 2025-04-15 (原对象不变)
+echo "Next day: " . $next_day->format('Y-m-d') . "\n"; // 输出: 2025-04-16
+echo "Last month: " . $last_month->format('Y-m-d') . "\n"; // 输出: 2025-03-15
+
+// 使用 DateInterval (后面会讲 DateInterval)
+$interval = new DateInterval('P2W'); // 创建一个 2 周的时间间隔 (Period: 2 Weeks)
+$two_weeks_later = $start_date->add($interval);
+echo "Two weeks later: " . $two_weeks_later->format('Y-m-d') . "\n"; // 输出: 2025-04-29
+
+// 使用 setDate/setTime (返回新对象)
+$new_time = $start_date->setTime(10, 30, 0);
+echo "Set time: " . $new_time->format('Y-m-d H:i:s') . "\n"; // 输出: 2025-04-15 10:30:00
+?&gt;</code></pre>
+
+        <h3 id="s5-5-5">时区处理: <code>DateTimeZone</code></h3>
+        <ul>
+            <li>创建时区对象：<code>new DateTimeZone('区域/城市')</code>，例如 <code>new
+                DateTimeZone('Asia/Shanghai')</code>, <code>new DateTimeZone('Europe/Paris')</code>, <code>new
+                DateTimeZone('UTC')</code>。
+            </li>
+            <li>在创建 <code>DateTime</code>/<code>DateTimeImmutable</code> 对象时指定时区：<code>new
+                DateTimeImmutable('now', new DateTimeZone('UTC'))</code>。
+            </li>
+            <li>改变现有对象的时区：<code>$newDt = $dt-&gt;setTimezone(new DateTimeZone('America/Los_Angeles'));</code> (<code>DateTimeImmutable</code>
+                返回新对象)。
+            </li>
+            <li>获取对象的时区：<code>$tz = $dt-&gt;getTimezone(); echo $tz-&gt;getName();</code></li>
+            <li>获取所有支持的时区标识符：<code>DateTimeZone::listIdentifiers()</code>。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+$utc_time = new DateTimeImmutable('2025-04-15 00:00:00', new DateTimeZone('UTC'));
+echo "UTC Time: " . $utc_time->format('Y-m-d H:i:s e P') . "\n";
+
+// 转换为东京时间
+$tokyo_tz = new DateTimeZone('Asia/Tokyo');
+$tokyo_time = $utc_time->setTimezone($tokyo_tz);
+echo "Tokyo Time: " . $tokyo_time->format('Y-m-d H:i:s e P') . "\n"; // 会显示 +09:00
+
+// 转换为纽约时间
+$ny_tz = new DateTimeZone('America/New_York');
+$ny_time = $utc_time->setTimezone($ny_tz);
+echo "New York Time: " . $ny_time->format('Y-m-d H:i:s e P') . "\n"; // 会显示 -04:00 (或 -05:00，取决于夏令时)
+?&gt;</code></pre>
+
+        <h3 id="s5-5-6">时间间隔: <code>DateInterval</code></h3>
+        <ul>
+            <li>表示一个持续时间段。</li>
+            <li>创建方式：
+                <ul>
+                    <li><code>new DateInterval('P[n]Y[n]M[n]DT[n]H[n]M[n]S')</code>: ISO 8601
+                        持续时间格式。<code>P</code> 开头，<code>T</code> 分隔日期和时间。例如：
+                        <ul>
+                            <li><code>'P2Y'</code>: 2 年</li>
+                            <li><code>'P3M'</code>: 3 个月</li>
+                            <li><code>'P15D'</code>: 15 天</li>
+                            <li><code>'PT10H'</code>: 10 小时</li>
+                            <li><code>'P2W'</code>: 2 周 (特殊)</li>
+                            <li>组合：<code>'P1Y2M3DT4H5M6S'</code></li>
+                        </ul>
+                    </li>
+                    <li><code>DateInterval::createFromDateString(string $datetime)</code>: 从相对时间字符串创建，如
+                        <code>'+2 days'</code>, <code>'3 weeks ago'</code>。
+                    </li>
+                </ul>
+            </li>
+            <li>用于 <code>DateTime::add()</code> 和 <code>sub()</code> 方法。</li>
+        </ul>
+
+        <h3 id="s5-5-7">计算时间差: <code>diff()</code></h3>
+        <ul>
+            <li><b><code>$dt1-&gt;diff(DateTimeInterface $dt2, bool $absolute = false): DateInterval</code></b>:
+                计算两个日期时间对象之间的差值。
+            </li>
+            <li>返回一个 <code>DateInterval</code> 对象，包含了差值的各个部分。</li>
+            <li><code>DateInterval</code> 对象的主要属性：
+                <ul>
+                    <li><code>y</code> (年), <code>m</code> (月), <code>d</code> (日), <code>h</code> (时),
+                        <code>i</code> (分), <code>s</code> (秒), <code>f</code> (微秒) - 表示差值的各个组成部分。
+                    </li>
+                    <li><code>invert</code>: 如果结果是负数（即 <code>$dt1 < $dt2</code> 且 <code>$absolute</code> 为
+                        false），则为 1，否则为 0。
+                    </li>
+                    <li><code>days</code>: 两个日期之间相差的<b>总天数</b>（如果 <code>diff</code> 成功计算的话），或者
+                        <code>false</code>。
+                    </li>
+                </ul>
+            </li>
+            <li><code>$absolute</code> 参数设为 <code>true</code> 时，<code>invert</code> 总是 0，且差值总是正数。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+$date1 = new DateTimeImmutable("2025-03-10");
+$date2 = new DateTimeImmutable("2025-04-20");
+
+$interval = $date1->diff($date2); // 计算 $date2 - $date1
+
+// 格式化 DateInterval (需要手动组合)
+printf(
+"相差: %d 年, %d 月, %d 天, %d 时, %d 分, %d 秒\n",
+$interval->y, $interval->m, $interval->d,
+$interval->h, $interval->i, $interval->s
+);
+// 输出类似: 相差: 0 年, 1 月, 10 天, 0 时, 0 分, 0 秒
+
+// 获取总天数差
+echo "总共相差天数: " . $interval->days . "\n"; // 输出: 总共相差天数: 41
+
+// 格式化为字符串
+echo "间隔格式化: " . $interval->format('%R%a days') . "\n"; // %R 是符号(+/-), %a 是总天数
+// 输出: 间隔格式化: +41 days
+?&gt;</code></pre>
+
+        <h3 id="s5-5-8">比较日期时间对象</h3>
+        <p>可以直接使用比较运算符 <code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code>,
+            <code>==</code>, <code>!=</code>, <code>&lt;=&gt;</code> 来比较 <code>DateTime</code> 或 <code>DateTimeImmutable</code>
+            对象。</p>
+        <pre><code class="language-php">&lt;?php
+$dt1 = new DateTimeImmutable("2025-04-15 10:00:00");
+$dt2 = new DateTimeImmutable("2025-04-15 12:00:00");
+$dt3 = new DateTimeImmutable("2025-04-15 10:00:00");
+
+var_dump($dt1 < $dt2);  // bool(true)
+var_dump($dt1 > $dt2);  // bool(false)
+var_dump($dt1 == $dt3); // bool(true)
+var_dump($dt1 === $dt3);// bool(false) (因为它们是不同的对象实例)
+?&gt;</code></pre>
+
+        <p class="note"><b>总结：</b> 优先使用 <code>DateTimeImmutable</code> 及其相关类来处理日期和时间，它们提供了更健壮、更清晰、功能更强大的
+            API，尤其在处理时区和时间计算时。</p>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义补充章节 C 结束 ---</p>
+
+</div>
+</body>
+</html>

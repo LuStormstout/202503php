@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP - Supplement F: 正则表达式函数 (PCRE)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+        }
+
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre;
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>PHP - Supplement F: 正则表达式函数 (PCRE)</h1>
+    <p class="text-gray-500 text-sm">这是补充章节的第六部分 (F)。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="sf-intro">引言：强大的模式匹配工具</h2>
+        <p><b>正则表达式 (Regular Expression, Regex)</b>
+            是一种用于描述、匹配和处理字符串中特定模式的强大“迷你语言”。你可以把它想象成一种高级的“查找与替换”工具，但它使用的不是固定的文本，而是能够描述一类字符串规则的“模式”。
+        </p>
+        <p>在 PHP 中，正则表达式常用于：</p>
+        <ul>
+            <li><b>数据验证：</b> 检查用户输入是否符合复杂的格式要求（如特定格式的身份证号、复杂的密码规则、自定义的订单号等）。
+            </li>
+            <li><b>信息提取：</b> 从大段文本（如 HTML 页面、日志文件）中精确地抽取需要的信息（如提取所有链接、所有 Email
+                地址、特定格式的日期）。
+            </li>
+            <li><b>字符串替换与分割：</b> 根据复杂的模式进行查找替换，或者使用复杂的模式作为分隔符来分割字符串。</li>
+        </ul>
+        <p>PHP 主要通过 PCRE (Perl Compatible Regular Expressions) 库提供正则表达式支持，相关函数通常以
+            <code>preg_</code> 开头。</p>
+        <p class="warning"><b>注意：</b> 正则表达式本身语法较为复杂，需要专门学习。本节重点在于介绍 PHP
+            如何使用它们，并解释一些基础且常用的正则表达式语法。对于复杂的模式，建议使用在线 Regex 测试工具（如
+            regex101.com）进行调试。</p>
+
+        <hr/>
+
+        <h2 id="sf-1">F.1 正则表达式基础语法</h2>
+        <p>一个基本的正则表达式模式通常包含以下几个部分：</p>
+
+        <h3 id="sf-1-1">定界符 (Delimiters)</h3>
+        <p>正则表达式模式必须被一对**定界符**包围。最常用的是正斜杠 <code>/</code>。</p>
+        <pre><code>/这是一个模式/</code></pre>
+        <p>也可以使用其他非字母数字、非反斜杠、非空格的字符作为定界符，例如 <code>#</code>, <code>~</code>, <code>%</code>
+            等。如果模式本身包含定界符，需要用反斜杠 <code>\</code> 进行转义。</p>
+        <pre><code>/http:\/\//  # 匹配 "http://"
+#http://#     # 使用 # 作为定界符，内部的 / 无需转义</code></pre>
+
+        <h3 id="sf-1-2">原子 (Atoms) - 匹配的基本单元</h3>
+        <ul>
+            <li><b>普通字符：</b> 大部分字母和数字字符会匹配它们自身。例如，<code>/cat/</code> 匹配字符串 "cat"。</li>
+            <li><b>元字符 (Metacharacters):</b> 具有特殊含义的字符，如果要匹配它们本身，通常需要用反斜杠 <code>\</code>
+                转义。常见的元字符有：<code>. \ + * ? [ ^ ] $ ( ) { } = ! &lt; &gt; | : - #</code>
+                等。例如，<code>/\./</code> 匹配一个实际的点号 "."。
+            </li>
+            <li><b>一些常见的元字符/原子：</b>
+                <ul>
+                    <li><code>.</code> : 匹配除换行符 <code>\n</code> 之外的**任意单个字符**（除非使用了 <code>s</code>
+                        模式修正符）。
+                    </li>
+                    <li><code>\d</code>: 匹配任意一个**数字** (0-9)。相当于 <code>[0-9]</code>。</li>
+                    <li><code>\D</code>: 匹配任意一个**非数字**字符。</li>
+                    <li><code>\s</code>: 匹配任意一个**空白字符**（空格、制表符 <code>\t</code>、换行符 <code>\n</code>、回车符
+                        <code>\r</code> 等）。
+                    </li>
+                    <li><code>\S</code>: 匹配任意一个**非空白字符**。</li>
+                    <li><code>\w</code>: 匹配任意一个**“单词”字符**（字母、数字或下划线 <code>_</code>）。相当于 <code>[a-zA-Z0-9_]</code>。
+                    </li>
+                    <li><code>\W</code>: 匹配任意一个**非单词字符**。</li>
+                </ul>
+            </li>
+            <li><b>字符组 (Character Sets) <code>[...]</code>:</b> 匹配方括号中**任意一个**字符。
+                <ul>
+                    <li><code>[aeiou]</code>: 匹配任何一个小写元音字母。</li>
+                    <li><code>[0-9a-fA-F]</code>: 匹配任何一个十六进制字符（使用 <code>-</code> 表示范围）。</li>
+                    <li><code>[^0-9]</code>: 匹配任何一个**非**数字字符（<code>^</code> 在方括号内开头表示否定）。</li>
+                    <li>方括号内的元字符通常失去特殊含义（例如 <code>[.*+]</code> 匹配 <code>.</code>, <code>*</code>,
+                        <code>+</code> 本身），但 <code>^</code>, <code>-</code>, <code>]</code>, <code>\</code> 仍需注意。
+                    </li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3 id="sf-1-3">量词 (Quantifiers) - 控制重复次数</h3>
+        <p>量词放在原子或分组之后，表示前面的元素应该出现多少次。</p>
+        <ul>
+            <li><code>*</code> : 匹配前面的元素 <b>零次或多次</b> (0+)。</li>
+            <li><code>+</code> : 匹配前面的元素 <b>一次或多次</b> (1+)。</li>
+            <li><code>?</code> : 匹配前面的元素 <b>零次或一次</b> (0 or 1，即可选)。</li>
+            <li><code>{n}</code>: 匹配前面的元素**恰好** <code>n</code> 次。</li>
+            <li><code>{n,}</code>: 匹配前面的元素**至少** <code>n</code> 次。</li>
+            <li><code>{n,m}</code>: 匹配前面的元素**至少** <code>n</code> 次，但**不超过** <code>m</code> 次。</li>
+        </ul>
+        <pre><code>/go*d/     # 匹配 "gd", "god", "good", "gooood" 等
+/go+d/     # 匹配 "god", "good", "gooood" 等 (至少一个 o)
+/colou?r/  # 匹配 "color" 或 "colour"
+/\d{3}/    # 匹配恰好 3 个数字，例如 "123"
+/\d{2,}/   # 匹配至少 2 个数字，例如 "12", "1234"
+/\d{2,4}/  # 匹配 2 到 4 个数字，例如 "12", "123", "1234"</code></pre>
+        <p><b>贪婪 (Greedy) vs. 懒惰 (Lazy) 量词：</b> 默认情况下，量词是贪婪的，它们会尽可能多地匹配字符。在量词后面加上一个问号
+            <code>?</code> 可以使其变为懒惰模式，即尽可能少地匹配字符。</p>
+        <pre><code class="language-php">&lt;?php
+$html = "&lt;b>bold text&lt;/b> and &lt;i>italic text&lt;/i>";
+
+// 贪婪模式 (.* 匹配尽可能多的字符)
+preg_match('/&lt;b>(.*)&lt;/b>/', $html, $matches_greedy);
+print_r($matches_greedy); // 输出: [0 => '<b>bold text</b> and <i>italic text</i>', 1 => '<b>bold text</b> and <i>italic text</i>']
+
+// 懒惰模式 (.? 匹配尽可能少的字符，直到遇到第一个 </b>)
+preg_match('/&lt;b>(.?)&lt;/b>/', $html, $matches_lazy);
+print_r($matches_lazy); // 输出: [0 => '<b>bold text</b>', 1 => 'bold text']
+?></code></pre>
+
+        <h3 id="sf-1-4">分组与捕获 (Grouping and Capturing) <code>(...)</code></h3>
+        <p>使用圆括号 <code>()</code> 可以：</p>
+        <ol>
+            <li>将模式的一部分组合在一起，以便对其应用量词或进行其他操作。例如 <code>/(abc)+/</code> 匹配一个或多个 "abc"。
+            </li>
+            <li>创建一个**捕获组 (Capturing Group)**。匹配该组内容的文本会被捕获下来，可以在之后通过 PHP 函数（如 <code>preg_match</code>
+                的 <code>$matches</code> 参数）或在替换操作中（如 <code>preg_replace</code> 的 <code>$1</code>,
+                <code>$2</code>）引用。
+            </li>
+        </ol>
+        <p><b>非捕获组 (Non-capturing Group) <code>(?:...)</code>:</b> 如果你只需要分组而不希望捕获匹配的内容（可以提高一点点性能或避免干扰捕获组的编号），可以使用
+            <code>(?:...)</code>。</p>
+
+        <h3 id="sf-1-5">分支结构 (Alternation) <code>|</code></h3>
+        <p>竖线 <code>|</code> 在模式中表示“或”的关系，匹配 <code>|</code> 左边或右边的模式。</p>
+        <pre><code>/cat|dog|fish/  # 匹配 "cat" 或 "dog" 或 "fish"
+/gr(a|e)y/       # 匹配 "gray" 或 "grey" (使用了分组)</code></pre>
+
+        <h3 id="sf-1-6">锚点 (Anchors) - 定位匹配位置</h3>
+        <ul>
+            <li><code>^</code> : 匹配**字符串的开头**（或者行的开头，如果使用 <code>m</code> 修正符）。</li>
+            <li><code>$</code> : 匹配**字符串的结尾**（或者行的结尾，如果使用 <code>m</code> 修正符）。</li>
+            <li><code>\b</code>: 匹配**单词边界**（单词字符 <code>\w</code> 和非单词字符 <code>\W</code>
+                之间的位置，或字符串的开头/结尾）。用于确保匹配的是整个单词，而不是单词的一部分。
+            </li>
+            <li><code>\B</code>: 匹配**非单词边界**。</li>
+        </ul>
+        <pre><code>/^Start/     # 匹配以 "Start" 开头的字符串
+/end$/       # 匹配以 "end" 结尾的字符串
+/^\d+$/      # 匹配整个字符串只包含一个或多个数字
+/\bcat\b/    # 匹配独立的单词 "cat"，不会匹配 "category" 或 "tomcat"</code></pre>
+
+        <h3 id="sf-1-7">模式修正符 (Modifiers / Flags)</h3>
+        <p>放在结束定界符之后，用于改变正则表达式的匹配行为。</p>
+        <ul>
+            <li><code>i</code>: <b>不区分大小写</b> (Case-<b>i</b>nsensitive) 匹配。</li>
+            <li><code>m</code>: <b>多行模式</b> (<b>M</b>ultiline)。使 <code>^</code> 和 <code>$</code>
+                匹配每一行的开头和结尾，而不仅仅是整个字符串的开头和结尾。
+            </li>
+            <li><code>s</code>: <b>点号通配模式</b> (Dotall / Single line)。使元字符 <code>.</code> 可以匹配**包括换行符在内**的所有字符。
+            </li>
+            <li><code>U</code>: **非贪婪模式** (<b>U</b>ngreedy)。反转量词的贪婪性，使 <code>*</code>, <code>+</code>,
+                <code>?</code>, <code>{n,m}</code> 默认变为懒惰模式。（通常不如在量词后加 <code>?</code> 清晰）。
+            </li>
+            <li><code>u</code>: **Unicode 模式**。将模式字符串和目标字符串都视为 UTF-8 编码。<b>强烈推荐在处理可能包含多字节字符（如中文）的文本时使用此修正符！</b>它可以让
+                <code>.</code>, <code>\w</code>, <code>\s</code> 等正确处理 Unicode 字符，并确保量词按字符计数。
+            </li>
+        </ul>
+        <pre><code>/hello/i   # 不区分大小写匹配 "hello", "Hello", "HELLO" 等
+/^line/m   # 在多行文本中，匹配每行开头的 "line"
+/begin.*end/s # 匹配从 "begin" 到 "end" 之间的所有字符，包括换行符
+/你好/u     # 正确匹配 UTF-8 编码的 "你好"</code></pre>
+
+        <hr/>
+
+        <h2 id="sf-2">F.2 PHP PCRE 函数详解</h2>
+
+        <h3 id="sf-2-1"><code>preg_match()</code> - 检查匹配并捕获首次出现</h3>
+        <ul>
+            <li><b><code>preg_match(string $pattern, string $subject, array &amp;$matches = null, int $flags = 0, int
+                $offset = 0): int|false</code></b></li>
+            <li><b>作用：</b> 在字符串 <code>$subject</code> 中搜索与正则表达式 <code>$pattern</code> 匹配的部分。<b>只查找并返回第一次匹配的结果</b>。
+            </li>
+            <li><b>返回值：</b>
+                <ul>
+                    <li><code>1</code>: 找到了匹配项。</li>
+                    <li><code>0</code>: 没有找到匹配项。</li>
+                    <li><code>false</code>: 执行过程中发生错误（例如正则表达式语法错误）。</li>
+                </ul>
+            </li>
+            <li><b><code>$matches</code> (可选，引用传递):</b> 如果提供了这个数组变量，它将被填充匹配结果：
+                <ul>
+                    <li><code>$matches[0]</code>: 包含了整个模式匹配到的完整字符串。</li>
+                    <li><code>$matches[1]</code>: 包含了第一个捕获组 <code>(...)</code> 匹配到的内容。</li>
+                    <li><code>$matches[2]</code>: 包含了第二个捕获组匹配到的内容，以此类推。</li>
+                </ul>
+            </li>
+            <li><b><code>$flags</code> (可选):</b> 例如 <code>PREG_OFFSET_CAPTURE</code>，使 <code>$matches</code>
+                数组中每个匹配项也包含其在原字符串中的偏移量。
+            </li>
+            <li><b><code>$offset</code> (可选):</b> 从 <code>$subject</code> 的指定字节偏移量开始搜索。</li>
+        </ul>
+        <p><b>示例：验证 Email 格式并提取用户名和域名</b></p>
+        <pre><code class="language-php">&lt;?php
+$email = "test.user+[移除了电子邮件地址]";
+
+// 一个相对简单的 Email 验证模式 (注意：完美的 Email 正则非常复杂)
+// 解释:
+// ^                  - 字符串开头
+// [a-zA-Z0-9.*%+-]+  - 用户名部分：一个或多个字母、数字、点、下划线、百分号、加号、减号
+// @                  - 字面的 "@" 符号
+// [a-zA-Z0-9.-]+     - 域名部分：一个或多个字母、数字、点、减号
+// .                 - 字面的 "." 符号 (需要转义)
+// [a-zA-Z]{2,}       - 顶级域名：至少两个字母
+// $                  - 字符串结尾
+// i                  - 不区分大小写修正符
+// 小括号 (...) 创建了捕获组
+pattern=
+′
+ /
+(
+ [a−zA−Z0−9.∗/i';
+
+// 使用 preg_match 进行验证和捕获
+if (preg_match($pattern, $email, $matches)) {
+// 如果 preg_match 返回 1，表示匹配成功
+echo "有效的 Email 地址。\n";
+echo "完整匹配: " . htmlspecialchars($matches[0]) . "\n";
+echo "用户名部分 (捕获组 1): " . htmlspecialchars($matches[1]) . "\n";
+echo "域名部分 (捕获组 2): " . htmlspecialchars($matches[2]) . "\n";
+} else {
+// 如果 preg_match 返回 0 或 false
+echo "无效的 Email 地址格式。\n";
+}
+
+/*
+输出:
+有效的 Email 地址。
+完整匹配: test.user+[移除了电子邮件地址]
+用户名部分 (捕获组 1): test.user+alias
+域名部分 (捕获组 2): example.co.uk
+*/
+?></code></pre>
+
+        <h3 id="sf-2-2"><code>preg_match_all()</code> - 查找所有匹配项</h3>
+        <ul>
+            <li><b><code>preg_match_all(string $pattern, string $subject, array &amp;$matches = null, int $flags =
+                PREG_PATTERN_ORDER, int $offset = 0): int|false</code></b></li>
+            <li><b>作用：</b> 在字符串 <code>$subject</code> 中搜索与 <code>$pattern</code> 匹配的<b>所有</b>出现。</li>
+            <li><b>返回值：</b> 返回找到的完整匹配的次数（可能为 0），或者在出错时返回 <code>false</code>。</li>
+            <li><b><code>$matches</code> (可选，引用传递):</b> 结构取决于 <code>$flags</code>：
+                <ul>
+                    <li><b><code>PREG_PATTERN_ORDER</code> (默认):</b> <code>$matches[0]</code> 是包含所有完整匹配项的数组，<code>$matches[1]</code>
+                        是包含所有第一个捕获组匹配项的数组，以此类推。
+                    </li>
+                    <li><b><code>PREG_SET_ORDER</code>:</b> <code>$matches</code> 是一个数组，其每个元素都是一个代表一次匹配的数组（结构类似
+                        <code>preg_match</code> 的 <code>$matches</code> 输出，包含完整匹配和所有捕获组）。<b>通常这种格式更方便处理每次匹配的结果。</b>
+                    </li>
+                    <li>还可以结合 <code>PREG_OFFSET_CAPTURE</code> 来获取偏移量。</li>
+                </ul>
+            </li>
+            <li><code>$offset</code>: 从指定字节偏移量开始搜索。</li>
+        </ul>
+        <p><b>示例：提取文本中所有的 URL</b></p>
+        <pre><code class="language-php">&lt;?php
+$text = "访问我们的网站 https://www.example.com 或查看 ftp://files.example.org/data.zip";
+
+// 一个简化的 https://www.google.com/search?q=URL 匹配模式 (实际 https://www.google.com/search?q=URL 匹配可能更复杂)
+// 匹配 http, https, ftp, ftps 协议
+$pattern = '/\b(https?|ftps?)://[-A-Z0-9+&@#/%?=~|!:,.;]*[-A-Z0-9+&@#/%=~|]/i'; // i 不区分大小写
+
+// 使用 preg_match_all 查找所有匹配项
+$match_count = preg_match_all($pattern, $text, $all_matches, PREG_SET_ORDER); // 使用 PREG_SET_ORDER
+
+if ($match_count > 0) {
+echo "找到了 " . $match_count . " 个 https://www.google.com/search?q=URL:\n";
+echo "&lt;ul>";
+foreach ($all_matches as $match) {
+// $match[0] 是完整的 https://www.google.com/search?q=URL 匹配
+// $match[1] 是第一个捕获组 (协议部分)
+$url = htmlspecialchars($match[0]);
+$protocol = htmlspecialchars($match[1]);
+echo "&lt;li>协议: {$protocol}, https://www.google.com/search?q=URL: {$url}&lt;/li>";
+}
+echo "&lt;/ul>";
+// echo "&lt;pre>Matches array:\n"; print_r($all_matches); echo "&lt;/pre>";
+} else {
+echo "没有找到 https://www.google.com/search?q=URL。\n";
+}
+
+/*
+输出:
+找到了 2 个 https://www.google.com/search?q=URL:
+
+<ul><li>协议: https, URL: https://www.example.com</li><li>协议: ftp, URL: ftp://files.example.org/data.zip</li></ul>
+*/
+?&gt;</code></pre>
+
+        <h3 id="sf-2-3"><code>preg_replace()</code> - 搜索并替换</h3>
+        <ul>
+            <li><b><code>preg_replace(string|array $pattern, string|array $replacement, string|array $subject, int
+                $limit = -1, int &amp;$count = null): string|array|null</code></b></li>
+            <li><b>作用：</b> 在 <code>$subject</code> 中搜索匹配 <code>$pattern</code> 的部分，并用
+                <code>$replacement</code> 替换它们。
+            </li>
+            <li><code>$pattern</code>, <code>$replacement</code>, <code>$subject</code> 都可以是数组，行为类似 <code>str_replace</code>。
+            </li>
+            <li><b><code>$replacement</code> 中的反向引用 (Backreferences):</b> 可以使用 <code>$n</code>,
+                <code>\n</code>, 或 <code>${n}</code> (推荐) 来引用 <code>$pattern</code> 中第 n
+                个捕获组匹配到的内容。<code>$0</code> 或 <code>\0</code> 代表整个匹配到的字符串。
+            </li>
+            <li><code>$limit</code> (可选): 每对 pattern 和 subject 最多替换的次数 (-1 表示无限)。</li>
+            <li><code>$count</code> (可选，引用传递): 总的替换次数会被写入这个变量。</li>
+            <li><b>返回值：</b> 返回替换后的字符串或数组，错误时返回 <code>null</code>。</li>
+        </ul>
+        <p><b>示例：</b></p>
+        <pre><code class="language-php">&lt;?php
+// 1. 移除多余的空白符
+$string1 = "   Too   much   \t space!   ";
+$pattern1 = '/\s+/'; // 匹配一个或多个空白符
+$replacement1 = ' '; // 替换为单个空格
+$clean_string = preg_replace($pattern1, $replacement1, trim($string1)); // 先 trim 掉两端空格
+echo "'{$string1}' 清理后: '{$clean_string}'\n"; // 输出: '   Too   much   &#9; space!   ' 清理后: 'Too much space!'
+echo "&lt;hr>";
+
+// 2. 将 [b]...[/b] 标签替换为 HTML <b>...</b>
+$bbcode = "这是 [b]加粗[/b] 的文本，还有 [b]另一个[/b]。";
+$pattern2 = '/[b](.*?)[/b]/i'; // 非贪婪匹配 [b] 和 [/b] 之间的内容，i 不区分大小写
+$replacement2 = '&lt;b>$1&lt;/b>'; // $1 引用第一个捕获组 (...) 的内容
+$html_text = preg_replace($pattern2, $replacement2, $bbcode);
+echo "BBCode: " . htmlspecialchars($bbcode) . "\n";
+echo "HTML: " . htmlspecialchars($html_text) . "\n"; // HTML 源码
+echo "渲染效果: " . $html_text . "\n"; // 在浏览器看效果
+echo "&lt;hr>";
+
+// 3. 隐藏手机号中间四位
+$phone = "用户手机号: 13812345678";
+$pattern3 = '/(\d{3})\d{4}(\d{4})/'; // 捕获前三位和后四位
+$replacement3 = '$1****$2'; // 用 **** 替换中间四位
+$masked_phone = preg_replace($pattern3, $replacement3, $phone);
+echo "原始: {$phone}\n";
+echo "隐藏后: {$masked_phone}\n"; // 输出: 隐藏后: 用户手机号: 138****5678
+
+?></code></pre>
+
+        <h3 id="sf-2-4"><code>preg_replace_callback()</code> - 使用回调函数替换</h3>
+        <ul>
+            <li><b><code>preg_replace_callback(string|array $pattern, callable $callback, string|array $subject, int
+                $limit = -1, int &amp;$count = null, int $flags = 0): string|array|null</code></b></li>
+            <li><b>作用：</b> 与 <code>preg_replace</code> 类似，但它使用一个回调函数 <code>$callback</code> 来动态地生成替换内容。
+            </li>
+            <li><b><code>$callback</code>:</b> 这个函数会接收一个参数：一个匹配结果数组 <code>$matches</code>（结构同
+                <code>preg_match</code> 的 <code>$matches</code>），并且**必须返回**用于替换当前匹配项的字符串。
+            </li>
+            <li><b>用途：</b> 当替换逻辑比较复杂，不能用简单的字符串或反向引用完成时，例如需要根据匹配到的内容进行计算、查找或其他处理来决定替换内容。
+            </li>
+        </ul>
+        <p><b>示例：将 Markdown 风格的链接 `[文字](URL)` 转换为 HTML 链接</b></p>
+        <pre><code class="language-php">&lt;?php
+$markdown = "这是一个链接 PHP官网 和另一个 搜索。";
+
+// 模式：匹配 文字
+// [(.?)] : 捕获链接文字 (非贪婪)
+// (     : 匹配左括号
+// (.?)  : 捕获 https://www.google.com/search?q=URL (非贪婪)
+// )     : 匹配右括号
+$pattern = '/[(.?)]((.?))/';
+
+// 定义回调函数
+$callback = function($matches) {
+// $matches[0] 是整个匹配 "文字"
+// $matches[1] 是第一个捕获组 (文字)
+// $matches[2] 是第二个捕获组 (https://www.google.com/search?q=URL)
+$text = htmlspecialchars($matches[1], ENT_QUOTES, 'UTF-8'); // 对文字进行 HTML 转义
+$url = htmlspecialchars($matches[2], ENT_QUOTES, 'UTF-8');  // 对 https://www.google.com/search?q=URL 也进行转义 (防止属性注入)
+
+// 返回 HTML 链接标签
+return '&lt;a href="' . $url . '" target="_blank"&gt;' . $text . '&lt;/a&gt;';
+};
+
+// 执行替换
+$html = preg_replace_callback($pattern, $callback, $markdown);
+
+echo "Markdown: " . htmlspecialchars($markdown) . "\n&lt;br>";
+echo "HTML: " . htmlspecialchars($html) . "\n&lt;br>"; // 查看源码
+echo "渲染效果: " . $html . "\n"; // 在浏览器查看效果
+?></code></pre>
+
+        <h3 id="sf-2-5"><code>preg_split()</code> - 使用正则表达式分割字符串</h3>
+        <ul>
+            <li><b><code>preg_split(string $pattern, string $subject, int $limit = -1, int $flags = 0):
+                array|false</code></b></li>
+            <li><b>作用：</b> 使用一个正则表达式 <code>$pattern</code> 作为分隔符来分割字符串 <code>$subject</code>，返回一个包含子串的数组。
+            </li>
+            <li><b><code>$limit</code> (可选):</b> 最多返回 <code>$limit</code> 个子串。-1 表示不限制。</li>
+            <li><b><code>$flags</code> (可选，位掩码):</b>
+                <ul>
+                    <li><code>PREG_SPLIT_NO_EMPTY</code>: 不返回空的子串。</li>
+                    <li><code>PREG_SPLIT_DELIM_CAPTURE</code>: 如果模式中有捕获组，则匹配到的分隔符本身也会被包含在返回的数组中。
+                    </li>
+                    <li><code>PREG_SPLIT_OFFSET_CAPTURE</code>: 返回的每个子串也包含其在原字符串中的偏移量。</li>
+                </ul>
+            </li>
+            <li><b>返回值：</b> 包含子串的数组，或在错误时返回 <code>false</code>。</li>
+        </ul>
+        <p><b>示例：按多种空白符或逗号分割</b></p>
+        <pre><code class="language-php">&lt;?php
+$string = "apple, banana   orange\tgrape,pear";
+
+// 模式：匹配一个或多个空白符 (\s+) 或一个逗号 (,)
+$pattern = '/[\s,]+/';
+
+$fruits = preg_split($pattern, $string);
+print_r($fruits);
+// 输出: Array ( [0] => apple [1] => banana [2] => orange [3] => grape [4] => pear )
+?></code></pre>
+
+        <h3 id="sf-2-6"><code>preg_quote()</code> - 转义正则表达式特殊字符</h3>
+        <ul>
+            <li><b><code>preg_quote(string $str, ?string $delimiter = null): string</code></b></li>
+            <li><b>作用：</b> 在字符串 <code>$str</code> 中所有正则表达式的特殊字符（如 <code>. \ + * ? [ ^ ] $ ( ) { } =
+                ! &lt; &gt; | : - #</code>）前面加上一个反斜杠 <code>\</code> 进行转义。
+            </li>
+            <li><b>用途：</b> 当你需要将一个**可能包含特殊字符的字符串**作为**字面量**用在正则表达式模式中进行匹配时，应该先用
+                <code>preg_quote()</code> 处理它，以确保那些特殊字符被当作普通字符对待。
+            </li>
+            <li><code>$delimiter</code> (可选): 如果提供了定界符字符，那么该字符也会被转义。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+// 假设 $userInput 是用户输入，可能包含特殊字符
+$userInput = "Search for price $10.00?";
+
+// 我们想在文本中精确匹配这个用户输入字符串
+// 直接用 $userInput 作为模式是危险的，因为 $ ? . 等是元字符
+// $pattern = "/{$userInput}/"; // 错误！
+
+// 先使用 preg_quote 进行转义
+$quotedInput = preg_quote($userInput, '/'); // 转义 $userInput，并额外转义可能作为定界符的 /
+
+// 构建安全的正则表达式模式
+$pattern = "/" . $quotedInput . "/";
+echo "安全模式: " . htmlspecialchars($pattern) . "\n";
+// 输出类似: 安全模式: /Search\ for\ price\ $10.00?/
+
+$text = "Did you Search for price $10.00? Yes!";
+if (preg_match($pattern, $text)) {
+echo "找到了精确匹配！";
+} else {
+echo "未找到匹配。";
+}
+?></code></pre>
+
+        <p class="note">掌握正则表达式需要时间和练习，但它是处理复杂字符串问题的强大武器。建议配合在线工具多尝试。</p>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义补充章节 F 结束 ---</p>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP - Supplement G: 网络函数 (cURL 基础)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+        }
+
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre;
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>PHP - Supplement G: 网络函数 (cURL 基础)</h1>
+    <p class="text-gray-500 text-sm">这是补充章节的第七部分 (G)。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="sg-intro">引言：让 PHP 访问网络</h2>
+        <p><b>cURL</b> (Client URL Library) 是一个强大的库，允许你使用各种协议（最常用的是 HTTP 和 HTTPS）与远程服务器进行数据传输。在
+            PHP 中，通过 cURL 扩展，你可以让你的脚本像浏览器一样去访问网页、调用 API、上传文件、下载资源等。</p>
+        <p>虽然 PHP 的 <code>file_get_contents()</code> 函数在 <code>allow_url_fopen</code> 开启时也能获取简单 URL 的内容，但
+            cURL 提供了**更多、更细致的控制选项**，例如：</p>
+        <ul>
+            <li>设置请求方法 (GET, POST, PUT, DELETE 等)</li>
+            <li>发送自定义 HTTP 标头 (Headers)</li>
+            <li>发送 POST 数据（表单或 JSON 等）</li>
+            <li>处理 Cookie</li>
+            <li>处理 HTTPS 和 SSL 证书验证</li>
+            <li>设置连接和执行超时</li>
+            <li>自动跟踪重定向</li>
+            <li>获取详细的传输信息（如 HTTP 状态码）</li>
+        </ul>
+        <p class="note">因此，对于任何稍微复杂的网络请求，尤其是调用 API，使用 cURL 是更健壮和推荐的方式。</p>
+
+        <hr/>
+
+        <h2 id="sg-1">G.1 cURL 基础工作流程 (Procedural Style)</h2>
+        <p>使用 PHP 的 <code>curl_*</code> 系列函数通常遵循以下步骤：</p>
+        <ol>
+            <li><b>初始化 (Initialize):</b> 使用 <code>curl_init()</code> 创建一个 cURL 会话句柄
+                (handle)。这是一个特殊资源，代表了当前的 cURL 会话。
+            </li>
+            <li><b>设置选项 (Set Options):</b> 使用 <code>curl_setopt()</code> 函数为 cURL 句柄设置各种传输选项，例如目标
+                URL、请求方法、要发送的数据、标头等。<b>这是最核心的一步</b>。
+            </li>
+            <li><b>执行 (Execute):</b> 使用 <code>curl_exec()</code> 执行 cURL 请求。</li>
+            <li><b>检查错误 (Check Errors):</b> 在 <code>curl_exec()</code> 之后，检查是否有错误发生，通常使用 <code>curl_errno()</code>
+                和 <code>curl_error()</code>。
+            </li>
+            <li><b>获取信息 (Get Info - 可选):</b> 使用 <code>curl_getinfo()</code> 获取关于这次传输的详细信息，例如 HTTP
+                状态码、内容类型等。
+            </li>
+            <li><b>关闭句柄 (Close):</b> 使用 <code>curl_close()</code> 关闭 cURL
+                会话句柄，释放资源。<b>必须执行此步骤</b>。
+            </li>
+        </ol>
+
+        <h3 id="sg-1-1">常用 <code>curl_setopt()</code> 选项</h3>
+        <p><code>curl_setopt(CurlHandle $handle, int $option, mixed $value): bool</code> 用于设置选项。</p>
+        <ul>
+            <li><b><code>CURLOPT_URL</code>:</b> (string) 要访问的 URL 地址。</li>
+            <li><b><code>CURLOPT_RETURNTRANSFER</code>:</b> (bool) <b>极其重要！</b> 设置为 <code>true</code> 时，<code>curl_exec()</code>
+                会将获取到的**内容作为字符串返回**，而不是直接输出到屏幕。<b>几乎所有情况下都应设置为
+                    <code>true</code></b>。
+            </li>
+            <li><b><code>CURLOPT_POST</code>:</b> (bool) 设置为 <code>true</code> 表示发送一个 POST 请求。</li>
+            <li><b><code>CURLOPT_POSTFIELDS</code>:</b> (string|array) 在 POST 请求中要发送的数据。
+                <ul>
+                    <li>如果是**字符串**，通常是 URL 编码的格式 (<code>'field1=value1&field2=value2'</code>)。你需要确保
+                        Content-Type 头部是 <code>application/x-www-form-urlencoded</code>。
+                    </li>
+                    <li>如果是**关联数组**，cURL 默认会以 <code>multipart/form-data</code> 格式发送，这常用于包含文件上传的表单。
+                    </li>
+                    <li>如果要发送 JSON 数据，你需要先用 <code>json_encode()</code> 将数组转为 JSON 字符串，然后设置
+                        <code>CURLOPT_POSTFIELDS</code> 为该字符串，并**务必**通过 <code>CURLOPT_HTTPHEADER</code> 设置
+                        <code>Content-Type: application/json</code> 标头。
+                    </li>
+                </ul>
+            </li>
+            <li><b><code>CURLOPT_HTTPHEADER</code>:</b> (array) 一个包含要发送的自定义 HTTP 标头的数组。格式如 <code>['Content-Type:
+                application/json', 'Authorization: Bearer YOUR_TOKEN']</code>。
+            </li>
+            <li><b><code>CURLOPT_USERAGENT</code>:</b> (string) 设置 HTTP 请求中的 User-Agent 标头。有些服务器或 API
+                会检查它。
+            </li>
+            <li><b><code>CURLOPT_CONNECTTIMEOUT</code>:</b> (int) 尝试建立连接的超时时间（秒）。</li>
+            <li><b><code>CURLOPT_TIMEOUT</code>:</b> (int) 允许 cURL 函数执行的最长秒数。</li>
+            <li><b><code>CURLOPT_FOLLOWLOCATION</code>:</b> (bool) 设置为 <code>true</code> 时，cURL 会自动跟踪服务器发送的重定向
+                (Location: 标头)。
+            </li>
+            <li><b><code>CURLOPT_MAXREDIRS</code>:</b> (int) 限制最大重定向次数（与 <code>CURLOPT_FOLLOWLOCATION</code>
+                配合使用）。
+            </li>
+            <li><b><code>CURLOPT_SSL_VERIFYPEER</code>:</b> (bool) 是否验证 SSL 证书。默认为 <code>true</code>。<b>在生产环境中，绝不应轻易设为
+                <code>false</code>！</b> 设为 <code>false</code>
+                会跳过对服务器证书有效性的检查，使连接容易受到中间人攻击。仅在确知风险且有必要时（例如连接使用自签名证书的内部开发服务器）才考虑关闭。
+            </li>
+            <li><b><code>CURLOPT_SSL_VERIFYHOST</code>:</b> (int) 检查 SSL 证书中的主机名。<code>0</code>
+                表示不检查，<code>2</code> (默认) 表示检查。同样，<b>生产环境不应设为 0</b>。
+            </li>
+            <li><b><code>CURLOPT_COOKIE</code>:</b> (string) 手动设置要发送的 Cookie 字符串，格式如 <code>"name1=value1;
+                name2=value2"</code>。
+            </li>
+            <li><b><code>CURLOPT_COOKIEJAR</code> / <code>CURLOPT_COOKIEFILE</code>:</b> (string) 指定一个文件路径，用于在
+                cURL 会话结束后存储收到的 Cookie (JAR)，或在开始时读取 Cookie (FILE)，以实现跨请求的 Cookie 保持。
+            </li>
+            <li><b><code>CURLOPT_CUSTOMREQUEST</code>:</b> (string) 设置自定义的请求方法，如 'PUT', 'DELETE', 'OPTIONS'
+                等。
+            </li>
+            <li><b><code>CURLOPT_HEADER</code>:</b> (bool) 设置为 <code>true</code> 时，响应头信息也会包含在 <code>curl_exec()</code>
+                的返回结果中（或输出中）。
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="sg-2">G.2 cURL 示例</h2>
+
+        <h3 id="sg-2-1">示例 1：发起简单的 GET 请求</h3>
+        <p>获取一个网页的内容。</p>
+        <pre><code class="language-php">&lt;?php
+// 目标 URL
+$url = "https://example.com"; // 使用 https://www.php.net/ 或其他可访问地址测试
+
+// 1. 初始化 cURL 会话
+$ch = curl_init();
+
+// 2. 设置选项
+// 设置要获取的 URL
+curl_setopt($ch, CURLOPT_URL, $url);
+// 设置 TRUE 将获取结果作为字符串返回，而不是直接输出
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+// (可选) 设置 User Agent，模仿浏览器
+curl_setopt($ch, CURLOPT_USERAGENT, 'My PHPCurlClient/1.0');
+// (可选) 设置连接超时时间 (例如 10 秒)
+curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+// (可选) 设置总执行超时时间 (例如 30 秒)
+curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+// (可选) 跟随重定向
+curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+
+// !!! 对于 HTTPS 链接，保持默认的 SSL 验证 !!!
+// curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true); // 默认即是 true
+// curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);    // 默认即是 2
+
+// 3. 执行请求
+echo "正在请求: {$url} ...&lt;br>";
+$response = curl_exec($ch);
+
+// 4. 检查错误
+if ($response === false) {
+// curl_exec() 失败，获取错误信息
+$error_no = curl_errno($ch);
+$error_msg = curl_error($ch);
+echo "&lt;b class='text-red-600'>cURL Error ({$error_no}): {$error_msg}&lt;/b>&lt;br>";
+} else {
+// 请求成功
+echo "请求成功！&lt;br>";
+
+// 5. 获取信息 (例如 HTTP 状态码)
+$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+echo "HTTP Status Code: {$http_code}&lt;br&gt;";
+
+// (可选) 获取内容类型
+// $content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+// echo "Content-Type: {$content_type}&lt;br&gt;";
+
+// 处理响应内容 ($response 包含了网页 HTML)
+echo "&lt;h4&gt;响应内容 (前 200 字符):&lt;/h4&gt;";
+echo "&lt;pre&gt;" . htmlspecialchars(substr($response, 0, 200)) . "...&lt;/pre&gt;";
+}
+
+// 6. 关闭 cURL 句柄
+curl_close($ch);
+echo "cURL handle closed.";
+?></code></pre>
+
+        <h3 id="sg-2-2">示例 2：发起简单的 POST 请求 (模拟表单提交)</h3>
+        <p>向一个接收 POST 数据的端点发送数据。</p>
+        <pre><code class="language-php">&lt;?php
+// 目标 URL (假设这个 URL 会接收并处理 POST 数据)
+$post_url = "https://httpbin.org/post"; // httpbin.org 是一个用于测试 HTTP 请求的好工具
+
+// 要发送的数据 (模拟表单字段)
+$post_data = [
+'username' => 'testuser',
+'password' => 'secret123', // 实际密码不应这样传输
+'action' => 'login'
+];
+
+// 1. 初始化
+$ch = curl_init();
+
+// 2. 设置选项
+curl_setopt($ch, CURLOPT_URL, $post_url);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+// 设置为 POST 请求
+curl_setopt($ch, CURLOPT_POST, true);
+
+// 设置 POST 数据
+// 方式一：直接传递关联数组，cURL 通常会使用 multipart/form-data
+// curl_setopt($ch, CURLOPT_POSTFIELDS, $post_data);
+
+// 方式二：将数组转换为 URL 编码的字符串 (更像传统表单)
+// 并设置 Content-Type 头
+$post_fields = http_build_query($post_data);
+curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
+curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
+
+// 其他选项 (超时等)
+curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+
+// 3. 执行
+echo "正在向 {$post_url} 发送 POST 请求...&lt;br>";
+$response = curl_exec($ch);
+
+// 4. 检查错误
+if ($response === false) {
+$error_no = curl_errno($ch);
+$error_msg = curl_error($ch);
+echo "&lt;b class='text-red-600'>cURL Error ({$error_no}): {$error_msg}&lt;/b>&lt;br>";
+} else {
+// 5. 获取信息
+$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+echo "HTTP Status Code: {$http_code}&lt;br>";   
+
+// httpbin.org/post 会返回包含请求信息的 JSON
+echo "&lt;h4&gt;响应内容:&lt;/h4&gt;";
+echo "&lt;pre&gt;" . htmlspecialchars($response) . "&lt;/pre&gt;";
+
+// 你可以尝试 json_decode() 来解析响应
+// $decoded_response = json_decode($response, true);
+// if ($decoded_response) { print_r($decoded_response['form'] ?? $decoded_response['data']); }
+}
+
+// 6. 关闭
+curl_close($ch);
+echo "cURL handle closed.";
+?></code></pre>
+
+        <h3 id="sg-2-3">示例 3：POST JSON 数据</h3>
+        <p>调用需要接收 JSON 格式数据的 API。</p>
+        <pre><code class="language-php">&lt;?php
+// 目标 API URL
+$api_url = "https://httpbin.org/post";
+
+// 要发送的数据 (PHP 数组)
+$data_to_send = [
+'productId' => 12345,
+'quantity' => 2,
+'options' => ['color' => 'blue', 'size' => 'XL']
+];
+
+// 将 PHP 数组编码为 JSON 字符串
+$json_payload = json_encode($data_to_send);
+
+// 1. 初始化
+$ch = curl_init();
+
+// 2. 设置选项
+curl_setopt($ch, CURLOPT_URL, $api_url);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_POST, true); // 仍然是 POST 请求
+
+// 设置 POST 数据为 JSON 字符串
+curl_setopt($ch, CURLOPT_POSTFIELDS, $json_payload);
+
+// 设置正确的 HTTP 标头，告诉服务器我们发送的是 JSON
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+'Content-Type: application/json', // 表明请求体是 JSON
+'Content-Length: ' . strlen($json_payload) // Content-Length 通常 cURL 会自动计算，但显式设置也可以
+// 'Authorization: Bearer YOUR_API_KEY' // 如果 API 需要认证
+]);
+
+// 其他选项
+curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+
+// 3. 执行
+echo "正在向 {$api_url} 发送 JSON POST 请求...&lt;br>";
+$response = curl_exec($ch);
+
+// 4. 检查错误
+if ($response === false) {
+$error_no = curl_errno($ch);
+$error_msg = curl_error($ch);
+echo "&lt;b class='text-red-600'>cURL Error ({$error_no}): {$error_msg}&lt;/b>&lt;br>";
+} else {
+// 5. 获取信息
+$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+echo "HTTP Status Code: {$http_code}&lt;br>";
+
+// httpbin.org/post 会在响应的 'data' 或 'json' 字段回显 JSON 数据
+echo "&lt;h4&gt;响应内容:&lt;/h4&gt;";
+echo "&lt;pre&gt;" . htmlspecialchars($response) . "&lt;/pre&gt;";
+
+// 尝试解码响应
+// $decoded_response = json_decode($response, true);
+// if ($decoded_response && isset($decoded_response['json'])) {
+//    echo "&lt;h4&gt;服务器收到的 JSON 数据:&lt;/h4&gt;";
+//    print_r($decoded_response['json']);
+// }
+}
+
+// 6. 关闭
+curl_close($ch);
+echo "cURL handle closed.";
+?></code></pre>
+
+        <h3 id="sg-2-4">关于错误处理和 HTTPS</h3>
+        <ul>
+            <li><b>错误处理：</b> <code>curl_exec()</code> 返回 <code>false</code> 不一定意味着 HTTP 错误（如 404 Not
+                Found）。它通常表示网络层面的错误（如无法解析域名、连接超时、SSL 握手失败等）。HTTP 级别的错误（4xx, 5xx）需要通过
+                <code>curl_getinfo($ch, CURLINFO_HTTP_CODE)</code> 来获取状态码进行判断。
+            </li>
+            <li><b>HTTPS：</b> 默认情况下，cURL 会验证 SSL 证书。如果目标服务器证书无效（过期、自签名、域名不匹配），连接会失败。在开发环境中临时禁用验证（<code>CURLOPT_SSL_VERIFYPEER
+                => false</code>）有时是必要的，但<b>切勿在生产代码中这样做</b>，应确保证书有效或正确配置信任链。
+            </li>
+        </ul>
+
+        <h3 id="sg-2-5">面向对象的封装</h3>
+        <p class="note">虽然本节主要介绍 <code>curl_*</code> 函数，但在实际项目中，为了代码更清晰、更易于测试和重用，通常会将
+            cURL 操作封装到一个类或使用现成的 HTTP 客户端库（如 Guzzle, Symfony HttpClient, Laravel Http
+            Client）。这些库提供了更友好的面向对象接口来发送请求和处理响应。</p>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义补充章节 G 结束 ---</p>
+
+</div>
+</body>
+</html>

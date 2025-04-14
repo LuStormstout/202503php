@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laravel 详细讲义 - Part 6: 数据库 - 查询构建器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+        }
+        .prose code::before, .prose code::after { content: none !important; }
+        .prose code { background-color: #f3f4f6; color: #374151; padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.875em; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+        .prose pre code { background-color: transparent; color: inherit; padding: 0; font-size: inherit; white-space: pre; }
+        .prose ul > li::marker { color: #6b7280; }
+        .prose ol > li::marker { color: #6b7280; }
+        .prose a { color: #2563eb; }
+        .prose a:hover { color: #1d4ed8; text-decoration: underline;}
+        .prose b { font-weight: 600; }
+        .prose strong { font-weight: 600; }
+        .prose hr { border-color: #e5e7eb; margin-top: 2em; margin-bottom: 2em;}
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; font-weight: 700; margin-bottom: 0.8em; padding-bottom: 0.3em; border-bottom: 1px solid #e5e7eb;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; font-weight: 600; margin-top: 1.8em; margin-bottom: 0.8em; padding-bottom: 0.3em; border-bottom: 1px solid #e5e7eb;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; font-weight: 600; margin-top: 1.5em; margin-bottom: 0.6em;}
+        .prose h4 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; margin-top: 1.2em; margin-bottom: 0.5em;}
+        .prose p { margin-top: 1.25em; margin-bottom: 1.25em; }
+        .prose ul, .prose ol { margin-top: 1.25em; margin-bottom: 1.25em; padding-left: 1.625em; }
+        .prose li { margin-top: 0.5em; margin-bottom: 0.5em; }
+        .note { background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 1em; margin: 1.5em 0; border-radius: 0 0.375rem 0.375rem 0; color: #1e40af;}
+        .warning { background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 1em; margin: 1.5em 0; border-radius: 0 0.375rem 0.375rem 0; color: #92400e;}
+        .danger { background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 1em; margin: 1.5em 0; border-radius: 0 0.375rem 0.375rem 0; color: #991b1b;}
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>Laravel 详细讲义 - Part 6: 数据库 - 查询构建器</h1>
+    <p class="text-gray-500 text-sm">这是 Laravel 系列讲义的第六部分 (共 17 部分)。(已再次检查代码缩进及 &lt;&gt; 符号转义)</p>
+
+    <hr />
+
+    <div>
+        <h2 id="s6-intro">引言：流畅地构建 SQL 查询</h2>
+        <p>Laravel 的<b>查询构建器 (Query Builder)</b> 提供了一个方便、流畅 (fluent) 的接口，用于创建和执行数据库查询。你不需要在 PHP 代码中手动拼接 SQL 字符串，而是通过调用一系列面向对象的方法来构建查询。</p>
+        <p><b>优点：</b></p>
+        <ul>
+            <li><b>易于使用和阅读：</b> 链式调用方法通常比复杂的 SQL 语句更清晰。</li>
+            <li><b>数据库无关性：</b> 查询构建器会尝试生成适用于你配置的数据库类型（MySQL, PostgreSQL, SQLite, SQL Server）的 SQL 语句，使得切换数据库更容易（尽管复杂的查询可能仍需调整）。</li>
+            <li><b>安全性：</b> 查询构建器在处理传递给 <code>where</code> 等方法的值时，通常会使用**参数绑定 (Parameter Binding)**，这可以有效地**防止 SQL 注入攻击**。</li>
+            <li><b>集成性：</b> 与 Laravel 的其他部分（如分页、集合）无缝集成。</li>
+        </ul>
+        <p class="note">Eloquent ORM（下一部分将详细介绍）底层实际上就是使用的查询构建器。因此，理解查询构建器有助于更深入地理解 Eloquent，并且在需要执行 Eloquent 难以表达的复杂查询时非常有用。</p>
+
+        <hr />
+
+        <h2 id="s6-1">6.1 开始使用查询构建器</h2>
+        <p>查询构建器主要通过 <code>DB</code> Facade (门面) 来访问。你需要先引入它：</p>
+        <pre><code class="language-php">&lt;?php
+// 在你的控制器或其他类文件的顶部
+use Illuminate\Support\Facades\DB;
+?></code></pre>
+        <p>然后，使用 <code>DB::table('table_name')</code> 方法开始构建一个针对特定表的查询。这个方法返回一个查询构建器实例，你可以继续在其上链式调用其他方法。</p>
+        <pre><code class="language-php">&lt;?php
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection; // 用于类型提示
+
+// 获取 'users' 表的查询构建器实例
+$query = DB::table('users');
+
+// 可以在 $query 上继续调用方法...
+// $users = $query->where('active', 1)->get();
+?></code></pre>
+
+        <hr />
+
+        <h2 id="s6-2">6.2 检索数据 (SELECT)</h2>
+
+        <h3 id="s6-2-1">获取所有行: <code>get()</code></h3>
+        <p><code>get()</code> 方法执行查询，并返回一个包含所有结果行的 <code>Illuminate\Support\Collection</code> 对象。集合对象类似于增强版的数组，提供了很多方便的操作方法。</p>
+        <p>默认情况下，集合中的每一行是一个 <code>stdClass</code> 对象，其属性对应于数据库表的列名。</p>
+        <pre><code class="language-php">&lt;?php
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection; // 可以用来做类型提示
+
+// 获取 users 表中的所有行
+$users = DB::table('users')->get();
+
+// 遍历结果集合
+foreach ($users as $user) {
+// $user 是一个 stdClass 对象
+// 使用 -> 访问属性 (列名)
+echo '用户名: ' . htmlspecialchars($user->name) . ', 邮箱: ' . htmlspecialchars($user->email) . "&lt;br>";
+}
+
+// Collection 对象有很多有用的方法
+// echo "用户总数: " . $users->count();
+?></code></pre>
+
+        <h3 id="s6-2-2">获取单行/单列</h3>
+        <ul>
+            <li><b><code>first(): ?stdClass</code></b>: 获取满足查询条件的<b>第一行</b>记录，作为一个 <code>stdClass</code> 对象返回。如果没有找到匹配的行，返回 <code>null</code>。</li>
+            <li><b><code>value(string $column): mixed</code></b>: 获取满足查询条件的<b>第一行</b>记录中**指定列**的值。如果找不到行，返回 <code>null</code>。</li>
+            <li><b><code>find(mixed $id): ?stdClass</code></b>: 根据<b>主键</b> (默认为 <code>id</code> 列) 的值获取单行记录。如果找不到，返回 <code>null</code>。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+use Illuminate\Support\Facades\DB;
+
+// 获取第一个活跃用户
+$firstActiveUser = DB::table('users')->where('active', 1)->first();
+if ($firstActiveUser) {
+echo "第一个活跃用户邮箱: " . htmlspecialchars($firstActiveUser->email) . "&lt;br>";
+} else {
+echo "没有找到活跃用户。&lt;br>";
+}
+
+// 获取特定用户的邮箱地址
+$userEmail = DB::table('users')->where('name', 'Alice')->value('email');
+if ($userEmail) {
+echo "Alice 的邮箱是: " . htmlspecialchars($userEmail) . "&lt;br>";
+} else {
+echo "未找到名为 Alice 的用户或其没有邮箱。&lt;br>";
+}
+
+// 通过 ID 获取用户
+$userId = 10;
+$userById = DB::table('users')->find($userId);
+if ($userById) {
+echo "ID 为 {$userId} 的用户名是: " . htmlspecialchars($userById->name) . "&lt;br>";
+} else {
+echo "未找到 ID 为 {$userId} 的用户。&lt;br>";
+}
+?></code></pre>
+
+        <h3 id="s6-2-3">获取指定列的值列表: <code>pluck()</code></h3>
+        <ul>
+            <li><b><code>pluck(string $column, ?string $key = null): Collection</code></b>: 从查询结果中获取<b>指定单列</b>的所有值，返回一个包含这些值的 Collection。</li>
+            <li><code>$key</code> (可选): 指定另一列的名称，该列的值将作为返回 Collection 的**键**。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+use Illuminate\Support\Facades\DB;
+
+// 获取所有用户的 name 列表
+$userNames = DB::table('users')->pluck('name');
+// $userNames 是一个 Collection，类似 ['Alice', 'Bob', 'Charlie']
+echo "所有用户名:&lt;br>";
+foreach ($userNames as $name) {
+echo "- " . htmlspecialchars($name) . "&lt;br>";
+}
+
+// 获取 name 列表，并使用 id 作为键
+$usersNameWithId = DB::table('users')->pluck('name', 'id');
+// $usersNameWithId 是一个 Collection，类似 [1 => 'Alice', 2 => 'Bob', 3 => 'Charlie']
+echo "&lt;br>带 ID 的用户名:&lt;br>";
+foreach ($usersNameWithId as $id => $name) {
+echo "- ID: {$id}, Name: " . htmlspecialchars($name) . "&lt;br>";
+}
+?></code></pre>
+
+        <h3 id="s6-2-4">分块处理结果 (Chunking)</h3>
+        <p>当需要处理大量数据（例如几千、几万行）时，一次性使用 <code>get()</code> 将所有数据加载到内存中可能会导致内存耗尽。这时应该使用分块处理：</p>
+        <ul>
+            <li><b><code>chunk(int $count, callable $callback): bool</code></b>: 每次从数据库获取 <code>$count</code> 条记录，然后将这批记录（一个 Collection）传递给 <code>$callback</code> 函数进行处理。处理完一批后，再获取下一批，直到所有记录处理完毕。</li>
+            <li><b><code>lazy(): LazyCollection</code></b>: (更现代的方式) 返回一个 <code>LazyCollection</code> 对象。它利用 PHP 的生成器 (Generator)，允许你像处理普通 Collection 一样迭代结果集 (例如用 <code>foreach</code>)，但它实际上是逐条从数据库获取数据，内存占用极低。<b>推荐用于处理非常大的结果集</b>。</li>
+            <li><b><code>chunkById(int $count, callable $callback, ?string $column = null, ?string $alias = null): bool</code></b>: 类似于 <code>chunk</code>，但它基于主键（或其他指定列）进行分块，通常比基于 <code>limit/offset</code> 的 <code>chunk</code> 更高效，尤其是在处理过程中可能有数据插入或删除时。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+use Illuminate\Support\Facades\DB;
+
+echo "&lt;h4>使用 chunk 处理 (每次 100 条):&lt;/h4>";
+DB::table('users')
+->orderBy('id') // chunk/chunkById 通常需要一个排序依据
+->chunk(100, function (Collection $usersChunk) {
+echo "处理 " . $usersChunk->count() . " 条用户数据...&lt;br>";
+foreach ($usersChunk as $user) {
+// 处理 $user 对象...
+// echo "."; // 打印点表示处理
+}
+// 如果在回调中返回 false，可以停止后续的分块处理
+// return false;
+});
+
+echo "&lt;h4>使用 lazy 处理:&lt;/h4>";
+// lazy() 返回的是 LazyCollection，可以用 foreach 迭代
+foreach (DB::table('users')->orderBy('id')->lazy() as $user) {
+// 每次循环只从数据库获取一条记录，内存占用低
+// 处理 $user 对象...
+// echo ".";
+}
+echo "Lazy 处理完成.&lt;br>";
+
+?></code></pre>
+
+        <hr />
+
+        <h2 id="s6-3">6.3 Select 子句</h2>
+        <ul>
+            <li><b><code>select(string|array $columns = ['*'])</code></b>: 指定要查询的列。可以传入列名数组或多个参数。</li>
+            <li><b><code>addSelect(string|array $columns)</code></b>: 向已有的 select 子句中添加列。</li>
+            <li><b><code>distinct(): Builder</code></b>: 添加 <code>DISTINCT</code> 关键字，确保返回的行是唯一的。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+use Illuminate\Support\Facades\DB;
+
+// 只选择 name 和 email 列
+$users_partial = DB::table('users')
+->select('name', 'email as user_email') // 可以使用 as 起别名
+->where('active', 1)
+->get();
+
+// 获取唯一的城市列表
+$cities = DB::table('users')
+->distinct()
+->pluck('city');
+?></code></pre>
+
+        <hr />
+
+        <h2 id="s6-4">6.4 Where 子句 (过滤)</h2>
+        <p>查询构建器提供了非常丰富的 Where 条件方法。</p>
+        <ul>
+            <li><b>基本 <code>where('column', 'operator', 'value')</code>:</b>
+                <ul>
+                    <li>如果 <code>operator</code> 省略，默认为 <code>=</code>。</li>
+                    <li>常用操作符：<code>=</code>, <code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code>, <code>&lt;&gt;</code>, <code>!=</code>, <code>like</code>, <code>not like</code>, <code>ilike</code> (PostgreSQL 不区分大小写 like) 等。</li>
+                    <li><b>值会自动进行参数绑定</b>，防止 SQL 注入。</li>
+                </ul>
+                <pre><code class="language-php">$users = DB::table('users')->where('votes', '&gt;=', 100)->get();
+$pending = DB::table('orders')->where('status', 'pending')->get();
+$admins = DB::table('users')->where('name', 'like', 'Admin%')->get();</code></pre>
+            </li>
+            <li><b><code>orWhere(...)</code>:</b> 添加一个 OR 条件。</li>
+            <pre><code class="language-php">$users = DB::table('users')
+->where('votes', '>', 100)
+->orWhere('name', 'John')
+->get();</code></pre>
+            <li><b>参数分组 (括号):</b> 当你需要复杂的 AND/OR 逻辑时，需要将条件分组。传递一个闭包给 <code>where</code> 或 <code>orWhere</code>。
+                <pre><code class="language-php">$users = DB::table('users')
+->where('status', 'active') // 主条件 AND
+->where(function ($query) {   // 开始括号
+$query->where('votes', '>', 100) // 括号内第一个条件
+->orWhere('name', 'Jane'); // 括号内 OR 第二个条件
+})                        // 结束括号
+->get();
+// SQL: SELECT * FROM users WHERE status = 'active' AND (votes > 100 OR name = 'Jane')</code></pre>
+            </li>
+            <li><b><code>whereBetween('column', [min, max])</code> / <code>whereNotBetween(...)</code></b></li>
+            <li><b><code>whereIn('column', [value1, value2, ...])</code> / <code>whereNotIn(...)</code></b></li>
+            <li><b><code>whereNull('column')</code> / <code>whereNotNull(...)</code></b></li>
+            <li><b>日期时间相关的 Where:</b> <code>whereDate('created_at', '2025-04-15')</code>, <code>whereMonth(...)</code>, <code>whereDay(...)</code>, <code>whereYear(...)</code>, <code>whereTime(...)</code></li>
+            <li><b><code>whereColumn('column1', 'operator', 'column2')</code>:</b> 比较两列的值。</li>
+            <li><b><code>whereExists(Closure $callback)</code> / <code>whereNotExists(...)</code>:</b> 使用子查询作为条件。闭包接收一个查询构建器实例用于构建子查询。
+                <pre><code class="language-php">// 查找至少有一个订单的用户
+$usersWithOrders = DB::table('users')
+->whereExists(function ($query) {
+$query->select(DB::raw(1)) // 子查询 select 什么不重要，只要有结果
+->from('orders')
+->whereColumn('orders.user_id', 'users.id'); // 关联条件
+})
+->get();</code></pre>
+            </li>
+            <li><b>JSON Where (如果数据库支持):</b> <code>whereJsonContains('options->languages', 'en')</code>, <code>whereJsonLength(...)</code> 等。</li>
+        </ul>
+
+        <hr />
+
+        <h2 id="s6-5">6.5 排序、分组、限制与偏移</h2>
+        <ul>
+            <li><b><code>orderBy(string $column, string $direction = 'asc')</code>:</b> 按指定列排序。<code>$direction</code> 可以是 <code>'asc'</code> (升序) 或 <code>'desc'</code> (降序)。可以多次调用进行多列排序。</li>
+            <li><b><code>latest(string $column = 'created_at')</code> / <code>oldest(string $column = 'created_at')</code>:</b> 按 <code>created_at</code> (或指定列) 降序/升序排序的快捷方式。</li>
+            <li><b><code>inRandomOrder(): Builder</code>:</b> 随机排序结果。</li>
+            <li><b><code>groupBy(string ...$columns)</code>:</b> 按一个或多个列分组。通常与聚合函数配合使用。</li>
+            <li><b><code>having(string $column, string $operator, mixed $value)</code>:</b> 在 <code>groupBy</code> 之后添加过滤条件（针对聚合结果）。<code>orHaving</code>。</li>
+            <li><b><code>skip(int $count)</code> (别名 <code>offset</code>):</b> 跳过指定数量的记录。</li>
+            <li><b><code>take(int $count)</code> (别名 <code>limit</code>):</b> 只获取指定数量的记录。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+use Illuminate\Support\Facades\DB;
+
+// 获取按 email 降序排列的前 10 个活跃用户
+$users = DB::table('users')
+->where('active', 1)
+->orderBy('email', 'desc')
+->take(10) // 相当于 LIMIT 10
+->get();
+
+// 获取第 2 页的用户（假设每页 15 个）
+$page = 2;
+$perPage = 15;
+$pagedUsers = DB::table('users')
+->skip(($page - 1) * $perPage) // 跳过 (2-1)*15 = 15 条
+->take($perPage)              // 取 15 条
+->get();
+
+// 统计每个城市的活跃用户数，只显示用户数大于 5 的城市
+$cityCounts = DB::table('users')
+->select('city', DB::raw('COUNT() as user_count')) // 使用 DB::raw 写聚合函数
+->where('active', 1)
+->groupBy('city')
+->having('user_count', '>', 5) // 对聚合结果 COUNT() (别名 user_count) 进行过滤
+->orderBy('user_count', 'desc')
+->get();
+?></code></pre>
+
+        <hr />
+
+        <h2 id="s6-6">6.6 连接 (Joins)</h2>
+        <p>用于联合多个表进行查询。</p>
+        <ul>
+            <li><b><code>join(string $table, string $firstColumn, string $operator, string $secondColumn)</code>:</b> 内连接 (INNER JOIN)。只返回两个表中有关联的行。<code>$operator</code> 默认为 <code>=</code>。</li>
+            <li><b><code>leftJoin(...)</code>:</b> 左连接。返回左表的所有行，以及右表中匹配的行（没有匹配则右表列为 NULL）。</li>
+            <li><b><code>rightJoin(...)</code>:</b> 右连接。返回右表的所有行，以及左表中匹配的行。</li>
+            <li><b><code>crossJoin(string $table)</code>:</b> 交叉连接（笛卡尔积）。</li>
+            <li><b>高级连接子句：</b> 可以传递一个闭包作为第二个参数给 join 方法，来自定义更复杂的连接条件，使用 <code>on()</code> 和 <code>orOn()</code>。</li>
+            <li><b>子查询连接：</b> 可以将子查询结果作为表进行连接。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+use Illuminate\Support\Facades\DB;
+
+// 获取用户及其对应的订单信息 (假设 user_id 是 orders 表的外键)
+$usersWithOrders = DB::table('users')
+->join('orders', 'users.id', '=', 'orders.user_id') // 内连接
+->select('users.id', 'users.name', 'orders.order_number', 'orders.amount') // 选择需要的列，注意指明表名避免歧义
+->where('users.id', 1) // 可以对连接后的结果进行过滤
+->get();
+
+// 获取所有用户，以及他们的订单号（即使没有订单也要显示用户）
+$allUsersSomeOrders = DB::table('users')
+->leftJoin('orders', 'users.id', '=', 'orders.user_id')
+->select('users.name', 'orders.order_number')
+->get();
+// 对于没有订单的用户，$order_number 会是 null
+?></code></pre>
+
+        <hr />
+
+        <h2 id="s6-7">6.7 聚合函数 (Aggregates)</h2>
+        <p>查询构建器提供了一些直接执行聚合计算并返回结果的方法。</p>
+        <ul>
+            <li><code>count(string $columns = '*')</code></li>
+            <li><code>max(string $column)</code></li>
+            <li><code>min(string $column)</code></li>
+            <li><code>avg(string $column)</code> (别名 <code>average</code>)</li>
+            <li><code>sum(string $column)</code></li>
+            <li><code>exists(): bool</code> / <code>doesntExist(): bool</code>: 检查是否有匹配记录存在。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+use Illuminate\Support\Facades\DB;
+
+$totalUsers = DB::table('users')->count();
+echo "用户总数: {$totalUsers}&lt;br>";
+
+$maxPrice = DB::table('products')->max('price');
+echo "最高价格: {$maxPrice}&lt;br>";
+
+$averageScore = DB::table('results')->where('subject', 'Math')->avg('score');
+echo "数学平均分: {$averageScore}&lt;br>";
+
+// 检查是否有活跃用户
+if (DB::table('users')->where('active', 1)->exists()) {
+echo "存在活跃用户。&lt;br>";
+}
+?></code></pre>
+
+        <hr />
+
+        <h2 id="s6-8">6.8 联合 (Unions)</h2>
+        <ul>
+            <li><b><code>union(Builder $query)</code>:</b> 将另一个查询构建器的结果合并到当前查询结果中（去除重复行）。</li>
+            <li><b><code>unionAll(Builder $query)</code>:</b> 合并结果，但不去除重复行。</li>
+        </ul>
+        <p class="note">两个查询必须有相同数量的列。</p>
+
+        <hr />
+
+        <h2 id="s6-9">6.9 原始表达式 (Raw Expressions)</h2>
+        <p>当你需要使用查询构建器不支持的特定 SQL 函数或语法时，可以使用原始表达式。但要<b>极其小心 SQL 注入风险</b>！</p>
+        <ul>
+            <li><b><code>selectRaw(string $expression, array $bindings = [])</code>:</b> 在 SELECT 子句中使用原始表达式。</li>
+            <li><b><code>whereRaw(string $expression, array $bindings = [])</code>:</b> 在 WHERE 子句中使用原始表达式。</li>
+            <li><b><code>havingRaw(...)</code> / <code>orderByRaw(...)</code></b></li>
+            <li><b><code>DB::raw(string $value)</code>:</b> 创建一个原始表达式对象，可以在查询构建器的多个地方注入。</li>
+        </ul>
+        <p class="danger"><b>安全：</b> 如果原始表达式中需要包含动态数据，<b>必须</b>使用 <code>?</code> 作为占位符，并将对应的值通过第二个参数 <code>$bindings</code> 数组传递进去，进行参数绑定，以防止 SQL 注入。</p>
+        <pre><code class="language-php">&lt;?php
+use Illuminate\Support\Facades\DB;
+
+// 示例：计算每个用户的订单总数 (假设使用 COUNT 函数)
+$userOrderCounts = DB::table('users')
+->select('name', DB::raw('COUNT(orders.id) as order_count')) // 使用 DB::raw
+->leftJoin('orders', 'users.id', '=', 'orders.user_id')
+->groupBy('users.id', 'users.name') // 需要 group by 非聚合列
+->get();
+
+// 示例：使用 whereRaw 和绑定
+$minVotes = 100;
+$usersRaw = DB::table('users')
+->where('active', 1)
+// 使用 ? 作为占位符，并将值通过数组绑定
+->whereRaw('votes > ? AND char_length(name) > ?', [$minVotes, 3])
+->get();
+?></code></pre>
+        <p>只有在查询构建器无法满足需求，并且你确信能安全地处理绑定时，才应使用原始表达式。</p>
+
+        <hr />
+
+        <h2 id="s6-10">6.10 插入、更新与删除</h2>
+
+        <h3 id="s6-10-1">插入数据 (INSERT)</h3>
+        <ul>
+            <li><b><code>insert(array $values): bool</code></b>: 插入**一行或多行**数据。
+                <ul>
+                    <li>插入单行：传递一个关联数组 <code>['column' => value, ...]</code>。</li>
+                    <li>插入多行：传递一个包含多个关联数组的索引数组 <code>[ ['col' => val1], ['col' => val2] ]</code>。</li>
+                </ul>
+            </li>
+            <li><b><code>insertGetId(array $values, ?string $sequence = null): int</code></b>: 插入**单行**数据，并返回该行的自增 ID。<code>$sequence</code> 用于 PostgreSQL 等需要指定序列名称的情况。</li>
+            <li><b><code>insertOrIgnore(array $values): int</code></b>: 尝试插入一行或多行。如果插入会导致唯一键冲突，则忽略该行。返回实际插入的行数。</li>
+            <li><b><code>upsert(array $values, array|string $uniqueBy, ?array $update = null): int</code></b> (更高级): 原子性地插入或更新。如果基于 <code>$uniqueBy</code> 列找到记录，则更新 <code>$update</code> 指定的列（省略则更新 <code>$values</code> 中非唯一键的所有列）；如果找不到，则插入新行。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon; // Laravel 常用的日期时间库
+
+// 1. 插入单行
+$success = DB::table('users')->insert([
+'email' => '[移除了电子邮件地址]',
+'name' => 'Kayla',
+'created_at' => Carbon::now(), // 使用 Carbon 获取当前时间
+'updated_at' => Carbon::now()
+]);
+
+// 2. 插入单行并获取 ID
+$id = DB::table('users')->insertGetId([
+'email' => '[移除了电子邮件地址]',
+'name' => 'John',
+'created_at' => now(), // now() 是 Laravel 提供的辅助函数
+'updated_at' => now()
+]);
+echo "新用户 John 的 ID: " . $id . "\n";
+
+// 3. 插入多行
+$success_multi = DB::table('users')->insert([
+['email' => '[移除了电子邮件地址]', 'name' => 'User One', 'created_at' => now(), 'updated_at' => now()],
+['email' => '[移除了电子邮件地址]', 'name' => 'User Two', 'created_at' => now(), 'updated_at' => now()]
+]);
+?></code></pre>
+
+        <h3 id="s6-10-2">更新数据 (UPDATE)</h3>
+        <ul>
+            <li><b><code>where(...)-&gt;update(array $values): int</code></b>: 更新匹配 <code>where</code> 条件的行。<code>$values</code> 是包含要更新的列和新值的关联数组。返回受影响的行数。</li>
+            <li><b><code>updateOrInsert(array $attributes, array $values = []): bool</code></b>: 根据 <code>$attributes</code> 查找记录。如果找到，用 <code>$values</code> 更新它；如果没找到，则用合并了 <code>$attributes</code> 和 <code>$values</code> 的数据插入新记录。</li>
+            <li><b><code>increment(string $column, float|int $amount = 1, array $extra = [])</code></b>: 将指定列的值增加 <code>$amount</code>。可以同时更新其他列（在 <code>$extra</code> 数组中）。</li>
+            <li><b><code>decrement(string $column, float|int $amount = 1, array $extra = [])</code></b>: 将指定列的值减少 <code>$amount</code>。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+use Illuminate\Support\Facades\DB;
+
+// 1. 更新 ID 为 1 的用户的邮箱
+$affected = DB::table('users')
+->where('id', 1)
+->update(['email' => '[移除了电子邮件地址]', 'updated_at' => now()]);
+echo "更新了 {$affected} 行。\n";
+
+// 2. 为所有活跃用户增加 10 票，并更新 updated_at
+$affected_inc = DB::table('users')
+->where('active', 1)
+->increment('votes', 10, ['updated_at' => now()]);
+
+// 3. 更新邮箱为 '[移除了电子邮件地址]' 的用户，如果不存在则创建
+DB::table('users')->updateOrInsert(
+['email' => '[移除了电子邮件地址]'], // 查找条件
+['name' => 'Jay', 'votes' => 0, 'created_at' => now(), 'updated_at' => now()] // 更新或插入的值
+);
+?></code></pre>
+
+        <h3 id="s6-10-3">删除数据 (DELETE)</h3>
+        <ul>
+            <li><b><code>where(...)-&gt;delete(): int</code></b>: 删除匹配 <code>where</code> 条件的行。返回被删除的行数。</li>
+            <li><b><code>delete(mixed $id = null): int</code></b>: 如果之前没有 <code>where</code> 子句，可以传递主键 <code>$id</code> 来删除特定行。</li>
+            <li><b><code>truncate(): void</code></b>: **删除表中的所有行**并重置自增 ID 计数器。<b>比逐行 delete 快得多，但无法撤销且不会触发模型事件！</b></li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+use Illuminate\Support\Facades\DB;
+
+// 1. 删除 ID 为 5 的用户
+// $deletedRows = DB::table('users')->where('id', 5)->delete();
+// 或者
+// $deletedRows = DB::table('users')->delete(5);
+// echo "删除了 {$deletedRows} 行。\n";
+
+// 2. 删除所有非活跃用户
+// $deletedInactive = DB::table('users')->where('active', 0)->delete();
+
+// 3. 清空整个表 (危险操作!)
+// DB::table('logs')->truncate();
+?></code></pre>
+
+        <hr />
+
+        <h2 id="s6-11">6.11 悲观锁 (Pessimistic Locking) (了解即可)</h2>
+        <p>在需要处理并发写操作以防止数据冲突的场景下（例如抢购、更新计数器），查询构建器提供了悲观锁机制：</p>
+        <ul>
+            <li><b><code>sharedLock(): Builder</code></b>: 添加共享锁 (<code>LOCK IN SHARE MODE</code> 或等效语句)。允许多个事务读取同一行，但阻止其他事务获取排他锁来修改它，直到当前事务结束。</li>
+            <li><b><code>lockForUpdate(): Builder</code></b>: 添加排他锁 (<code>FOR UPDATE</code> 或等效语句)。阻止其他事务获取共享锁或排他锁来读取或修改这些行，直到当前事务结束。</li>
+        </ul>
+        <p class="note">这些通常需要在数据库事务 (<code>DB::transaction(...)</code>) 中使用。这是相对高级的主题，初学者了解其存在即可。</p>
+
+    </div>
+
+    <hr />
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 6 部分结束 ---</p>
+
+</div>
+</body>
+</html>

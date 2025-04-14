@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laravel 详细讲义 - Part 1: Laravel 介绍与安装</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+        }
+        .prose code::before, .prose code::after { content: none !important; }
+        .prose code { background-color: #f3f4f6; color: #374151; padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.875em; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+        .prose pre code { background-color: transparent; color: inherit; padding: 0; font-size: inherit; white-space: pre; }
+        .prose ul > li::marker { color: #6b7280; }
+        .prose ol > li::marker { color: #6b7280; }
+        .prose a { color: #2563eb; }
+        .prose a:hover { color: #1d4ed8; text-decoration: underline;}
+        .prose b { font-weight: 600; }
+        .prose strong { font-weight: 600; }
+        .prose hr { border-color: #e5e7eb; margin-top: 2em; margin-bottom: 2em;}
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; font-weight: 700; margin-bottom: 0.8em; padding-bottom: 0.3em; border-bottom: 1px solid #e5e7eb;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; font-weight: 600; margin-top: 1.8em; margin-bottom: 0.8em; padding-bottom: 0.3em; border-bottom: 1px solid #e5e7eb;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; font-weight: 600; margin-top: 1.5em; margin-bottom: 0.6em;}
+        .prose h4 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; margin-top: 1.2em; margin-bottom: 0.5em;}
+        .prose p { margin-top: 1.25em; margin-bottom: 1.25em; }
+        .prose ul, .prose ol { margin-top: 1.25em; margin-bottom: 1.25em; padding-left: 1.625em; }
+        .prose li { margin-top: 0.5em; margin-bottom: 0.5em; }
+        .note { background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 1em; margin: 1.5em 0; border-radius: 0 0.375rem 0.375rem 0; color: #1e40af;}
+        .warning { background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 1em; margin: 1.5em 0; border-radius: 0 0.375rem 0.375rem 0; color: #92400e;}
+        .danger { background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 1em; margin: 1.5em 0; border-radius: 0 0.375rem 0.375rem 0; color: #991b1b;}
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>Laravel 详细讲义 - Part 1: Laravel 介绍与安装</h1>
+    <p class="text-gray-500 text-sm">这是 Laravel 系列讲义的第一部分 (共 17 部分)。</p>
+
+    <hr />
+
+    <div>
+        <h2 id="s1-1">1.1 Laravel 是什么？</h2>
+        <p>Laravel 是一个开源的、免费的、功能强大的 <b>PHP Web 应用框架</b>。它由 Taylor Otwell 创建，遵循 <b>MVC (Model-View-Controller)</b> 设计模式，旨在让 Web 开发变得更轻松、更快速、更有趣。</p>
+        <ul>
+            <li><b>框架 (Framework):</b> 它不是一个简单的库，而是一整套用于构建 Web 应用的骨架和工具集。它为你提供了项目结构、常用功能（如路由、数据库操作、模板引擎、用户认证等）和最佳实践，让你不必每次都从零开始“造轮子”。</li>
+            <li><b>MVC 模式:</b> 这是一种常见的软件设计模式，旨在将应用程序的不同职责分离开：
+                <ul>
+                    <li><b>Model (模型):</b> 负责处理应用程序的数据逻辑。通常代表数据库中的表，并包含与数据交互的逻辑。</li>
+                    <li><b>View (视图):</b> 负责展示数据给用户，也就是用户界面 (HTML)。</li>
+                    <li><b>Controller (控制器):</b> 负责接收用户的请求，调用模型处理数据，然后选择合适的视图将结果展示给用户。它是模型和视图之间的协调者。</li>
+                </ul>
+                Laravel 很好地实践了 MVC 模式，有助于代码的组织和解耦。
+            </li>
+            <li><b>优雅的语法和开发体验：</b> Laravel 以其简洁、富有表现力的语法和专注于提升开发者幸福感的特性而闻名。</li>
+        </ul>
+
+        <h2 id="s1-2">1.2 为什么选择 Laravel？</h2>
+        <p>PHP 框架有很多，为什么 Laravel 如此受欢迎？</p>
+        <ul>
+            <li><b>开发效率高：</b> 内置了大量开箱即用的功能（如 Artisan 命令行工具、Eloquent ORM、Blade 模板引擎、队列、任务调度、认证、缓存等），大大减少了常见任务的开发时间。</li>
+            <li><b>现代化的特性：</b> 积极拥抱现代 PHP 的特性（如 Composer、命名空间、Trait、类型提示、最新的 PHP 版本支持）和 Web 开发趋势。</li>
+            <li><b>庞大且活跃的社区：</b> 你可以很容易地找到大量的教程、文档、第三方扩展包 (Packages) 和遇到问题时的帮助。</li>
+            <li><b>优秀的文档：</b> Laravel 的官方文档非常清晰、全面、易于理解。</li>
+            <li><b>生态系统丰富：</b> 围绕 Laravel 有很多官方和社区维护的工具和服务，如 Sail (开发环境), Valet (macOS 开发环境), Forge (服务器管理), Vapor (Serverless 部署), Nova (后台管理面板), Laracasts (高质量视频教程) 等。</li>
+            <li><b>适合各种规模的项目：</b> 从小型网站到大型企业级应用，Laravel 都能胜任。</li>
+        </ul>
+
+        <hr />
+
+        <h2 id="s1-3">1.3 环境要求与准备</h2>
+        <p>在安装 Laravel 之前，你需要确保你的电脑上安装了以下软件：</p>
+        <ul>
+            <li><b>PHP：</b> Laravel 对 PHP 版本有要求。请查阅你打算安装的 Laravel 版本的官方文档，了解它支持的最低和推荐 PHP 版本（通常是较新的版本，如 PHP 8.1+）。验证 PHP 版本：<code>php -v</code>。</li>
+            <li><b>Composer：</b> Laravel 使用 Composer 来管理项目的依赖。确保你已经全局安装了 Composer。验证：<code>composer --version</code>。</li>
+            <li><b>数据库：</b> 大多数 Laravel 应用需要数据库。Laravel 支持多种数据库，最常用的是：
+                <ul>
+                    <li>MySQL (5.7+) 或 MariaDB (10.3+)</li>
+                    <li>PostgreSQL (11.0+)</li>
+                    <li>SQLite (3.8.8+)</li>
+                    <li>SQL Server (2017+)</li>
+                </ul>
+                你需要先在你的系统上安装好其中一种数据库。使用集成环境包（如 Laragon, XAMPP, MAMP）通常会自带 MySQL/MariaDB。
+            </li>
+            <li><b>Node.js 和 NPM (或 Yarn)：</b> Laravel 使用 Vite (或其他工具) 来编译 CSS 和 JavaScript 等前端资源。这需要 Node.js 和 NPM (Node 包管理器，通常随 Node.js 一起安装)。从 <a href="[https://nodejs.org/](https://nodejs.org/)" target="_blank">Node.js官网</a> 下载安装 LTS (长期支持) 版本即可。验证：<code>node -v</code> 和 <code>npm -v</code>。</li>
+            <li><b>一些 PHP 扩展：</b> Laravel 通常需要一些常见的 PHP 扩展被启用，例如：<code>BCMath</code>, <code>Ctype</code>, <code>cURL</code>, <code>DOM</code>, <code>Fileinfo</code>, <code>JSON</code>, <code>Mbstring</code>, <code>OpenSSL</code>, <code>PCRE</code>, <code>PDO</code> (及对应数据库驱动如 <code>pdo_mysql</code>), <code>Tokenizer</code>, <code>XML</code>。大多数集成环境或标准的 PHP 安装会包含这些。你可以通过 <code>phpinfo()</code> 检查。</li>
+        </ul>
+        <p class="note">确保满足这些要求是顺利安装和运行 Laravel 的前提。</p>
+
+        <hr />
+
+        <h2 id="s1-4">1.4 安装 Laravel</h2>
+        <p>有几种创建新 Laravel 项目的方式。</p>
+
+        <h3 id="s14-4-1">方法一：通过 Composer Create-Project (标准方式)</h3>
+        <p>这是最常用、最通用的方式。打开你的终端或命令提示符，切换到你想要存放项目的<b>父目录</b>（例如你的 <code>Sites</code> 或 <code>www</code> 目录），然后运行：</p>
+        <pre><code class="language-bash"># 将 "your-project-name" 替换为你想要的项目名称
+composer create-project laravel/laravel your-project-name</code></pre>
+        <p>Composer 会下载 Laravel 安装器以及所有核心依赖，并在当前目录下创建一个名为 <code>your-project-name</code> 的新文件夹，里面就是全新的 Laravel 项目代码。</p>
+        <p>安装过程可能需要一些时间，因为它需要下载不少东西。安装完成后，你需要进入项目目录：</p>
+        <pre><code class="language-bash">cd your-project-name</code></pre>
+
+        <h3 id="s14-4-2">方法二：使用 Laravel Sail (基于 Docker，推荐)</h3>
+        <p>Laravel Sail 是官方提供的、基于 Docker 的本地开发环境解决方案。它的巨大优势在于：</p>
+        <ul>
+            <li><b>环境一致性：</b> 无论你的电脑是 Windows, macOS还是 Linux，Sail 提供的开发环境都是一致的，避免了“在我机器上能跑”的问题。</li>
+            <li><b>简化安装：</b> 它为你打包好了 PHP、Web 服务器（Nginx）、数据库（MySQL/PostgreSQL/Redis等可选服务）、Node.js 等所有需要的环境，你本地只需要安装 Docker Desktop 即可。</li>
+            <li><b>易于管理：</b> 使用简单的命令 (`sail up`, `sail down`) 启动和停止整个开发环境。</li>
+        </ul>
+        <p><b>使用 Sail 创建新项目（需要先安装 Docker Desktop）：</b></p>
+        <p>官方推荐的方式是在终端运行一个脚本来安装（具体命令可能随 Laravel 版本略有变化，请参考<a href="[https://laravel.com/docs/installation#laravel-sail](https://laravel.com/docs/installation#laravel-sail)" target="_blank">官方文档</a>）：</p>
+        <pre><code class="language-bash"># Linux/macOS 示例 (Windows 可能需要用 WSL2)
+curl -s "https://laravel.build/your-project-name" | bash
+
+进入项目目录
+cd your-project-name
+
+首次启动 Sail (会下载并构建 Docker 镜像，需要较长时间)
+./vendor/bin/sail up -d # -d 表示在后台运行
+
+之后启动/停止
+./vendor/bin/sail up -d
+./vendor/bin/sail down</code></pre>
+        <p>Sail 启动后，你的 Laravel 应用通常可以通过 <code>http://localhost</code> 在浏览器中访问。</p>
+        <p><b>在 Sail 环境中执行命令：</b> 所有需要执行的命令（如 <code>php</code>, <code>composer</code>, <code>npm</code>, <code>artisan</code>）都需要通过 Sail 来执行，以确保它们在 Docker 容器内部运行：</p>
+        <pre><code class="language-bash">./vendor/bin/sail php -v
+./vendor/bin/sail composer install
+./vendor/bin/sail npm run dev
+./vendor/bin/sail artisan migrate</code></pre>
+        <p class="note">对于需要频繁使用 <code>./vendor/bin/sail</code> 的情况，可以设置 shell 别名简化输入：<code>alias sail='[ -f sail ] && bash sail || bash vendor/bin/sail'</code> (将其加入你的 <code>.bashrc</code> 或 <code>.zshrc</code>)。之后就可以直接用 <code>sail artisan ...</code>。</p>
+        <p><b>如果你是零基础，强烈建议尝试使用 Sail</b>，它可以帮你规避很多本地环境配置的麻烦。</p>
+
+        <h3 id="s14-4-3">方法三：Laravel Valet (仅限 macOS)</h3>
+        <p>Valet 是一个为 macOS 设计的极简、高速的 Laravel 开发环境。它使用 Nginx 在后台直接服务你的项目。安装和使用相对简单（需要 Homebrew），适合 Mac 用户。详情参考<a href="[https://laravel.com/docs/valet](https://laravel.com/docs/valet)" target="_blank">官方 Valet 文档</a>。</p>
+
+        <h3 id="s14-4-4">方法四：使用 XAMPP/MAMP/Laragon 等</h3>
+        <p>你也可以在你已有的集成环境中运行 Laravel 项目，但通常需要**手动配置** Web 服务器（Apache 或 Nginx）：</p>
+        <ol>
+            <li>确保 Web 服务器的<b>文档根目录 (Document Root)</b> 指向 Laravel 项目的 <b><code>public</code></b> 目录！这是 Laravel 应用的唯一入口点。</li>
+            <li>确保开启了 URL 重写功能（Apache 的 <code>mod_rewrite</code> 或 Nginx 的 <code>try_files</code> 指令），并配置好相应的规则（Laravel 的 <code>public/.htaccess</code> 文件为 Apache 提供了规则，Nginx 需要在虚拟主机配置中添加类似规则）。</li>
+        </ol>
+        <p class="warning">手动配置 Web 服务器对于新手来说容易出错，这也是推荐使用 Sail 或 Valet 的原因之一。</p>
+
+
+        <hr />
+
+        <h2 id="s1-5">1.5 项目目录结构概览</h2>
+        <p>当你创建了一个 Laravel 项目后，会看到很多文件和文件夹。不必立即理解所有内容，先熟悉一下主要目录的用途：</p>
+        <ul>
+            <li><code><b>app/</b></code>: 包含应用程序的核心代码。
+                <ul>
+                    <li><code>Http/Controllers/</code>: 存放控制器类。</li>
+                    <li><code>Models/</code>: 存放 Eloquent 模型类。</li>
+                    <li><code>Providers/</code>: 存放服务提供者 (Service Providers)。</li>
+                    <li><code>Console/Commands/</code>: 存放自定义的 Artisan 命令。</li>
+                    <li><code>Exceptions/Handler.php</code>: 自定义异常处理逻辑。</li>
+                    <li><code>Http/Kernel.php</code>: 定义全局 HTTP 中间件和路由中间件组。</li>
+                    <li>...</li>
+                </ul>
+            </li>
+            <li><code><b>bootstrap/</b></code>: 包含框架启动文件和自动加载配置，以及用于性能优化的缓存文件目录 <code>cache/</code>。</li>
+            <li><code><b>config/</b></code>: 包含所有的应用程序配置文件（数据库、缓存、邮件、队列、服务等）。这些文件返回 PHP 数组，非常易读。</li>
+            <li><code><b>database/</b></code>: 包含数据库迁移 (<code>migrations/</code>)、模型工厂 (<code>factories/</code>) 和数据填充 (<code>seeders/</code>) 文件。</li>
+            <li><code><b>public/</b></code>: <b>Web 服务器的文档根目录</b>。包含入口文件 <code>index.php</code>，以及编译后的前端资源 (CSS, JS)、图片、robots.txt 等需要公开访问的文件。<b>你的 Web 服务器配置应该指向这个目录。</b></li>
+            <li><code><b>resources/</b></code>: 存放“原始”资源文件。
+                <ul>
+                    <li><code>css/</code>, <code>js/</code>: (根据选择的前端方案可能不同) 存放未编译的 CSS 和 JavaScript 源码。</li>
+                    <li><code>lang/</code>: 存放语言文件，用于多语言支持。</li>
+                    <li><code>views/</code>: 存放 Blade 模板（HTML 视图）文件。</li>
+                </ul>
+            </li>
+            <li><code><b>routes/</b></code>: 存放所有的路由定义文件。
+                <ul>
+                    <li><code>web.php</code>: 定义 Web 界面的路由（应用 Session, CSRF 防护等）。</li>
+                    <li><code>api.php</code>: 定义 API 路由（通常是无状态的，应用 API 中间件）。</li>
+                    <li><code>console.php</code>: 定义基于闭包的 Artisan 命令。</li>
+                    <li><code>channels.php</code>: 定义事件广播频道。</li>
+                </ul>
+            </li>
+            <li><code><b>storage/</b></code>: 存放编译后的 Blade 模板、基于文件的 Session、文件缓存、日志文件 (<code>logs/laravel.log</code>)、以及应用生成的文件。
+                <ul>
+                    <li><code>app/public/</code>: 存放用户上传的、需要公开访问的文件。你需要运行 <code>php artisan storage:link</code> 来创建一个从 <code>public/storage</code> 到此目录的符号链接。</li>
+                    <li>Web 服务器需要对 <code>storage</code> 和 <code>bootstrap/cache</code> 目录拥有写入权限。</li>
+                </ul>
+            </li>
+            <li><code><b>tests/</b></code>: 存放自动化测试文件（<code>Feature</code> 功能测试, <code>Unit</code> 单元测试）。</li>
+            <li><code><b>vendor/</b></code>: 存放所有通过 Composer 安装的第三方依赖包。<b>永远不要直接修改这个目录里的任何文件！</b></li>
+            <li><code><b>.env</b></code>: (需要从 <code>.env.example</code> 复制创建) 环境配置文件，包含数据库密码、API 密钥等敏感信息。<b>不应提交到版本控制。</b></li>
+            <li><code><b>.env.example</b></code>: <code>.env</code> 文件的模板，列出了需要的环境变量。<b>应提交到版本控制。</b></li>
+            <li><code><b>artisan</b></code>: Laravel 的命令行接口工具脚本。</li>
+            <li><code><b>composer.json</b></code> / <code><b>composer.lock</b></code>: Composer 配置文件和锁定文件。</li>
+            <li><code><b>package.json</b></code> / <code><b>package-lock.json</b></code> (或 <code>yarn.lock</code>): NPM (或 Yarn) 的配置文件和锁定文件，用于前端依赖管理。</li>
+            <li><code><b>vite.config.js</b></code>: (或类似文件如 <code>webpack.mix.js</code> 在旧版本) 前端资源编译工具的配置文件。</li>
+        </ul>
+        <p class="note">熟悉这个结构有助于你快速定位代码和配置文件。</p>
+
+        <hr />
+
+        <h2 id="s1-6">1.6 核心配置: <code>.env</code> 文件</h2>
+        <p>Laravel 的配置主要通过 <code>config/</code> 目录下的 PHP 文件进行管理。然而，为了方便地区分不同环境（开发、测试、生产）的配置，并避免将敏感信息（如数据库密码、API 密钥）直接写入代码或版本控制，Laravel 广泛使用 <code>.env</code> (Environment) 文件。</p>
+        <ul>
+            <li>当你安装完 Laravel 项目后（通过 <code>create-project</code>），根目录下会有一个 <code>.env.example</code> 文件。你需要**复制**它并重命名为 <code>.env</code>。
+                <pre><code class="language-bash"># 在项目根目录下
+cp .env.example .env</code></pre>
+                如果是克隆现有项目，通常也需要执行此操作。
+            </li>
+            <li><code>.env</code> 文件是一个简单的键值对文本文件，格式为 <code>KEY=VALUE</code>。</li>
+            <li>Laravel 启动时会加载 <code>.env</code> 文件，并将其中定义的环境变量注入到 PHP 的 <code>_ENV</code>/<code>_SERVER</code> 超全局变量中。</li>
+            <li>你可以使用辅助函数 <code>env('KEY_NAME', 'default_value')</code> 来获取环境变量的值，如果环境变量未设置，则返回第二个参数指定的默认值。</li>
+            <li><code>config/</code> 目录下的配置文件大量使用了 <code>env()</code> 函数来读取 <code>.env</code> 文件中的设置。例如，<code>config/database.php</code> 中可能会有：
+                <pre><code class="language-php">'mysql' => [
+// ...
+'host' => env('DB_HOST', '127.0.0.1'),
+'port' => env('DB_PORT', '3306'),
+'database' => env('DB_DATABASE', 'laravel'),
+'username' => env('DB_USERNAME', 'root'),
+'password' => env('DB_PASSWORD', ''),
+// ...
+],</code></pre>
+                这意味着数据库连接信息优先从 <code>.env</code> 文件读取，如果 <code>.env</code> 中没有对应项，则使用默认值。
+            </li>
+            <li><b class="danger">安全：<code>.env</code> 文件包含了敏感信息，永远不要将其提交到 Git 等版本控制系统中！</b> Laravel 的 <code>.gitignore</code> 文件默认已经包含了 <code>.env</code>。</li>
+        </ul>
+        <p><b>常见的 <code>.env</code> 配置项：</b></p>
+        <ul>
+            <li><code>APP_NAME</code>: 应用程序名称。</li>
+            <li><code>APP_ENV</code>: 当前环境（如 <code>local</code>, <code>testing</code>, <code>production</code>）。</li>
+            <li><code>APP_KEY</code>: 应用程序密钥（用于加密）。<b>必须设置！</b></li>
+            <li><code>APP_DEBUG</code>: 是否开启调试模式（显示详细错误信息）。<b>生产环境必须设为 <code>false</code>！</b></li>
+            <li><code>APP_URL</code>: 应用程序的根 URL。</li>
+            <li><code>LOG&lt;/3>_CHANNEL</code>: 默认的日志通道。</li>
+            <li><code>DB_CONNECTION</code>: 默认数据库连接类型（如 <code>mysql</code>, <code>pgsql</code>, <code>sqlite</code>）。</li>
+            <li><code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_DATABASE</code>, <code>DB_USERNAME</code>, <code>DB_PASSWORD</code>: 数据库连接信息。</li>
+            <li><code>BROADCAST_DRIVER</code>, <code>CACHE_DRIVER</code>, <code>QUEUE_CONNECTION</code>, <code>SESSION_DRIVER</code>, <code>SESSION_LIFETIME</code>: 其他服务的驱动和配置。</li>
+            <li><code>MAIL_MAILER</code>, <code>MAIL_HOST</code>, <code>MAIL_PORT</code>, etc.: 邮件发送配置。</li>
+            <li>第三方服务的 API Keys 等。</li>
+        </ul>  
+
+        <h3 id="s1-6-1">应用密钥 (Application Key)</h3>
+        <p><code>APP_KEY</code> 是一个非常重要的安全设置。它是一个 32 位的随机字符串，Laravel 使用它来进行加密（例如加密 Session 和 Cookie 数据）。</p>
+        <ul>
+            <li>通过 <code>composer create-project</code> 或 Sail 安装时，通常会自动生成 <code>APP_KEY</code> 并写入 <code>.env</code> 文件。</li>
+            <li>如果你的 <code>.env</code> 文件中没有 <code>APP_KEY</code>，或者你需要重新生成，可以运行 Artisan 命令：
+                <pre><code class="language-bash">php artisan key:generate</code></pre>
+                或者在 Sail 环境中：
+                <pre><code class="language-bash">./vendor/bin/sail artisan key:generate</code></pre>
+            </li>
+            <li><b>必须确保你的 <code>.env</code> 文件中有这个值，否则加密相关的部分将无法工作。</b></li>
+        </ul>
+
+        <h3 id="s1-6-2">配置缓存</h3>
+        <p>为了提高性能，特别是在生产环境中，Laravel 允许你将所有 <code>config/*.php</code> 文件合并缓存到一个单独的文件中，避免每次请求都去加载和解析多个配置文件。</p>
+        <ul>
+            <li><b>生成缓存：</b> <code>php artisan config:cache</code> (会创建 <code>bootstrap/cache/config.php</code>)</li>
+            <li><b>清除缓存：</b> <code>php artisan config:clear</code> (会删除缓存文件)</li>
+        </ul>
+        <p class="warning"><b>注意：</b> 一旦运行了 <code>config:cache</code>，你的应用将<b>只</b>读取缓存文件，<b>不再</b>读取 <code>.env</code> 文件或 <code>config/</code> 目录下的文件。因此，如果在部署后需要修改配置，你需要先运行 <code>config:clear</code>，修改 <code>.env</code> 文件，然后重新运行 <code>config:cache</code>。</p>
+        <p>在本地开发过程中，通常<b>不建议</b>运行 <code>config:cache</code>，以便 <code>.env</code> 的修改能立即生效。</p>
+
+        <hr />
+
+        <h2 id="s1-7">1.7 运行你的第一个 Laravel 应用</h2>
+        <p>安装并配置好 <code>.env</code> 文件后，有几种方式可以在本地运行你的 Laravel 应用：</p>
+        <ul>
+            <li><b><code>php artisan serve</code>:</b>
+                <ul>
+                    <li>在项目根目录下运行此命令，会启动 PHP 内建的开发服务器。</li>
+                    <li>通常监听在 <code>[http://127.0.0.1:8000](http://127.0.0.1:8000)</code>。</li>
+                    <li>简单方便，适合快速本地测试，但性能不如 Nginx/Apache，不适合生产环境。</li>
+                </ul>
+            </li>
+            <li><b>Laravel Sail:</b>
+                <ul>
+                    <li>如果使用 Sail 安装，运行 <code>./vendor/bin/sail up -d</code> 启动容器。</li>
+                    <li>应用通常可以通过 <code>http://localhost</code> (或其他配置的端口) 访问。</li>
+                    <li>这是推荐的本地开发方式之一，因为它提供了完整的、隔离的环境。</li>
+                </ul>
+            </li>
+            <li><b>Laravel Valet (macOS):</b>
+                <ul>
+                    <li>配置好 Valet 后，它会自动为你项目目录创建一个 <code>*.test</code> 域名。</li>
+                    <li>例如，项目在 <code>~/Sites/my-project</code>，则可以通过 <code>[http://my-project.test](http://my-project.test)</code> 访问。</li>
+                    <li>非常快速方便，适合 macOS 用户。</li>
+                </ul>
+            </li>
+            <li><b>其他集成环境 (XAMPP/MAMP/Laragon) 或手动配置：</b>
+                <ul>
+                    <li>你需要配置你的 Web 服务器（Apache/Nginx）创建一个虚拟主机 (Virtual Host)。</li>
+                    <li>将虚拟主机的<b>文档根目录 (DocumentRoot / root)</b> 指向 Laravel 项目的 <b><code>public/</code></b> 目录。</li>
+                    <li>确保启用了 URL 重写 (<code>mod_rewrite</code> / <code>try_files</code>)。</li>
+                    <li>然后通过你为虚拟主机配置的域名（例如 <code>[http://laravel.local](http://laravel.local)</code>）来访问。</li>
+                </ul>
+            </li>
+        </ul>
+        <p>无论哪种方式，当你成功访问应用的根 URL 时，你应该能看到 Laravel 的默认欢迎页面。</p>
+
+    </div>
+
+    <hr />
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 1 部分结束 ---</p>
+
+</div>
+</body>
+</html>

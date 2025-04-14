@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laravel 详细讲义 - Part 13: 服务容器与依赖注入</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+        }
+
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre;
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>Laravel 详细讲义 - Part 13: 服务容器与依赖注入</h1>
+    <p class="text-gray-500 text-sm">这是 Laravel 系列讲义的第十三部分 (共 17
+        部分)。(已重点检查代码缩进及&lt;&gt;符号转义)</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="s13-intro">引言：Laravel 的核心引擎</h2>
+        <p><b>服务容器 (Service Container)</b> 是 Laravel
+            框架最核心、最强大的功能之一。你可以把它想象成一个超级智能的“工具箱”或“工厂”，它负责管理应用程序中各种类（我们称之为“服务”）的**依赖关系**以及如何**创建**这些类的实例。
+        </p>
+        <p>与服务容器紧密相关的概念是<b>依赖注入 (Dependency Injection, DI)</b> 和<b>控制反转 (Inversion of Control,
+            IoC)</b>。</p>
+        <ul>
+            <li><b>依赖 (Dependency):</b> 当一个类 A 需要使用另一个类 B 的功能时，我们就说类 A <b>依赖</b>于类 B。</li>
+            <li><b>传统的做法 (无 DI):</b> 类 A 在自己的代码内部（例如构造函数或方法里）通过 <code>new B()</code>
+                来创建它所需要的类 B 的实例。这导致类 A 与具体的类 B 紧密<b>耦合 (Coupled)</b> 在一起。
+            </li>
+            <li><b>依赖注入 (DI):</b> 与其让类 A 自己创建依赖 B，不如通过**外部**将类 B 的实例**传递（注入）**给类
+                A。注入的方式通常有：
+                <ul>
+                    <li><b>构造函数注入 (Constructor Injection):</b> 通过类 A 的构造函数参数传入类 B
+                        的实例。（<b>最常用</b>）
+                    </li>
+                    <li><b>Setter 方法注入 (Setter Injection):</b> 通过类 A 的公共 Setter 方法（如 <code>setDependencyB(B
+                        $instance)</code>）传入。
+                    </li>
+                    <li><b>接口注入 (Interface Injection):</b> 类 A 实现一个接口，该接口定义了一个接收依赖的方法。（较少见）
+                    </li>
+                </ul>
+            </li>
+            <li><b>控制反转 (IoC):</b> 这是一个更广泛的设计原则。传统的程序是类 A 主动创建并控制依赖 B；而在 IoC 中，创建和管理依赖
+                B 的**控制权**从类 A 手中**反转**给了外部的一个**容器**。类 A 只需要声明它需要什么类型的依赖，容器会负责创建并提供这个依赖。
+            </li>
+        </ul>
+        <p><b>Laravel 的服务容器就是一个实现了 IoC 原则，并能执行依赖注入的强大工具。</b></p>
+        <p><b>使用服务容器和依赖注入的好处：</b></p>
+        <ul>
+            <li><b>解耦 (Decoupling):</b> 类不再依赖于具体的实现类，而是依赖于接口或抽象（如果配合接口绑定）。这使得替换依赖的实现变得容易。例如，你可以轻松地将支付网关从
+                Stripe 切换到 PayPal，而无需修改使用支付功能的核心业务代码。
+            </li>
+            <li><b>可测试性 (Testability):</b> 在进行单元测试时，可以轻松地将真实的依赖替换为“模拟 (Mock)”或“伪造
+                (Fake)”的对象，从而隔离地测试当前类，而不受外部依赖的影响。
+            </li>
+            <li><b>可维护性 (Maintainability):</b> 代码结构更清晰，依赖关系更明确，更容易理解和修改。</li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s13-1">13.1 Laravel 服务容器的自动注入</h2>
+        <p>Laravel 的服务容器非常智能，在很多情况下，你**无需任何配置**，它就能自动为你解析和注入依赖。这主要得益于 PHP
+            的**反射 (Reflection)** 机制和**类型提示 (Type Hinting)**。</p>
+        <p>当 Laravel 需要创建一个对象实例时（例如，当路由指向一个控制器方法时，Laravel
+            需要实例化该控制器并调用该方法），它会检查这个类或方法的构造函数/参数列表：</p>
+        <ol>
+            <li><b>检查类型提示：</b> 查看构造函数或方法参数是否带有类型提示（例如 <code>Request $request</code>, <code>MyService
+                $service</code>, <code>Post $post</code>）。
+            </li>
+            <li><b>自动解析：</b>
+                <ul>
+                    <li>如果类型提示是一个<b>具体的类</b>（例如 <code>MyService</code>），并且这个类没有无法自动解析的构造函数依赖（或者其依赖也可以被自动解析），容器通常会**自动创建**该类的一个新实例并注入。
+                    </li>
+                    <li>如果类型提示是一个<b>接口</b>（例如 <code>PaymentGatewayInterface</code>），容器会查找是否已经**绑定
+                        (Bind)** 了该接口对应的具体实现类（后面会讲绑定），如果找到了绑定，就会创建并注入该实现类的实例。
+                    </li>
+                    <li>对于 Laravel 内置的一些常用类（如 <code>Illuminate\Http\Request</code>, <code>Illuminate\Contracts\Auth\Factory</code>
+                        等），容器已经预先配置好了如何解析它们。
+                    </li>
+                    <li>对于**路由模型绑定**（如 <code>Post $post</code>），容器会结合路由信息自动查找并注入对应的模型实例。
+                    </li>
+                </ul>
+            </li>
+        </ol>
+        <p><b>最常见的自动注入场景：</b></p>
+        <ul>
+            <li><b>控制器构造函数和方法：</b> 这是最常用的 DI 方式。</li>
+            <li>队列任务 (Job) 的 <code>handle</code> 方法。</li>
+            <li>事件监听器 (Listener) 的 <code>handle</code> 方法。</li>
+            <li>中间件 (Middleware) 的 <code>handle</code> 方法。</li>
+            <li>控制台命令 (Command) 的 <code>handle</code> 方法。</li>
+        </ul>
+
+        <p><b>示例（回顾控制器方法注入）：</b></p>
+        <pre><code class="language-php">&lt;?php
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request; // 框架内置 Request 类
+use App\Repositories\UserRepository; // 假设我们有一个用户仓库类
+use App\Models\User; // Eloquent 模型
+
+class UserController extends Controller
+{
+// 1. 构造函数注入 (UserRepository 对所有方法都可能有用)
+protected $users;
+
+public function __construct(UserRepository $userRepository) // 类型提示 UserRepository
+{
+    // Laravel 容器会自动创建 UserRepository 实例并传入
+    $this->users = $userRepository;
+}
+
+// 2. 方法注入 (Request 和 User 只在 show 方法需要)
+//    User $user 通过路由模型绑定自动注入
+public function show(Request $request, User $user) // 类型提示 Request 和 User
+{
+    // Laravel 容器自动注入了 $request 和 $user 实例
+    $ipAddress = $request->ip();
+    $userData = $user->toArray(); // 可以直接使用注入的对象
+
+    // $allUsers = $this->users->getAll(); // 使用构造函数注入的仓库
+
+    return view('users.show', compact('user', 'ipAddress'));
+}
+
+// 另一个方法也注入了 Request
+public function update(Request $request, User $user)
+{
+    // ...
+}
+}
+?&gt;</code></pre>
+        <p class="note">正是因为有了服务容器的自动解析和注入，Laravel 的代码才能如此简洁，你很少需要手动 <code>new</code>
+            对象。</p>
+
+        <hr/>
+
+        <h2 id="s13-2">13.2 绑定 (Binding) - 告诉容器如何创建对象</h2>
+        <p>虽然容器能自动解析很多具体类，但在以下情况下，你需要**显式地告诉容器如何创建或获取**某个类型的实例：</p>
+        <ul>
+            <li>当你想为一个**接口 (Interface)** 绑定一个**具体的实现类**时。这是实现解耦的关键。</li>
+            <li>当一个类的创建过程比较复杂，需要额外的配置或依赖时。</li>
+            <li>当你想确保每次请求某个类型的实例时，都获得**同一个实例**（即**单例 Singleton**）时。</li>
+        </ul>
+        <p>绑定操作通常在**服务提供者 (Service Providers)** 的 <code>register()</code> 方法中完成。最常用的服务提供者是
+            <code>app/Providers/AppServiceProvider.php</code>。</p>
+
+        <h3 id="s13-2-1"><code>bind</code> 方法 (简单绑定)</h3>
+        <p><code>$this->app->bind(string|callable $abstract, string|callable|null $concrete = null): void</code></p>
+        <ul>
+            <li><code>$abstract</code>: 你想要绑定的标识符。通常是一个接口的类名 (<code>MyInterface::class</code>)
+                或者一个自定义的字符串键。
+            </li>
+            <li><code>$concrete</code> (可选): 如何创建 <code>$abstract</code> 的实例。可以是一个：
+                <ul>
+                    <li><b>具体实现类的名称 (字符串):</b> <code>$this->app->bind(PaymentInterface::class,
+                        StripePayment::class);</code>。当请求 <code>PaymentInterface</code> 时，容器会自动尝试创建 <code>StripePayment</code>
+                        的实例（如果可以自动解析的话）。
+                    </li>
+                    <li><b>闭包 (Closure):</b> <code>$this->app->bind(MyService::class, function ($app) { /* ... return
+                        new MyService(...) ... */ });</code>。闭包接收服务容器实例 <code>$app</code>
+                        作为参数，允许你在创建实例时解析其他依赖。<b>闭包必须返回**具体**的实例。</b></li>
+                </ul>
+            </li>
+            <li><b>行为：</b> 每次通过容器请求 <code>$abstract</code> 时，绑定的闭包（或类的构造函数）都会被**重新执行**，返回一个**新的**实例。
+            </li>
+        </ul>
+
+        <p><b>示例：绑定接口到实现</b></p>
+        <p>1. 定义接口 <code>app/Contracts/PaymentGatewayInterface.php</code>:</p>
+        <pre><code class="language-php">&lt;?php
+namespace App\Contracts;
+
+interface PaymentGatewayInterface {
+public function charge(float $amount): bool;
+}
+?&gt;</code></pre>
+        <p>2. 定义具体实现 <code>app/Services/StripeGateway.php</code>:</p>
+        <pre><code class="language-php">&lt;?php
+namespace App\Services;
+
+use App\Contracts\PaymentGatewayInterface;
+
+class StripeGateway implements PaymentGatewayInterface {
+private $apiKey;
+
+// 构造函数可能需要依赖
+public function __construct(string $apiKey) {
+    $this->apiKey = $apiKey;
+}
+
+public function charge(float $amount): bool {
+    echo "使用 Stripe (API Key: {$this->apiKey}) 收款 {$amount}...\n";
+    // ... 调用 Stripe API ...
+    return true;
+}
+}
+?&gt;</code></pre>
+        <p>3. 在 <code>app/Providers/AppServiceProvider.php</code> 的 <code>register()</code> 方法中绑定：</p>
+        <pre><code class="language-php">&lt;?php
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use App\Contracts\PaymentGatewayInterface;
+use App\Services\StripeGateway;
+use App\Services\AnotherService; // 假设 StripeGateway 依赖这个  
+
+class AppServiceProvider extends ServiceProvider
+{
+/**
+* Register any application services.
+*/
+public function register(): void
+{
+// 绑定接口到具体实现
+$this->app->bind(PaymentGatewayInterface::class, function ($app) {
+// $app 是服务容器实例，可以用来解析其他依赖
+// $anotherService = $app->make(AnotherService::class);
+
+        // 从配置或 .env 获取 Stripe API Key
+        $apiKey = config('services.stripe.secret'); // 假设配置在 config/services.php
+
+        // 创建并返回 StripeGateway 实例
+        return new StripeGateway($apiKey);
+        // return new StripeGateway($anotherService, $apiKey); // 如果有更多依赖
+    });
+
+    // 如果 StripeGateway 的构造函数没有参数或其参数可以被容器自动解析，
+    // 也可以直接这样绑定：
+    // $this->app->bind(PaymentGatewayInterface::class, StripeGateway::class);
+}
+
+// ... boot() 方法 ...
+}
+?&gt;</code></pre>
+        <p>4. 在控制器中注入并使用接口：</p>
+        <pre><code class="language-php">&lt;?php
+namespace App\Http\Controllers;
+
+use App\Contracts\PaymentGatewayInterface; // 引入接口
+use Illuminate\Http\Request;
+
+class PaymentController extends Controller
+{
+// 通过构造函数注入接口
+public function __construct(private PaymentGatewayInterface $paymentGateway) {}
+// ↑ PHP 8 构造函数属性提升
+
+public function store(Request $request)
+{
+    $amount = $request->input('amount');
+
+    // 调用接口的方法，容器会自动提供 StripeGateway 实例
+    $success = $this->paymentGateway->charge($amount);
+
+    if ($success) {
+        return back()->with('success', '支付成功！');
+    } else {
+        return back()->with('error', '支付失败。');
+    }
+}
+}
+?&gt;</code></pre>
+        <p class="note">现在，如果想换成 PayPal 支付，只需要创建一个 <code>PayPalGateway</code> 类实现 <code>PaymentGatewayInterface</code>，然后在
+            <code>AppServiceProvider</code> 中修改绑定即可，<code>PaymentController</code> 的代码完全不需要改变！这就是解耦的好处。
+        </p>
+
+        <h3 id="s13-2-2"><code>singleton</code> 方法 (单例绑定)</h3>
+        <p><code>$this->app->singleton(string|callable $abstract, string|callable|null $concrete = null): void</code>
+        </p>
+        <ul>
+            <li>语法与 <code>bind</code> 类似。</li>
+            <li><b>行为：</b> 绑定的闭包（或类的构造函数）只在**第一次**通过容器请求 <code>$abstract</code>
+                时执行一次。容器会**保存**这个创建好的实例。之后所有对 <code>$abstract</code> 的请求，都会返回**同一个**保存好的实例。
+            </li>
+            <li><b>用途：</b> 适用于那些只需要一个实例贯穿整个请求生命周期的服务，例如数据库连接管理类、配置管理类、需要维持全局状态的服务（谨慎使用状态）。可以节省重复创建对象的开销。
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+// 在 AppServiceProvider 的 register() 方法中
+use App\Services\SettingsManager;
+
+// 将 SettingsManager 绑定为单例
+$this->app->singleton(SettingsManager::class, function ($app) {
+// 这个闭包只会在第一次请求 SettingsManager 时执行一次
+echo "(创建 SettingsManager 实例...)\n";
+return new SettingsManager(config('app.settings')); // 假设从配置加载设置
+});
+
+// --- 在其他地方使用 ---
+// 第一次解析
+$settings1 = app(SettingsManager::class); // 输出: (创建 SettingsManager 实例...)
+echo "&lt;br&gt;";
+
+// 第二次解析
+$settings2 = resolve(SettingsManager::class); // 不会再输出 "(创建..."
+echo "&lt;br&gt;";
+
+// 确认是同一个实例
+var_dump($settings1 === $settings2); // 输出: bool(true)
+?&gt;</code></pre>
+
+        <h3 id="s13-2-3">绑定实例: <code>instance</code></h3>
+        <p><code>$this->app->instance(string $abstract, mixed $instance): mixed</code></p>
+        <ul>
+            <li>将一个**已经创建好**的对象实例 <code>$instance</code> 直接绑定到标识符 <code>$abstract</code> 上。</li>
+            <li>之后所有对 <code>$abstract</code> 的请求都会返回这个<b>完全相同</b>的实例。</li>
+        </ul>
+        <pre><code class="language-php">// 在 AppServiceProvider 的 register() 方法中
+$specialService = new \App\Services\SpecialService('some_initial_config');
+// ... 可能对 $specialService 进行了一些配置 ...
+
+// 将这个已经配置好的实例绑定到容器
+$this->app->instance(\App\Services\SpecialService::class, $specialService);</code></pre>
+
+        <h3 id="s13-2-4">其他绑定方式</h3>
+        <ul>
+            <li><b>绑定 اولیه (Binding Primitives):</b> 可以将简单的值（字符串、数字、数组）绑定到容器中，通常结合<b>上下文绑定
+                (Contextual Binding)</b> 使用，为特定类注入配置值。
+                <pre><code class="language-php">// 在 AppServiceProvider register()
+// 当 StripeGateway 需要构造函数的 $apiKey 参数时，提供 'your-stripe-key'
+$this->app->when(StripeGateway::class)
+->needs('$apiKey')
+->give(config('services.stripe.secret')); // 从配置获取</code></pre>
+            </li>
+            <li><b>上下文绑定 (Contextual Binding):</b> 允许你为不同的类注入同一个接口的不同实现。
+                <pre><code class="language-php">// 在 AppServiceProvider register()
+use App\Http\Controllers\PhotoController;
+use App\Http\Controllers\VideoController;
+use App\Contracts\UploaderInterface;
+use App\Services\S3Uploader;
+use App\Services\LocalUploader;
+
+// 当 PhotoController 需要 UploaderInterface 时，给 S3Uploader
+$this->app->when(PhotoController::class)
+->needs(UploaderInterface::class)
+->give(S3Uploader::class);
+
+// 当 VideoController 需要 UploaderInterface 时，给 LocalUploader
+$this->app->when(VideoController::class)
+->needs(UploaderInterface::class)
+->give(LocalUploader::class);</code></pre>
+            </li>
+            <li><b>标记 (Tagging):</b> 可以为一组相关的绑定打上“标签”，然后一次性解析出所有带有该标签的服务。
+                <pre><code class="language-php">// 在 AppServiceProvider register()
+$this->app->bind(ReportGeneratorA::class);
+$this->app->bind(ReportGeneratorB::class);
+// 为这两个绑定打上 'reports' 标签
+$this->app->tag([ReportGeneratorA::class, ReportGeneratorB::class], 'reports');
+
+// --- 在其他地方解析 ---
+// $reportGenerators = $this->app->tagged('reports'); // 返回包含 A 和 B 实例的数组 (迭代器)
+// foreach ($reportGenerators as $generator) { $generator->generate(); }
+</code></pre>
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s13-3">13.3 解析 (Resolution) - 从容器获取实例</h2>
+        <p>
+            虽然大部分依赖都是通过自动注入获取的，但有时你也需要手动从容器中获取（解析）一个实例，例如在服务提供者、中间件、命令或无法自动注入的地方。</p>
+        <p>常用的方法：</p>
+        <ul>
+            <li><b><code>app(string|null $abstract = null, array $parameters = [])</code> 全局辅助函数:</b>
+                <ul>
+                    <li><code>$service = app(MyService::class);</code>: 解析 <code>MyService</code> 的实例。</li>
+                    <li><code>$container = app();</code>: 不带参数时返回容器实例本身。</li>
+                </ul>
+            </li>
+            <li><b><code>resolve(string $abstract, array $parameters = [])</code> 全局辅助函数:</b>
+                <ul>
+                    <li>功能与 <code>app()</code> 基本相同：<code>$service = resolve(MyService::class);</code></li>
+                </ul>
+            </li>
+            <li><b><code>$this->app</code> 属性 (在 Service Provider, Test Case 等继承自 Laravel 基类的地方可用):</b>
+                <ul>
+                    <li><code>$service = $this->app->make(MyService::class, ['param' => 'value']);</code>
+                        (<code>make</code> 总是尝试创建新实例，除非是单例绑定。可以传递额外参数给构造函数)。
+                    </li>
+                    <li><code>$service = $this->app->resolve(MyService::class);</code> (<code>resolve</code> 行为同
+                        <code>app()</code>/<code>resolve()</code> 辅助函数)。
+                    </li>
+                </ul>
+            </li>
+            <li><b><code>App</code> Facade:</b>
+                <ul>
+                    <li><code>use Illuminate\Support\Facades\App; $service = App::make(MyService::class);</code></li>
+                </ul>
+            </li>
+        </ul>
+        <p class="note"><code>make</code> 和 <code>resolve</code>/<code>app()</code> 的主要区别在于 <code>make</code>
+            不会将解析的实例共享（即使是单例绑定，每次调用 make 理论上也可能触发重新创建的逻辑，虽然最终可能返回同一个实例），而
+            <code>resolve</code>/<code>app()</code> 会共享已解析的单例实例。</p>
+
+        <hr/>
+
+        <h2 id="s13-4">13.4 Facades (门面) 回顾</h2>
+        <p>Facades (如 <code>Route::</code>, <code>DB::</code>, <code>Log::</code>, <code>Cache::</code>,
+            <code>Auth::</code>, <code>View::</code> 等) 提供了一种<b>静态</b>的、易于记忆的接口来访问注册在服务容器中的**底层服务实例**。
+        </p>
+        <p><b>工作原理简述：</b></p>
+        <ol>
+            <li>当你调用 <code>Log::info('message')</code> 时，<code>Log</code> 这个 Facade 类并没有真正实现
+                <code>info</code> 静态方法。
+            </li>
+            <li>PHP 的 <code>__callStatic</code> 魔术方法被触发。</li>
+            <li>Facade 基类会调用该 Facade 子类（如 <code>Log</code>）的一个受保护的静态方法
+                <code>getFacadeAccessor()</code>。这个方法通常返回一个**字符串键**，这个键是在服务容器中绑定实际日志服务实例时使用的（例如返回
+                <code>'log'</code>）。
+            </li>
+            <li>Facade 使用这个键从服务容器中<b>解析</b>出实际的日志服务对象实例。</li>
+            <li>然后，Facade 将你调用的静态方法 (<code>info</code>) 和参数 (<code>'message'</code>)
+                **转发**给那个解析出来的日志服务对象的同名**实例方法**。
+            </li>
+        </ol>
+        <p><b>优点：</b></p>
+        <ul>
+            <li>语法简洁、易于记忆和使用。</li>
+            <li>提供了一种与底层实现解耦的方式（理论上可以改变 Facade
+                指向的服务绑定而不影响调用代码，但实际中不如依赖注入灵活）。
+            </li>
+        </ul>
+        <p><b>缺点：</b></p>
+        <ul>
+            <li><b>“魔法” / 隐藏依赖：</b> Facade 的静态调用方式隐藏了真实的依赖关系，使得不清楚代码到底依赖了哪些具体的对象。这可能降低代码的可测试性（需要使用
+                Laravel 特定的 Facade Mocking 功能）和可读性（对于不熟悉 Laravel 的人）。
+            </li>
+            <li><b>范围蔓延 (Scope Creep):</b> 因为太方便了，容易在代码的任何地方（甚至视图、模型里）都使用 Facade，可能导致逻辑分散。
+            </li>
+        </ul>
+        <p class="note"><b>建议：</b> 在控制器、服务类、命令等地方，优先考虑使用**依赖注入**来获取依赖，这样更明确、更易于测试。在需要快速调用简单服务或者在视图、配置文件等不方便注入的地方，适度使用
+            Facade 是可以接受的。</p>
+
+        <h3 id="s13-4-1">创建自定义 Facade (简介)</h3>
+        <p>如果你想为你自己的服务创建一个 Facade：</p>
+        <ol>
+            <li><b>确保服务已绑定到容器：</b> 在服务提供者中用 <code>bind</code> 或 <code>singleton</code>
+                绑定你的服务类，并使用一个**唯一的字符串键**（例如 <code>'my.custom.service'</code>）。
+            </li>
+            <li><b>创建 Facade 类：</b> 创建一个类继承自 <code>Illuminate\Support\Facades\Facade</code>。</li>
+            <li><b>实现 <code>getFacadeAccessor()</code>：</b> 在你的 Facade 类中，实现这个受保护的静态方法，让它返回你在容器中绑定服务时使用的那个**字符串键**。
+                <pre><code class="language-php">&lt;?php
+namespace App\Facades; // 通常放在 App\Facades 命名空间
+
+use Illuminate\Support\Facades\Facade;
+
+/**
+
+@method static void doSomething(string $param) // 可以用 PHPDoc 提示底层方法，提供 IDE 自动补全
+
+@see \App\Services\MyCustomService // 指向实际的类
+/
+class MyCustomService extends Facade
+{
+/*
+
+Get the registered name of the component.
+
+获取在服务容器中注册的组件名称 (绑定键)。
+
+@return string
+*/
+protected static function getFacadeAccessor(): string
+{
+// 返回在服务提供者中绑定服务时使用的键
+return 'my.custom.service';
+// 或者如果直接绑定的是类名，可以返回类名字符串：
+// return \App\Services\MyCustomService::class;
+}
+}
+?&gt;</code></pre>
+            </li>
+            <li><b>(可选) 配置 Facade 别名：</b> 在 <code>config/app.php</code> 文件的 <code>'aliases'</code> 数组中，为你的
+                Facade 类添加一个别名，这样就可以在全局命名空间中使用（例如 <code>'MyService' =>
+                    App\Facades\MyCustomService::class,</code>），然后就可以直接写 <code>MyService::doSomething()</code>
+                了。
+            </li>
+        </ol>
+        <p>现在，当你在代码中调用 <code>MyService::doSomething()</code> 时，它就会通过服务容器解析出 <code>'my.custom.service'</code>
+            绑定的实例，并调用其实例的 <code>doSomething()</code> 方法。</p>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 13 部分结束 ---</p>
+
+</div>
+</body>
+</html>

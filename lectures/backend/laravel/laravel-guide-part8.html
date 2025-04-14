@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laravel 详细讲义 - Part 8: 数据库 - Eloquent 关系</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+        }
+
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre;
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>Laravel 详细讲义 - Part 8: 数据库 - Eloquent 关系</h1>
+    <p class="text-gray-500 text-sm">这是 Laravel 系列讲义的第八部分 (共 17 部分)。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="s8-intro">引言：连接数据模型</h2>
+        <p>数据库中的表很少是孤立存在的。例如，一个 <code>posts</code> 表通常会有一个 <code>user_id</code> 列来关联到
+            <code>users</code> 表，表示文章的作者；或者一个 <code>posts</code> 表和一个 <code>tags</code> 表可能通过一个中间表
+            <code>post_tag</code> 来建立多对多的关系。</p>
+        <p>Eloquent 的**关系 (Relationships)**
+            功能允许你在模型类之间定义这些关联，然后可以非常方便地、用面向对象的方式加载和查询这些关联数据。</p>
+
+        <hr/>
+
+        <h2 id="s8-1">8.1 定义关系</h2>
+        <p>关系是在你的 Eloquent 模型类中通过定义**方法**来建立的。这个方法的名称通常应该清晰地反映它所代表的关系（例如，获取用户的文章，方法名可以是
+            <code>posts</code>；获取文章的作者，方法名可以是 <code>user</code>）。</p>
+        <p><b>关键：</b>这些关系方法<b>必须返回</b>一个 Eloquent 关系对象（例如 <code>HasMany</code>,
+            <code>BelongsTo</code> 等实例），而<b>不是</b>直接返回关联的模型数据。</p>
+
+        <h3 id="s8-1-1">一对一 (One To One)</h3>
+        <p>例如，一个 <code>User</code> 模型可能对应一个 <code>Phone</code> 模型。</p>
+        <ul>
+            <li><b><code>hasOne(RelatedModel::class, 'foreign_key', 'local_key')</code>:</b> 定义一个一对一关系。
+                <ul>
+                    <li><code>RelatedModel::class</code>: 关联模型的类名。</li>
+                    <li><code>foreign_key</code> (可选): 关联模型表上的外键列名。默认是当前模型名的小写蛇形 +
+                        <code>_id</code> (例如在 <code>phones</code> 表上是 <code>user_id</code>)。
+                    </li>
+                    <li><code>local_key</code> (可选): 当前模型表上的主键列名 (默认是 <code>id</code>)。</li>
+                </ul>
+            </li>
+            <li><b><code>belongsTo(RelatedModel::class, 'foreign_key', 'owner_key')</code>:</b> 定义相对的反向关系。
+                <ul>
+                    <li><code>foreign_key</code> (可选): <b>当前模型表上</b>的外键列名。默认是方法名 (<code>user</code>)
+                        + <code>_</code> + 关联模型的主键名 (<code>id</code>) => <code>user_id</code>。
+                    </li>
+                    <li><code>owner_key</code> (可选): 关联模型表上的主键列名 (默认是 <code>id</code>)。</li>
+                </ul>
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+// app/Models/User.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne; // 引入关系类型  
+
+class User extends Model
+{
+/**
+* 获取与用户关联的电话记录 (User has one Phone)
+*/
+public function phone(): HasOne // 返回类型提示
+{
+// 假设 Phone 模型存在，且 phones 表有 user_id 外键
+return $this->hasOne(Phone::class);
+// 如果外键或主键不符合约定，需要传入参数：
+// return $this->hasOne(Phone::class, 'foreign_key_on_phones_table', 'local_key_on_users_table');
+}
+}
+
+// app/Models/Phone.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo; // 引入关系类型  
+
+class Phone extends Model
+{
+/**
+* 获取该电话记录所属的用户 (Phone belongs to User)
+*/
+public function user(): BelongsTo // 返回类型提示
+{
+// 假设 phones 表有一个 user_id 列引用 users 表的 id 列
+return $this->belongsTo(User::class);
+// 如果外键或关联主键不符合约定，需要传入参数：
+// return $this->belongsTo(User::class, 'foreign_key_on_phones_table', 'owner_key_on_users_table');
+}
+}
+?&gt;</code></pre>
+
+        <h3 id="s8-1-2">一对多 (One To Many)</h3>
+        <p>这是最常见的关系之一，例如一个 <code>User</code> 可以发表多篇 <code>Post</code>。</p>
+        <ul>
+            <li><b><code>hasMany(RelatedModel::class, 'foreign_key', 'local_key')</code>:</b> 定义一对多关系。参数含义同
+                <code>hasOne</code>。外键在“多”方（<code>posts</code> 表）上。
+            </li>
+            <li><b><code>belongsTo(...)</code>:</b> 定义相对的反向关系（“多”方属于“一”方）。参数含义同上。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+// app/Models/User.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany; // 引入关系类型  
+
+class User extends Model
+{
+/**
+* 获取该用户的所有文章 (User has many Posts)
+*/
+public function posts(): HasMany // 方法名通常是复数
+{
+// 假设 Post 模型存在，且 posts 表有 user_id 外键
+return $this->hasMany(Post::class);
+}
+}
+
+// app/Models/Post.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo; // 引入关系类型  
+
+class Post extends Model
+{
+/**
+* 获取该文章所属的用户 (Post belongs to User)
+*/
+public function user(): BelongsTo // 方法名通常是单数
+{
+// 假设 posts 表有 user_id 列引用 users 表的 id 列
+return $this->belongsTo(User::class);
+// 如果外键名不是 user_id，需要指定：
+// return $this->belongsTo(User::class, 'author_id', 'id');
+}
+}
+?&gt;</code></pre>
+
+        <h3 id="s8-1-3">多对多 (Many To Many)</h3>
+        <p>例如，一篇文章 (<code>Post</code>) 可以有多个标签 (<code>Tag</code>)，一个标签也可以被多篇文章使用。</p>
+        <p>这种关系需要一个**中间表 (Pivot Table)** 来连接两个模型。中间表的命名约定是：两个模型名的单数形式、按字母顺序排列、用下划线连接。例如
+            <code>Post</code> 和 <code>Tag</code> 的中间表通常命名为 <code>post_tag</code>。</p>
+        <p>中间表至少需要包含两个外键列，分别指向两个关联模型的主键。例如 <code>post_tag</code> 表需要
+            <code>post_id</code> 和 <code>tag_id</code> 列。</p>
+        <ul>
+            <li><b><code>belongsToMany(RelatedModel::class, 'pivot_table', 'foreign_pivot_key', 'related_pivot_key',
+                'parent_key', 'related_key')</code>:</b> 定义多对多关系。
+                <ul>
+                    <li><code>RelatedModel::class</code>: 关联模型的类名。</li>
+                    <li><code>pivot_table</code> (可选): 中间表的名称。默认按约定生成 (<code>post_tag</code>)。</li>
+                    <li><code>foreign_pivot_key</code> (可选): 中间表中**当前模型**的外键列名。默认是当前模型名 + <code>_id</code>
+                        (<code>post_id</code>)。
+                    </li>
+                    <li><code>related_pivot_key</code> (可选): 中间表中**关联模型**的外键列名。默认是关联模型名 + <code>_id</code>
+                        (<code>tag_id</code>)。
+                    </li>
+                    <li><code>parent_key</code> (可选): 当前模型的主键名 (默认 <code>id</code>)。</li>
+                    <li><code>related_key</code> (可选): 关联模型的主键名 (默认 <code>id</code>)。</li>
+                </ul>
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+// app/Models/Post.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+
+class Post extends Model
+{
+/**
+* 获取该文章关联的所有标签
+*/
+public function tags(): BelongsToMany
+{
+// 假设 Tag 模型存在，且存在 post_tag 中间表 (含 post_id, tag_id)
+return $this->belongsToMany(Tag::class);
+// 如果表名或键名不符合约定，需要指定：
+// return $this->belongsToMany(Tag::class, 'post_tag_pivot', 'p_id', 't_id');
+}
+}  
+
+// app/Models/Tag.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+
+class Tag extends Model
+{
+/**
+* 获取使用了该标签的所有文章
+*/
+public function posts(): BelongsToMany
+{
+// 定义反向关系
+return $this->belongsToMany(Post::class);
+}
+}
+?&gt;</code></pre>
+         
+
+        <h4 id="s8-1-3-pivot">中间表 (Pivot Table) 属性</h4>
+        <p>有时中间表除了两个外键，还包含其他信息（例如，用户加入某个角色的时间 <code>user_role.created_at</code>）。</p>
+        <ul>
+            <li><b>访问 Pivot 属性：</b> 当你通过多对多关系获取到关联模型后，可以通过关联模型上的 <code>pivot</code>
+                属性（一个对象）来访问中间表的额外字段。例如 <code>$tag->pivot->created_at</code>。
+            </li>
+            <li><b>定义要检索的 Pivot 属性：</b> 在定义 <code>belongsToMany</code> 关系时，使用 <code>withPivot('column1',
+                'column2', ...)</code> 方法指定需要从中间表检索的额外列。
+            </li>
+            <li><b>定义 Pivot 时间戳：</b> 如果中间表包含 <code>created_at</code> 和 <code>updated_at</code> 时间戳，并且希望
+                Eloquent 自动维护它们（例如在 <code>attach</code> 或 <code>sync</code> 时），可以在关系定义中链式调用
+                <code>withTimestamps()</code>。
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+// app/Models/User.php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Models\Role; // 假设有 Role 模型  
+
+class User extends Model
+{
+public function roles(): BelongsToMany
+{
+return $this->belongsToMany(Role::class, 'role_user') // 指定中间表名
+->withPivot('expires_at') // 声明需要访问中间表的 expires_at 字段
+->withTimestamps(); // 声明中间表有时间戳并自动维护
+}
+}
+
+// --- 使用 ---
+// $user = User::find(1);
+// foreach ($user->roles as $role) {
+//     echo "角色: " . $role->name;
+//     // 访问 pivot 属性
+//     echo ", 加入时间: " . $role->pivot->created_at;
+//     echo ", 过期时间: " . $role->pivot->expires_at;
+//     echo "&lt;br&gt;";
+// }
+?&gt;</code></pre>
+
+        <h3 id="s8-1-4">其他关系类型简介</h3>
+        <ul>
+            <li><b>远层一对多 (Has Many Through):</b> 例如，一个国家 (Country) 通过用户 (User) 拥有多篇文章 (Post)。在
+                Country 模型中定义：<code>return $this->hasManyThrough(Post::class, User::class);</code> （需要正确设置外键）。
+            </li>
+            <li><b>远层一对一 (Has One Through):</b> 类似，但最终是一对一关系。</li>
+            <li><b>多态关系 (Polymorphic Relations):</b> 允许一个模型（例如 <code>Comment</code>）可以属于多种其他不同类型的模型（例如
+                <code>Post</code> 或 <code>Video</code>），而不需要为每种父类型都设置单独的外键。它通过在子模型表中存储父模型的
+                ID (<code>commentable_id</code>) 和**类型** (<code>commentable_type</code>，通常存储父模型的类名)
+                来实现。涉及的方法有 <code>morphTo()</code>, <code>morphOne()</code>, <code>morphMany()</code>, <code>morphedByMany()</code>,
+                <code>morphToMany()</code>。这是更高级的主题。
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s8-2">8.2 查询关系数据</h2>
+        <p>定义好关系后，有几种方式可以加载和查询关联的模型数据。</p>
+
+        <h3 id="s8-2-1">访问关系：动态属性 vs 关系方法</h3>
+        <p>这是一个非常重要的区别：</p>
+        <ul>
+            <li><b>动态属性 (Dynamic Properties):</b> 当你像访问普通属性一样访问关系方法名时（例如
+                <code>$user->posts</code>），Eloquent 会执行所谓的**“懒加载 (Lazy Loading)”**。它会<b>立即执行</b>查询来获取并返回关联的模型（如果是
+                `HasMany` 或 `BelongsToMany` 则返回 Collection，如果是 `HasOne` 或 `BelongsTo` 则返回模型实例或
+                null）。如果你多次访问同一个动态属性，结果通常会被缓存，不会重复查询（在同一个请求生命周期内）。
+            </li>
+            <li><b>关系方法 (Relationship Methods):</b> 当你像调用方法一样访问关系方法名时（例如
+                <code>$user->posts()</code>），它<b>不会</b>立即执行查询，而是返回一个**关系查询构建器实例**。你可以继续在这个实例上链式调用<b>查询构建器</b>的方法（如
+                <code>where</code>, <code>orderBy</code>, <code>count</code> 等），最后再调用 <code>get()</code>, <code>first()</code>
+                等方法来执行查询并获取结果。
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+use App\Models\User;
+
+$user = User::find(1);
+
+// --- 使用动态属性 (懒加载) ---
+// 第一次访问 $user->posts 时，会执行 SQL: SELECT * FROM posts WHERE user_id = 1
+$posts = $user->posts; // $posts 是一个 Post 模型的 Collection
+echo "<b>懒加载获取的文章 (" . $posts->count() . " 篇):</b>&lt;br&gt;";
+foreach ($posts as $post) {
+echo "- " . htmlspecialchars($post->title) . "&lt;br&gt;";
+}
+
+// 再次访问 $user->posts，通常不会再执行查询，直接使用缓存的结果
+// $morePosts = $user->posts;
+
+echo "&lt;hr&gt;";
+
+// --- 使用关系方法 (获取查询构建器) ---
+// 调用 $user->posts() 返回的是关系查询构建器，还没有执行查询
+$postsQuery = $user->posts();
+
+// 在关系查询构建器上添加条件
+$publishedPosts = $postsQuery->where('is_published', true)
+->orderBy('created_at', 'desc')
+->get(); // 执行查询，获取结果 Collection
+
+echo "<b>通过关系方法查询已发布的文章 (" . $publishedPosts->count() . " 篇):</b>&lt;br&gt;";
+foreach ($publishedPosts as $post) {
+echo "- " . htmlspecialchars($post->title) . "&lt;br&gt;";
+}
+
+// 也可以直接链式调用
+$unpublishedCount = $user->posts()->where('is_published', false)->count();
+echo "&lt;br&gt;未发布的文章数量: " . $unpublishedCount;
+
+?&gt;</code></pre>
+        <p class="note">何时使用哪个？</p>
+        <ul>
+            <li>如果只需要获取所有关联的模型，使用动态属性 <code>$user->posts</code> 最简单。</li>
+            <li>如果需要在获取关联模型之前添加额外的查询条件（如过滤、排序、计数），使用关系方法 <code>$user->posts()</code>。
+            </li>
+        </ul>
+
+        <h3 id="s8-2-2">查询关系存在性</h3>
+        <p>
+            有时你只想知道某个模型**是否**至少有一个关联模型存在，或者想根据关联模型的存在性来过滤主模型，而不需要加载关联模型本身的数据。</p>
+        <ul>
+            <li><b><code>has(string $relation, string $operator = '>=', int $count = 1, string $boolean = 'and',
+                ?Closure $callback = null)</code>:</b> 获取那些**至少**有 <code>$count</code> 个 (默认 1 个) <code>$relation</code>
+                关系记录的主模型。可以提供闭包 <code>$callback</code> 对关系查询进行约束。
+            </li>
+            <li><b><code>orHas(...)</code></b></li>
+            <li><b><code>doesntHave(string $relation, string $boolean = 'and', ?Closure $callback = null)</code>:</b>
+                获取那些**没有任何** <code>$relation</code> 关系记录（或没有任何满足 <code>$callback</code> 条件的记录）的主模型。
+            </li>
+            <li><b><code>orDoesntHave(...)</code></b></li>
+            <li><b><code>whereHas(string $relation, ?Closure $callback = null, string $operator = '>=', int $count =
+                1)</code>:</b> 获取那些**至少**有 <code>$count</code> 个 <code>$relation</code> 关系记录，<b>并且这些关系记录满足
+                <code>$callback</code> 中定义的条件</b>的主模型。这是进行基于关系内容的过滤的常用方法。
+            </li>
+            <li><b><code>orWhereHas(...)</code></b></li>
+            <li><b><code>whereDoesntHave(string $relation, ?Closure $callback = null)</code>:</b> 获取那些**没有任何**
+                <code>$relation</code> 关系记录满足 <code>$callback</code> 中定义的条件的主模型。
+            </li>
+            <li><b><code>orWhereDoesntHave(...)</code></b></li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+use App\Models\Post;
+use App\Models\Comment; // 假设有 Comment 模型，关联到 Post
+
+// 1. 获取至少有 3 条评论的文章
+$postsWithManyComments = Post::has('comments', '>=', 3)->get();
+
+// 2. 获取没有任何评论的文章
+$postsWithoutComments = Post::doesntHave('comments')->get();
+
+// 3. 获取至少有一条包含 "Laravel" 字样评论的文章
+$postsWithLaravelComment = Post::whereHas('comments', function ($query) {
+// $query 是针对 comments 表的查询构建器
+$query->where('content', 'like', '%Laravel%');
+})->get();
+
+// 4. 获取没有任何标记为 spam 的评论的文章
+$postsWithoutSpamComments = Post::whereDoesntHave('comments', function ($query) {
+$query->where('is_spam', true);
+})->get();
+
+?&gt;</code></pre>
+
+        <h3 id="s8-2-3">N+1 查询问题与预加载 (Eager Loading)</h3>
+        <p class="danger"><b>这是一个非常常见的性能陷阱！</b></p>
+        <p><b>问题描述：</b> 当你获取了一个模型集合（例如所有文章），然后在循环中通过动态属性访问它们的关联模型（例如显示每篇文章的作者名），就会发生
+            N+1 查询问题。</p>
+        <pre><code class="language-php">&lt;?php
+use App\Models\Post;
+
+// 1. 获取所有文章 (执行了 1 次查询)
+$posts = Post::all(); // SELECT * FROM posts
+
+echo "&lt;ul&gt;";
+// 2. 在循环中访问关联的 user
+foreach ($posts as $post) {
+// !! 每一次访问 $post->user 都会触发一次新的数据库查询 !!
+// !! SELECT * FROM users WHERE id = ? (执行 N 次，N 是文章数量) !!
+echo "&lt;li&gt;" . htmlspecialchars($post->title) . " 作者: " . htmlspecialchars($post->user->name) . "&lt;/li&gt;";
+}
+echo "&lt;/ul&gt;";
+
+// 总共执行了 N + 1 次查询，如果文章很多，性能会非常差！
+?&gt;</code></pre>
+
+        <p><b>解决方案：预加载 (Eager Loading)</b></p>
+        <p>预加载允许你在**获取主模型时**，就**预先加载**好它们所需要的关联模型数据。这样通常只需要**额外的一到两次查询**（而不是
+            N 次）就可以获取所有关联数据。</p>
+        <ul>
+            <li><b><code>with(string|array $relations): Builder</code>:</b> 在执行查询（调用 <code>get()</code>, <code>first()</code>,
+                <code>find()</code> 等）之前，使用 <code>with()</code> 方法指定需要预加载的关系名称（即模型中定义关系的方法名）。
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+use App\Models\Post;
+
+// 1. 获取所有文章，并 预加载 user 关系 (执行 2 次查询)
+$posts = Post::with('user')->get();
+// Query 1: SELECT * FROM posts
+// Query 2: SELECT * FROM users WHERE id IN (所有文章的 user_id 列表)
+
+echo "&lt;ul&gt;";
+// 2. 在循环中访问关联的 user
+foreach ($posts as $post) {
+// !! 这次访问 $post->user 不会再触发数据库查询 !!
+// !! 因为数据已经被预先加载好了 !!
+echo "&lt;li&gt;" . htmlspecialchars($post->title) . " 作者: " . htmlspecialchars($post->user->name) . "&lt;/li&gt;";
+}
+echo "&lt;/ul&gt;";
+
+// 总共只执行了 2 次查询，性能大大提高！
+?&gt;</code></pre>
+        <p><b>预加载多个/嵌套关系：</b></p>
+        <ul>
+            <li>加载多个关系：<code>Post::with('user', 'tags')->get();</code></li>
+            <li>加载嵌套关系（例如文章的作者以及文章评论的作者）：使用点语法 <code>Post::with('user',
+                'comments.author')->get();</code></li>
+        </ul>
+        <p><b>约束预加载 (Constrained Eager Loading):</b> 你可以在预加载时对关联模型添加查询约束。</p>
+        <pre><code class="language-php">&lt;?php
+use App\Models\User;
+
+// 获取所有用户，但只预加载他们已发布的文章
+$users = User::with(['posts' => function ($query) {
+// $query 是针对 posts 关系的查询构建器
+$query->where('is_published', true)
+->orderBy('created_at', 'desc');
+}])->get();
+
+foreach ($users as $user) {
+echo "用户: " . $user->name . "\n";
+// $user->posts 现在只包含该用户已发布的文章
+foreach ($user->posts as $post) {
+echo "  - 已发布文章: " . $post->title . "\n";
+}
+}
+?&gt;</code></pre>
+
+        <p><b>延迟预加载 (Lazy Eager Loading) <code>load()</code>:</b> 如果你已经获取了一个模型或模型集合，之后才决定需要加载它们的关联关系，可以使用
+            <code>load()</code> 方法。</p>
+        <pre><code class="language-php">&lt;?php
+use App\Models\Book;
+
+// 先获取所有书籍
+$books = Book::all();
+
+// ... 执行一些其他逻辑 ...
+
+// 之后决定需要加载作者信息
+$books->load('author'); // 为 $books 集合中的所有 Book 对象预加载 author 关系
+
+// 也可以约束延迟预加载
+// $books->load(['reviews' => fn($query) => $query->where('rating', '>=', 4)]);
+
+// 现在可以安全地访问关联数据了
+foreach ($books as $book) {
+echo $book->title . " by " . $book->author->name . "\n"; // 不会触发 N+1
+}
+?&gt;</code></pre>
+        <p class="note"><b>性能关键：</b> 在任何可能出现 N+1 查询的地方（尤其是在循环中访问关系），都要记得使用
+            <code>with()</code> 或 <code>load()</code> 进行预加载！</p>
+
+        <hr/>
+
+        <h2 id="s8-3">8.3 插入与更新关联模型</h2>
+        <p>Eloquent 也提供了便捷的方法来创建或关联模型。</p>
+        <ul>
+            <li><b><code>save()</code> (用于 HasOne, HasMany):</b>
+                <pre><code class="language-php">$user = User::find(1);
+$post = new Post(['title' => '新文章', 'content' => '...']);
+$user->posts()->save($post); // 将 $post 保存到数据库，并自动设置 $post->user_id = $user->id</code></pre>
+                <code>saveMany([$post1, $post2])</code> 可以保存多个。
+            </li>
+            <li><b><code>create()</code> (用于 HasOne, HasMany):</b>
+                <pre><code class="language-php">$user = User::find(1);
+// 创建并保存新文章，自动设置 user_id (需要 Post 模型设置 $fillable)
+$post = $user->posts()->create(['title' => '另一篇', 'content' => '...']);</code></pre>
+                <code>createMany([...])</code> 可以创建多个。
+            </li>
+            <li><b><code>associate()</code> / <code>dissociate()</code> (用于 BelongsTo):</b>
+                <pre><code class="language-php">$user = User::find(1);
+$post = Post::find(5);
+$post->user()->associate($user); // 设置 $post->user_id = $user->id
+$post->save();
+
+// $post->user()->dissociate(); // 解除关联 (设置 $post->user_id = null)
+// $post->save();</code></pre>
+            </li>
+            <li><b>多对多关系操作 (<code>attach</code>, <code>detach</code>, <code>sync</code>):</b>
+                <ul>
+                    <li><b><code>attach(mixed $id, array $attributes = [], bool $touch = true)</code>:</b>
+                        在中间表中创建一条关联记录。可以传递单个 ID、ID 数组或模型实例。<code>$attributes</code>
+                        用于设置中间表上的额外字段值。<code>$touch</code> 是否更新父模型时间戳。
+                        <pre><code>$user->roles()->attach(1); // 将用户关联到 ID 为 1 的角色
+$user->roles()->attach([2, 3]); // 同时关联 ID 为 2 和 3 的角色
+$user->roles()->attach(4, ['expires_at' => now()->addYear()]); // 关联 ID 4 并设置中间表字段</code></pre>
+                    </li>
+                    <li><b><code>detach(mixed $ids = null, bool $touch = true)</code>:</b>
+                        在中间表中移除关联记录。不传参数则移除所有关联。可以传递单个 ID、ID 数组或模型实例。
+                    </li>
+                    <li><b><code>sync(array|Collection $ids, bool $detaching = true)</code>:</b> 同步中间表记录。它会自动计算：只保留
+                        <code>$ids</code>
+                        数组中存在的关联，移除不存在的，添加新增的。<b>非常适合处理表单提交的复选框等多对多关系更新！</b>
+                        <pre><code class="language-php">// 假设 $tagIds 是表单提交过来的文章标签 ID 数组 [1, 3, 5]
+// $post->tags()->sync($tagIds);
+// 这会自动：
+// - 如果文章之前关联了标签 2，会解除关联 (detach 2)
+// - 如果文章之前已关联标签 1, 3，会保留
+// - 如果文章之前未关联标签 5，会建立关联 (attach 5)
+
+// 也可以同步并附带中间表数据
+// $post->tags()->sync([1 => ['order' => 1], 3 => ['order' => 2]]);
+</code></pre>
+                        如果 <code>$detaching</code> 设为 <code>false</code>，则 <code>sync</code> 只会添加新的关联，不会移除已有的。
+                    </li>
+                    <li><b><code>updateExistingPivot($id, array $attributes, bool $touch = true)</code>:</b>
+                        更新已存在的中间表记录上的额外字段。
+                    </li>
+                </ul>
+            </li>
+        </ul>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 8 部分结束 ---</p>
+
+</div>
+</body>
+</html>

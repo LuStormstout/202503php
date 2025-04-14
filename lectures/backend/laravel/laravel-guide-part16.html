@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laravel 详细讲义 - Part 16: 测试基础</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+        }
+
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre;
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>Laravel 详细讲义 - Part 16: 测试基础</h1>
+    <p class="text-gray-500 text-sm">这是 Laravel 系列讲义的第十六部分 (共 17 部分)。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="s16-1">16.1 为什么要编写测试？</h2>
+        <p>编写自动化测试可能看起来会增加开发时间，但从长远来看，它带来的好处是巨大的：</p>
+        <ul>
+            <li><b>确保正确性：</b> 验证你的代码是否按照预期的方式工作。</li>
+            <li><b>防止回归 (Regressions):</b> 当你修改现有代码或添加新功能时，运行测试可以确保你没有意外地破坏掉之前正常工作的部分。
+            </li>
+            <li><b>改进代码设计：</b> 为了让代码更容易测试，你通常需要编写更小、更专注、依赖关系更清晰的类和方法，这本身就会促使你写出更高质量的代码（测试驱动开发
+                TDD 就是一种强调先写测试再写代码的开发方法）。
+            </li>
+            <li><b>提高重构信心：</b> 有了测试覆盖，你可以更自信地去重构和优化代码，因为测试会告诉你是否破坏了功能。</li>
+            <li><b>文档作用：</b> 测试代码本身可以作为一种“可执行的文档”，展示了代码应该如何被使用以及预期的行为。</li>
+            <li><b>简化调试：</b> 当测试失败时，通常能更快地定位到出问题的代码单元。</li>
+            <li><b>提升部署信心：</b> 在部署前运行完整的测试套件可以大大增加你对本次部署稳定性的信心。</li>
+        </ul>
+        <p class="note">
+            虽然为所有代码编写测试可能不现实，但为应用程序的核心业务逻辑、关键功能和容易出错的部分编写测试是非常值得投入的。</p>
+
+        <h3 id="s16-1-1">测试类型简介</h3>
+        <ul>
+            <li><b>单元测试 (Unit Tests):</b> 测试最小的可测试单元，通常是单个类或方法。目标是<b>隔离</b>地测试这段代码的逻辑，不涉及外部依赖（如数据库、文件系统、网络请求等，这些依赖需要被“模拟”掉）。速度快，用于验证代码块内部逻辑。
+            </li>
+            <li><b>集成测试 (Integration Tests):</b>
+                测试多个组件协同工作的情况。例如，测试一个控制器是否能正确调用服务类，服务类是否能正确与数据库交互。它不完全隔离，会涉及一些真实的依赖（可能需要真实的数据库连接）。
+            </li>
+            <li><b>功能测试 (Feature Tests) / 端到端测试 (E2E Tests):</b> 从用户的角度出发，测试一个完整的功能流程。在
+                Laravel 中，Feature 测试通常通过模拟 HTTP 请求来访问应用定义的路由，然后断言响应内容、数据库状态等是否符合预期。它覆盖了从路由到控制器、模型、视图（部分）的整个流程。
+            </li>
+        </ul>
+        <p>Laravel 的测试工具主要基于 **PHPUnit** 构建，并提供了许多便捷的辅助功能来简化 Feature 测试和与框架的交互。</p>
+
+        <hr/>
+
+        <h2 id="s16-2">16.2 Laravel 测试环境设置</h2>
+
+        <h3 id="s16-2-1"><code>phpunit.xml</code> 配置文件</h3>
+        <p>项目根目录下的 <code>phpunit.xml</code> 文件是 PHPUnit 的主配置文件。Laravel 默认已经为你配置好了大部分内容。
+        </p>
+        <p><b>关键配置项：</b></p>
+        <ul>
+            <li><b>测试套件 (Test Suites):</b> 定义了不同的测试分组，例如默认的 "Unit" 和 "Feature" 套件，它们分别指向
+                <code>tests/Unit</code> 和 <code>tests/Feature</code> 目录。
+            </li>
+            <li><b>环境变量 (<code>&lt;php&gt;</code> -> <code>&lt;env&gt;</code>):</b> <b>非常重要！</b>
+                这里设置的环境变量会在运行测试时<b>覆盖</b> <code>.env</code> 文件中的同名变量。Laravel 默认配置了：
+                <ul>
+                    <li><code>APP_ENV=testing</code>: 确保应用在测试环境中运行。</li>
+                    <li><code>BCRYPT_ROUNDS=4</code>: 降低密码哈希的计算成本，加快测试速度。</li>
+                    <li><code>CACHE_DRIVER=array</code>: 使用基于内存的数组缓存驱动，避免测试影响实际缓存。</li>
+                    <li><code>DB_CONNECTION=sqlite</code>: <b>默认使用 SQLite 数据库连接进行测试。</b></li>
+                    <li><code>DB_DATABASE=:memory:</code>: <b>默认使用 SQLite 的内存数据库。</b>
+                        这意味着每次测试运行时，数据库都是空的，测试结束后数据会丢失。这提供了非常快速和隔离的测试环境。
+                    </li>
+                    <li><code>MAIL_MAILER=array</code>: 使用数组驱动发送邮件（邮件内容存入内存，方便测试断言）。</li>
+                    <li><code>QUEUE_CONNECTION=sync</code>: 使用同步队列驱动，队列任务会立即执行而不是放入后台。</li>
+                    <li><code>SESSION_DRIVER=array</code>: 使用数组驱动存储 Session。</li>
+                </ul>
+                <p class="warning">使用 SQLite 内存数据库是 Laravel 测试的默认且推荐的方式，因为它速度快且能保证每次测试都在干净的环境中运行。如果你确实需要针对
+                    MySQL 或 PostgreSQL 进行测试，可以在 <code>phpunit.xml</code> 中修改 <code>DB_CONNECTION</code> 和
+                    <code>DB_DATABASE</code>（指向一个**专门用于测试**的数据库！），但测试速度会变慢。</p>
+            </li>
+            <li>其他配置：如 PHP 设置 (<code>&lt;ini&gt;</code>), 代码覆盖率报告配置 (<code>&lt;coverage&gt;</code>) 等。
+            </li>
+        </ul>
+
+        <h3 id="s16-2-2"><code>tests/</code> 目录结构</h3>
+        <ul>
+            <li><b><code>TestCase.php</code>:</b> 所有测试类的基类，继承自 <code>PHPUnit\Framework\TestCase</code>，并应用了
+                <code>Illuminate\Foundation\Testing\TestCase</code> Trait，提供了 Laravel 应用的引导和测试辅助方法。
+            </li>
+            <li><b><code>Unit/</code>:</b> 存放单元测试。这里的测试类通常直接继承 <code>Tests\TestCase</code> 或 PHPUnit
+                的基类。
+            </li>
+            <li><b><code>Feature/</code>:</b> 存放功能测试。这里的测试类通常直接继承 <code>Tests\TestCase</code>。</li>
+        </ul>
+
+        <hr/>
+
+        <h2 id="s16-3">16.3 创建与运行测试</h2>
+
+        <h3 id="s16-3-1">创建测试类</h3>
+        <p>使用 Artisan 命令：</p>
+        <pre><code class="language-bash"># 创建一个 Feature 测试 (默认)
+php artisan make:test UserRegistrationTest
+
+创建一个 Unit 测试
+php artisan make:test PaymentServiceTest --unit</code></pre>
+        <p>这会分别在 <code>tests/Feature/</code> 和 <code>tests/Unit/</code> 目录下创建对应的测试类文件。</p>
+        <p><b>测试类结构：</b></p>
+        <ul>
+            <li>类继承自 <code>Tests\TestCase</code> (Feature) 或 <code>PHPUnit\Framework\TestCase</code> / <code>Tests\TestCase</code>
+                (Unit)。
+            </li>
+            <li>测试方法：
+                <ul>
+                    <li>方法名必须以 <code>test_</code> 开头，例如 <code>public function test_user_can_register()</code>。
+                    </li>
+                    <li>或者方法上方有 <code>/** @test /</code> DocBlock 注解，例如：
+                        <pre><code class="language-php">/* @test */
+public function user_can_register(): void
+{
+// ... 测试代码 ...
+}</code></pre>
+                        (使用注解时方法名可以更自然)。
+                    </li>
+                </ul>
+            </li>
+            <li>可以包含 <code>setUp(): void</code> 和 <code>tearDown(): void</code>
+                方法，分别在每个测试方法运行之前和之后执行，用于设置和清理测试环境。确保调用 <code>parent::setUp();</code>
+                和 <code>parent::tearDown();</code>。
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+
+namespace Tests\Feature; // Feature 测试命名空间
+
+// 引入 Laravel 测试基类和可能用到的 Trait
+use Illuminate\Foundation\Testing\RefreshDatabase; // 用于数据库测试
+use Tests\TestCase;
+use App\Models\User; // 引入模型
+
+class UserRegistrationTest extends TestCase
+{
+// 使用 RefreshDatabase Trait 会在每个测试方法运行前迁移数据库，结束后回滚
+use RefreshDatabase;
+
+/**
+ * 测试访客可以访问注册页面。
+ * @test
+ */
+public function guest_can_view_registration_form(): void
+{
+    // 模拟 GET 请求访问 /register 路由
+    $response = $this->get('/register');
+
+    // 断言响应状态码是 200 OK
+    $response->assertStatus(200);
+    // 断言看到了特定的视图
+    $response->assertViewIs('auth.register');
+    // 断言视图中包含特定文本
+    $response->assertSeeText('注册');
+}
+
+/**
+ * 测试用户可以成功注册。
+ * 方法名以 test_ 开头
+ */
+public function test_user_can_register_successfully(): void
+{
+    // 准备 POST 请求的数据
+    $userData = [
+        'name' => 'Test User',
+        'email' => 'test@example.com',
+        'password' => 'password123',
+        'password_confirmation' => 'password123', // 假设有密码确认
+    ];
+
+    // 模拟 POST 请求到 /register 路由
+    $response = $this->post('/register', $userData);
+
+    // 断言：数据库中存在这个新用户
+    $this->assertDatabaseHas('users', [
+        'email' => 'test@example.com',
+        // 不要直接比较密码哈希，因为它每次都不同
+    ]);
+
+    // 断言：注册后被重定向到了 dashboard
+    $response->assertRedirect('/dashboard');
+
+    // 断言：用户现在是已认证状态
+    $this->assertAuthenticated();
+}
+
+// 可以添加更多测试方法...
+}
+?&gt;</code></pre>
+
+        <h3 id="s16-3-2">运行测试</h3>
+        <p>在项目根目录下运行 Artisan 命令：</p>
+        <ul>
+            <li><b>运行所有测试：</b>
+                <pre><code class="language-bash">php artisan test</code></pre>
+                或者直接调用 PHPUnit：
+                <pre><code class="language-bash">./vendor/bin/phpunit</code></pre>
+            </li>
+            <li><b>只运行特定目录下的测试：</b>
+                <pre><code class="language-bash">php artisan test tests/Unit
+php artisan test tests/Feature</code></pre>
+            </li>
+            <li><b>运行特定测试文件：</b>
+                <pre><code class="language-bash">php artisan test tests/Feature/UserRegistrationTest.php</code></pre>
+            </li>
+            <li><b>运行特定测试方法：</b> 使用 <code>--filter</code> 选项指定方法名。
+                <pre><code class="language-bash">php artisan test --filter=test_user_can_register_successfully
+
+或者过滤类名
+php artisan test --filter=UserRegistrationTest</code></pre>
+            </li>
+            <li><b>运行特定分组：</b> 在测试方法 DocBlock 中添加 <code>@group api</code> 或 <code>@group slow</code>，然后运行：
+                <pre><code class="language-bash">php artisan test --group=api</code></pre>
+            </li>
+            <li><b>其他常用选项：</b>
+                <ul>
+                    <li><code>--stop-on-failure</code>: 遇到第一个失败或错误的测试就停止。</li>
+                    <li><code>--coverage-html ./coverage</code>: （需要 Xdebug 或 PCOV 扩展）生成 HTML 格式的代码覆盖率报告到
+                        <code>./coverage</code> 目录。
+                    </li>
+                    <li><code>--parallel</code>: (需要安装 <code>brianium/paratest</code>) 并行运行测试，加快速度。</li>
+                </ul>
+            </li>
+        </ul>
+        <p>运行后，你会看到类似的点 <code>.</code> (通过), <code>F</code> (失败 Assertion Failed), <code>E</code> (错误
+            Error), <code>S</code> (跳过 Skipped), <code>I</code> (不完整 Incomplete) 来表示每个测试的结果，最后会有一个总结。
+        </p>
+
+        <hr/>
+
+        <h2 id="s16-4">16.4 断言 (Assertions)</h2>
+        <p>测试的核心在于**断言
+            (Assertion)**。断言是你对代码在特定条件下应该产生的行为或结果的**预期**。如果断言为真，测试通过；如果为假，测试失败。</p>
+        <p>PHPUnit (Laravel 测试基于它) 提供了大量的断言方法，都以 <code>assert</code> 开头。在 Laravel 的 <code>Tests\TestCase</code>
+            中，你可以通过 <code>$this->assert...</code> 来调用它们。</p>
+        <p><b>一些常用的断言：</b></p>
+        <ul>
+            <li><b>布尔值：</b> <code>assertTrue(bool $condition, string $message = '')</code>,
+                <code>assertFalse(...)</code></li>
+            <li><b>相等性：</b>
+                <ul>
+                    <li><code>assertEquals(mixed $expected, mixed $actual, string $message = '')</code>: 断言两个变量的值**相等**
+                        (使用 <code>==</code> 比较)。
+                    </li>
+                    <li><code>assertNotEquals(...)</code></li>
+                    <li><code>assertSame(mixed $expected, mixed $actual, string $message = '')</code>: 断言两个变量**全等**
+                        (使用 <code>===</code> 比较，值和类型都相同)。
+                    </li>
+                    <li><code>assertNotSame(...)</code></li>
+                </ul>
+            </li>
+            <li><b>数值：</b> <code>assertEqualsWithDelta()</code>, <code>assertGreaterThan()</code>, <code>assertGreaterThanOrEqual()</code>,
+                <code>assertLessThan()</code>, <code>assertLessThanOrEqual()</code></li>
+            <li><b>类型：</b> <code>assertInstanceOf(string $expected, mixed $actual)</code>,
+                <code>assertIsArray()</code>, <code>assertIsString()</code>, <code>assertIsNumeric()</code>, <code>assertIsCallable()</code>,
+                <code>assertIsObject()</code>, <code>assertNull()</code>, <code>assertNotNull()</code></li>
+            <li><b>数组：</b> <code>assertCount(int $expectedCount, iterable $haystack)</code>, <code>assertArrayHasKey(int|string
+                $key, array|ArrayAccess $array)</code>, <code>assertArrayNotHasKey(...)</code>, <code>assertContains(mixed
+                $needle, iterable $haystack)</code>, <code>assertNotContains(...)</code>, <code>assertEmpty(...)</code>,
+                <code>assertNotEmpty(...)</code></li>
+            <li><b>字符串：</b> <code>assertStringContainsString(string $needle, string $haystack)</code>, <code>assertStringNotContainsString(...)</code>,
+                <code>assertStringStartsWith(string $prefix, string $string)</code>,
+                <code>assertStringEndsWith(...)</code>, <code>assertMatchesRegularExpression(string $pattern, string
+                    $string)</code></li>
+            <li><b>文件系统：</b> <code>assertFileExists(string $filename)</code>,
+                <code>assertFileDoesNotExist(...)</code>, <code>assertFileIsReadable()</code>, <code>assertFileIsWritable()</code>
+            </li>
+            <li><b>异常：</b> <code>expectException(string $exception)</code>, <code>expectExceptionCode(...)</code>,
+                <code>expectExceptionMessage(...)</code>, <code>expectExceptionMessageMatches(...)</code>
+                (放在触发异常的代码**之前**)。
+            </li>
+        </ul>
+        <p class="note">这只是部分常用断言，完整的列表请查阅 PHPUnit 文档。</p>
+
+        <hr/>
+
+        <h2 id="s16-5">16.5 功能测试 (Feature Testing / HTTP Tests)</h2>
+        <p>功能测试用于测试应用程序的各个部分如何协同工作，通常通过模拟向应用程序发出 HTTP 请求并检查响应来实现。</p>
+        <p>Laravel 的 <code>Tests\TestCase</code> 提供了许多方便的方法来执行 HTTP 请求和断言响应。</p>
+        <ul>
+            <li><b>发出请求：</b>
+                <ul>
+                    <li><code>$response = $this->get(string $uri, array $headers = [])</code></li>
+                    <li><code>$response = $this->post(string $uri, array $data = [], array $headers = [])</code></li>
+                    <li><code>$response = $this->put(string $uri, array $data = [], array $headers = [])</code></li>
+                    <li><code>$response = $this->patch(...)</code></li>
+                    <li><code>$response = $this->delete(...)</code></li>
+                    <li><code>$response = $this->json('POST', $uri, $data, $headers)</code> (发送 JSON 数据并期望 JSON
+                        响应)
+                    </li>
+                    <li><code>$response = $this->getJson(...)</code> 等</li>
+                    <li>添加 Header: <code>$this->withHeaders(['X-Custom' => 'value'])->get(...)</code></li>
+                    <li>携带 Session 数据: <code>$this->withSession(['foo' => 'bar'])->get(...)</code></li>
+                    <li>携带 Cookie: <code>$this->withCookie('name', 'value')->get(...)</code></li>
+                </ul>
+            </li>
+            <li><b>模拟认证用户：</b>
+                <ul>
+                    <li><code>$user = User::factory()->create();</code></li>
+                    <li><code>$response = $this->actingAs($user, 'guard_name') // 第二个参数可选，指定 guard
+                        ->get('/dashboard');</code></li>
+                </ul>
+            </li>
+            <li><b>响应断言 (链式调用):</b> 请求方法返回一个 <code>TestResponse</code> 对象，可以链式调用大量断言方法：
+                <ul>
+                    <li><b>状态码:</b> <code>->assertStatus(200)</code>, <code>->assertOk()</code>, <code>->assertNotFound()</code>
+                        (404), <code>->assertForbidden()</code> (403), <code>->assertUnauthorized()</code> (401), <code>->assertUnprocessable()</code>
+                        (422)
+                    </li>
+                    <li><b>标头:</b> <code>->assertHeader('Content-Type', 'application/json')</code>, <code>->assertHeaderMissing(...)</code>
+                    </li>
+                    <li><b>Cookie:</b> <code>->assertCookie('name', 'value')</code>,
+                        <code>->assertCookieExpired(...)</code>, <code>->assertCookieMissing(...)</code></li>
+                    <li><b>Session:</b> <code>->assertSessionHas('key', $value)</code>, <code>->assertSessionHasErrors(['field',
+                        ...])</code>, <code>->assertSessionDoesntHaveErrors(...)</code>, <code>->assertSessionMissing(...)</code>
+                    </li>
+                    <li><b>重定向:</b> <code>->assertRedirect('/expected/path')</code>, <code>->assertRedirectToRoute('route.name',
+                        [...params...])</code></li>
+                    <li><b>视图:</b> <code>->assertViewIs('view.name')</code>, <code>->assertViewHas('key',
+                        $value)</code>, <code>->assertViewHasAll([...])</code>, <code>->assertViewMissing(...)</code>
+                    </li>
+                    <li><b>JSON:</b> <code>->assertJson(array $data, bool $strict = false)</code> (检查响应 JSON
+                        是否包含给定数组，<code>$strict=true</code> 要求结构和类型完全匹配), <code>->assertJsonFragment(array
+                            $data)</code> (检查 JSON 中是否存在给定片段), <code>->assertJsonCount(int $count, ?string
+                            $key = null)</code>, <code>->assertJsonStructure([...structure...])</code>, <code>->assertJsonValidationErrors([...fields...])</code>
+                        (检查是否有特定字段的验证错误)
+                    </li>
+                    <li><b>内容:</b> <code>->assertSee('一些应该在 HTML 中看到的文本')</code>, <code>->assertSeeText('一些应该转义后看到的文本')</code>,
+                        <code>->assertDontSee(...)</code>, <code>->assertSeeInOrder([...])</code></li>
+                </ul>
+            </li>
+        </ul>
+        <p><b>示例 (Feature Test):</b></p>
+        <pre><code class="language-php">&lt;?php
+namespace Tests\Feature;
+
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+use App\Models\User;
+use App\Models\Post;  
+
+class PostManagementTest extends TestCase
+{
+use RefreshDatabase;
+
+/** @test */
+public function guest_cannot_create_post(): void
+{
+    // 尝试访问创建文章页面 (GET)
+    $response = $this->get('/posts/create');
+    // 断言：应该重定向到登录页面
+    $response->assertRedirect('/login');
+
+    // 尝试提交创建文章的请求 (POST)
+    $response = $this->post('/posts', [
+        'title' => 'Test Title',
+        'content' => 'Test content'
+    ]);
+    // 断言：应该重定向到登录页面
+    $response->assertRedirect('/login');
+}
+
+/** @test */
+public function authenticated_user_can_create_post(): void
+{
+    // 1. 准备：创建一个用户并模拟其登录
+    $user = User::factory()->create();
+    $this->actingAs($user); // ★ 模拟用户登录
+
+    // 2. 行为：访问创建页面
+    $response = $this->get('/posts/create');
+    // 断言：看到创建页面
+    $response->assertOk();
+    $response->assertViewIs('posts.create'); // 假设视图名
+    $response->assertSee('创建新文章');
+
+    // 3. 行为：提交创建表单
+    $postData = [
+        'title' => '我的第一篇文章',
+        'content' => '这是文章内容，需要足够长。',
+        // 假设 category_id 和 tags 是可选的或有默认值
+    ];
+    $response = $this->post('/posts', $postData);
+
+    // 4. 断言：
+    // a) 数据库中存在这条新记录
+    $this->assertDatabaseHas('posts', [
+        'user_id' => $user->id,
+        'title' => '我的第一篇文章',
+        // 'content' => $postData['content'] // content 通常较长，可以不直接比较
+    ]);
+    // b) 请求被重定向到新文章的显示页面 (假设路由名为 posts.show)
+    $createdPost = Post::first(); // 获取刚创建的文章
+    $response->assertRedirect(route('posts.show', $createdPost));
+    // c) Session 中有成功消息
+    $response->assertSessionHas('success', '文章创建成功！');
+}
+
+ /** @test */
+public function validation_fails_if_title_is_missing(): void
+{
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $postData = [
+        // 'title' => 'Missing Title', // << 故意不传 title
+        'content' => 'Some content.',
+    ];
+    $response = $this->post('/posts', $postData);
+
+    // 断言：请求因为验证失败而被重定向回去了
+    $response->assertStatus(302); // 302 Found 是重定向状态码
+    // 断言：Session 中包含针对 'title' 字段的错误
+    $response->assertSessionHasErrors('title');
+    // 断言：数据库中没有这条记录
+    $this->assertDatabaseMissing('posts', ['content' => 'Some content.']);
+}
+}
+?&gt;</code></pre>
+
+        <hr/>
+
+        <h2 id="s16-6">16.6 数据库测试</h2>
+        <ul>
+            <li><b>测试数据库环境：</b> 再次强调，配置 <code>phpunit.xml</code> 使用独立的测试数据库（如 SQLite 内存库
+                <code>:memory:</code> 或一个专门的测试库）非常重要，避免污染开发数据。
+            </li>
+            <li><b><code>RefreshDatabase</code> Trait：</b> <b>极其常用！</b> 在你的测试类中使用 <code>use
+                Illuminate\Foundation\Testing\RefreshDatabase;</code>。它会在<b>每个测试方法运行前</b>执行所有数据库迁移，并在测试方法<b>运行后</b>回滚事务。这确保了每个测试都在一个干净、一致的数据库环境中运行，测试之间互不干扰。
+            </li>
+            <li><b>模型工厂 (Model Factories):</b> 在测试中是创建测试数据（如用户、文章、评论）的主要方式。<code>User::factory()->create()</code>,
+                <code>Post::factory()->count(3)->create([...])</code> 等。
+            </li>
+            <li><b>数据库断言：</b> 用于验证数据库的状态是否符合预期。
+                <ul>
+                    <li><b><code>$this->assertDatabaseHas(string $table, array $data)</code>:</b> 断言数据库的 <code>$table</code>
+                        表中存在一条记录匹配 <code>$data</code> 数组中的条件。
+                    </li>
+                    <li><b><code>$this->assertDatabaseMissing(string $table, array $data)</code>:</b>
+                        断言数据库中<b>不</b>存在匹配的记录。
+                    </li>
+                    <li><b><code>$this->assertSoftDeleted(string $table, array $data)</code>:</b> 断言匹配的记录已被软删除
+                        (<code>deleted_at</code> 不为 NULL)。
+                    </li>
+                    <li><b><code>$this->assertDatabaseCount(string $table, int $expectedCount)</code>:</b> 断言表中总共有多少条记录。
+                    </li>
+                    <li><code>assertModelExists($model)</code> / <code>assertModelMissing($model)</code>: 断言某个
+                        Eloquent 模型实例在数据库中存在或不存在。
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        <p>上面的 <code>UserRegistrationTest</code> 和 <code>PostManagementTest</code> (假设有) 示例中已经展示了 <code>RefreshDatabase</code>、工厂和数据库断言的用法。
+        </p>
+
+        <hr/>
+
+        <h2 id="s16-7">16.7 单元测试 (Unit Testing)</h2>
+        <ul>
+            <li><b>焦点：</b> 测试小的、**隔离的**代码单元（通常是类的方法），不依赖外部系统如数据库、文件系统、网络、Session 等。
+            </li>
+            <li><b>隔离是关键：</b> 如果被测试的类依赖于其他类（例如一个 Service 类依赖一个 Repository 类），你需要使用**模拟
+                (Mocking)** 或**伪造 (Stubbing)** 技术来创建这些依赖的“假”版本。这些假对象可以按你的预期返回指定的值或验证特定的方法是否被调用，从而让你只专注于测试当前单元的逻辑。
+            </li>
+            <li><b>工具：</b> Laravel 集成了 <b>Mockery</b> 库用于创建模拟对象，PHPUnit 本身也提供了 Mock/Stub 功能。</li>
+            <li><b>优点：</b> 运行速度快，能精确地定位到代码逻辑错误。</li>
+            <li><b>缺点：</b> 无法测试组件之间的交互。需要投入时间学习和编写 Mock/Stub。</li>
+        </ul>
+        <p><b>简单 Mockery 概念示例：</b></p>
+        <pre><code class="language-php">&lt;?php
+// tests/Unit/ExampleServiceTest.php
+namespace Tests\Unit;
+
+use Tests\TestCase; // 或者 PHPUnit\Framework\TestCase
+use App\Services\ExampleService;
+use App\Contracts\ExternalApiInterface; // 假设 Service 依赖这个接口
+use Mockery; // 引入 Mockery
+use Mockery\MockInterface; // Mock 对象的类型提示
+
+class ExampleServiceTest extends TestCase
+{
+/** @test */
+public function it_calculates_correctly_based_on_api_result(): void
+{
+// 1. Arrange: 设置测试环境
+
+    // 创建 ExternalApiInterface 的模拟对象
+    // 我们告诉 Mockery 创建一个“假”的实现了该接口的对象
+    $mockApi = Mockery::mock(ExternalApiInterface::class, function (MockInterface $mock) {
+        // 设置预期：我们期望这个 mock 对象的 getData 方法会被调用一次
+        // 并且当它被调用时，应该返回 10
+        $mock->shouldReceive('getData')->once()->andReturn(10);
+    });
+
+    // 使用模拟对象实例化被测试的 Service
+    // (这里假设 Service 通过构造函数接收依赖)
+    // 如果容器能自动注入 mock，也可以用 $this->instance() 绑定
+    // $this->instance(ExternalApiInterface::class, $mockApi);
+    // $service = $this->app->make(ExampleService::class);
+    $service = new ExampleService($mockApi); // 直接注入 mock
+
+    // 2. Act: 执行被测试的操作
+    $result = $service->performCalculation(); // 假设这个方法内部会调用 $api->getData()
+
+    // 3. Assert: 断言结果是否符合预期
+    $this->assertEquals(100, $result); // 假设计算逻辑是乘以 10
+
+    // Mockery 会在测试结束时自动验证 shouldReceive 的期望是否满足
+}
+
+// !!! 需要在 tearDown 中关闭 Mockery !!!
+protected function tearDown(): void
+{
+    Mockery::close(); // 清理 Mockery 状态
+    parent::tearDown();
+}
+}
+
+// 假设 app/Services/ExampleService.php
+namespace App\Services;
+use App\Contracts\ExternalApiInterface;
+
+class ExampleService {
+private $api;
+public function __construct(ExternalApiInterface $api) { $this->api = $api; }
+public function performCalculation(): int {
+$data = $this->api->getData(); // 调用依赖的方法
+return $data * 10; // 执行自己的逻辑
+}
+}
+
+?&gt;</code></pre>
+        <p class="note">单元测试和 Mocking 是更高级的主题，但对于编写高质量、可维护的大型应用非常重要。</p>
+        <p><b>总结：</b> Laravel 提供了强大且易用的测试工具。从编写简单的 Feature
+            测试开始，逐步学习数据库测试和单元测试，养成编写测试的习惯，将极大地提升你的代码质量和开发信心。</p>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 16 部分结束 ---</p>
+
+</div>
+</body>
+</html>

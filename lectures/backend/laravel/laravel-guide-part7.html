@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laravel 详细讲义 - Part 7: 数据库 - Eloquent ORM 基础</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+        }
+        .prose code::before, .prose code::after { content: none !important; }
+        .prose code { background-color: #f3f4f6; color: #374151; padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.875em; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+        .prose pre code { background-color: transparent; color: inherit; padding: 0; font-size: inherit; white-space: pre; }
+        .prose ul > li::marker { color: #6b7280; }
+        .prose ol > li::marker { color: #6b7280; }
+        .prose a { color: #2563eb; }
+        .prose a:hover { color: #1d4ed8; text-decoration: underline;}
+        .prose b { font-weight: 600; }
+        .prose strong { font-weight: 600; }
+        .prose hr { border-color: #e5e7eb; margin-top: 2em; margin-bottom: 2em;}
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; font-weight: 700; margin-bottom: 0.8em; padding-bottom: 0.3em; border-bottom: 1px solid #e5e7eb;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; font-weight: 600; margin-top: 1.8em; margin-bottom: 0.8em; padding-bottom: 0.3em; border-bottom: 1px solid #e5e7eb;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; font-weight: 600; margin-top: 1.5em; margin-bottom: 0.6em;}
+        .prose h4 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; margin-top: 1.2em; margin-bottom: 0.5em;}
+        .prose p { margin-top: 1.25em; margin-bottom: 1.25em; }
+        .prose ul, .prose ol { margin-top: 1.25em; margin-bottom: 1.25em; padding-left: 1.625em; }
+        .prose li { margin-top: 0.5em; margin-bottom: 0.5em; }
+        .note { background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 1em; margin: 1.5em 0; border-radius: 0 0.375rem 0.375rem 0; color: #1e40af;}
+        .warning { background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 1em; margin: 1.5em 0; border-radius: 0 0.375rem 0.375rem 0; color: #92400e;}
+        .danger { background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 1em; margin: 1.5em 0; border-radius: 0 0.375rem 0.375rem 0; color: #991b1b;}
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>Laravel 详细讲义 - Part 7: 数据库 - Eloquent ORM 基础</h1>
+    <p class="text-gray-500 text-sm">这是 Laravel 系列讲义的第七部分 (共 17 部分)。</p>
+
+    <hr />
+
+    <div>
+        <h2 id="s7-1">7.1 ORM 与 Active Record 模式简介</h2>
+        <p><b>ORM (Object-Relational Mapping)</b> 是一种编程技术，它在关系型数据库和面向对象编程语言之间建立起一座“桥梁”。通过 ORM，你可以：</p>
+        <ul>
+            <li>将数据库中的<b>表 (Table)</b> 映射到 PHP 中的<b>类 (Class)</b>（称为模型 Model）。</li>
+            <li>将表中的<b>行 (Row)</b> 映射到该类的<b>对象 (Object)</b>。</li>
+            <li>将表中的<b>列 (Column)</b> 映射到对象的<b>属性 (Property)</b>。</li>
+            <li>使用<b>面向对象</b>的方式来执行数据库操作（如查找、保存、删除对象），而无需（或很少）编写原生 SQL 语句。</li>
+        </ul>
+        <p><b>Eloquent</b> 是 Laravel 自带的 ORM 实现，它遵循了常见的 <b>Active Record</b> 设计模式。在 Active Record 模式中，模型类本身不仅代表了数据库表结构，也**封装了**与该表交互的方法（例如，<code>User</code> 模型可以直接调用 <code>save()</code> 方法将自身保存到 <code>users</code> 表）。</p>
+        <p><b>使用 Eloquent 的好处：</b></p>
+        <ul>
+            <li><b>代码更简洁、更面向对象：</b> 用 <code>$user->save()</code> 代替手写 <code>INSERT</code> 或 <code>UPDATE</code> SQL。</li>
+            <li><b>提高开发效率：</b> 大大减少了编写重复性数据库操作代码的工作量。</li>
+            <li><b>易于理解和维护：</b> 将数据和操作数据的逻辑封装在模型中。</li>
+            <li><b>与 Laravel 集成紧密：</b> 可以方便地配合 Laravel 的其他功能（如验证、授权、事件、集合等）。</li>
+        </ul>
+
+        <hr />
+
+        <h2 id="s7-2">7.2 定义 Eloquent 模型</h2>
+        <p>每个 Eloquent 模型就是一个普通的 PHP 类，它继承自 <code>Illuminate\Database\Eloquent\Model</code> 基类。</p>
+
+        <h3 id="s7-2-1">创建模型</h3>
+        <p>使用 Artisan 命令创建模型是最方便的方式：</p>
+        <pre><code class="language-bash"># 创建一个名为 User 的模型 (通常对应 users 表)
+php artisan make:model User
+
+创建模型的同时，自动创建对应的数据库迁移 (-m)、模型工厂 (-f)、资源控制器 (-c)
+php artisan make:model Post -mcf</code></pre>
+        <p>这会在 <code>app/Models/</code> 目录下（或者旧版本 Laravel 可能在 <code>app/</code> 下）创建一个模型文件，例如 <code>User.php</code>:</p>
+        <pre><code class="language-php">&lt;?php
+
+namespace App\Models; // 模型位于 App\Models 命名空间
+
+use Illuminate\Database\Eloquent\Factories\HasFactory; // 如果使用了工厂
+use Illuminate\Database\Eloquent\Model;
+// 如果是 User 模型，通常还会继承自 Authenticatable 类用于认证
+// use Illuminate\Foundation\Auth\User as Authenticatable;
+
+// 类名 User 对应 users 表 (通常)
+class User extends Model // 或 extends Authenticatable
+{
+use HasFactory; // 如果使用了工厂
+
+// 在这里定义模型的属性、关联关系、方法等
+// ...
+}
+?&gt;</code></pre>
+
+        <h3 id="s7-2-2">模型约定 (Conventions)</h3>
+        <p>Eloquent 遵循“约定优于配置”的原则，它对模型和数据库表的关系做了一些默认假设：</p>
+        <ul>
+            <li><b>表名 (Table Name):</b> 默认情况下，Eloquent 会将模型类名的**复数、蛇形命名 (snake_case)** 作为对应的数据库表名。
+                <ul>
+                    <li>例如：<code>User</code> 模型对应 <code>users</code> 表。</li>
+                    <li>例如：<code>BlogPost</code> 模型对应 <code>blog_posts</code> 表。</li>
+                </ul>
+                如果你的表名不符合这个约定，可以在模型类中定义 <code>$table</code> 属性来**覆盖**默认表名：
+                <pre><code class="language-php">protected $table = 'my_legacy_users_table';</code></pre>
+            </li>
+            <li><b>主键 (Primary Key):</b> 默认假定主键列名为 <code>id</code>。如果你的主键列名不同，可以定义 <code>$primaryKey</code> 属性：
+                <pre><code class="language-php">protected $primaryKey = 'user_uuid';</code></pre>
+                默认还假定主键是**自增 (auto-incrementing)** 的整数。如果不是（例如使用 UUID），你需要设置 <code>$incrementing</code> 属性为 <code>false</code>：
+                <pre><code class="language-php">public $incrementing = false;</code></pre>
+                如果主键不是整数类型，还需要设置 <code>$keyType</code> 属性：
+                <pre><code class="language-php">protected $keyType = 'string'; // 例如用于 UUID</code></pre>
+            </li>
+            <li><b>时间戳 (Timestamps):</b> 默认假定你的表中有 <code>created_at</code> 和 <code>updated_at</code> 两个 TIMESTAMP 或 DATETIME 类型的列。Eloquent 会在创建和更新模型时**自动管理**这两个时间戳。
+                <ul>
+                    <li>如果你不希望 Eloquent 管理时间戳，可以在模型中设置 <code>$timestamps</code> 属性为 <code>false</code>：
+                        <pre><code class="language-php">public $timestamps = false;</code></pre>
+                    </li>
+                    <li>如果你使用了不同的列名，可以定义 <code>CREATED_AT</code> 和 <code>UPDATED_AT</code> 常量：
+                        <pre><code class="language-php">const CREATED_AT = 'creation_date';
+const UPDATED_AT = 'last_update';</code></pre>
+                    </li>
+                </ul>
+            </li>
+            <li><b>数据库连接 (Connection):</b> 默认使用 <code>config/database.php</code> 中配置的默认数据库连接。如果某个模型需要使用不同的数据库连接，可以定义 <code>$connection</code> 属性：
+                <pre><code class="language-php">protected $connection = 'mysql_secondary'; // 假设在 config/database.php 中定义了 'mysql_secondary' 连接</code></pre>
+            </li>
+        </ul>
+        <p class="note">遵循 Laravel 的约定可以减少很多配置工作。如果你的数据库结构不符合约定，可以使用这些属性来自定义。</p>
+
+        <hr />
+
+        <h2 id="s7-3">7.3 检索模型 (Retrieving Models)</h2>
+        <p>Eloquent 提供了多种方法来从数据库中检索模型数据。</p>
+
+        <h3 id="s7-3-1">获取多个模型 (集合)</h3>
+        <ul>
+            <li><b><code>Model::all(): Collection</code></b>: 获取对应表中的**所有**记录。返回一个 Eloquent 集合。<b>注意：</b>对于非常大的表，这可能会消耗大量内存，应谨慎使用。</li>
+            <li><b><code>Model::where(...)-&gt;get(): Collection</code></b>: 使用 <code>where</code> (以及其他查询构建器方法如 <code>orderBy</code>, <code>take</code> 等) 添加查询条件，然后调用 <code>get()</code> 执行查询并返回结果集合。</li>
+            <li><b><code>Model::findMany(array $ids): Collection</code></b>: 根据主键 ID 数组查找多个模型。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+use App\Models\Post;
+use Illuminate\Database\Eloquent\Collection;
+
+// 1. 获取所有文章
+$allPosts = Post::all(); // 返回 Collection 对象
+
+// 2. 获取所有已发布的文章，并按发布日期降序排列
+$publishedPosts = Post::where('is_published', true)
+->orderBy('published_at', 'desc')
+->take(10) // 只取最新的 10 篇
+->get(); // 执行查询，返回 Collection
+
+// 3. 根据 ID 列表查找文章
+$postIds = [1, 5, 10];
+$specificPosts = Post::findMany($postIds);
+
+// 遍历集合
+foreach ($publishedPosts as $post) {
+echo "标题: " . htmlspecialchars($post->title) . "&lt;br&gt;";
+// 可以像访问对象属性一样访问模型的列数据
+}
+?&gt;</code></pre>
+
+        <h3 id="s7-3-2">获取单个模型</h3>
+        <ul>
+            <li><b><code>Model::find(mixed $id): ?Model</code></b>: 根据主键 <code>$id</code> 查找单个模型。如果找到则返回模型对象，找不到则返回 <code>null</code>。</li>
+            <li><b><code>Model::findOrFail(mixed $id): Model</code></b>: 根据主键 <code>$id</code> 查找单个模型。如果找到则返回模型对象，<b>如果找不到则抛出 <code>ModelNotFoundException</code> 异常</b> (Laravel 会自动将其渲染为 404 页面)。<b>这是处理 “资源不存在” 情况的常用方法。</b></li>
+            <li><b><code>Model::where(...)-&gt;first(): ?Model</code></b>: 获取满足查询条件的**第一条**记录。找不到返回 <code>null</code>。</li>
+            <li><b><code>Model::where(...)-&gt;firstOrFail(): Model</code></b>: 获取满足条件的第一条记录，找不到则抛出 <code>ModelNotFoundException</code>。</li>
+            <li><b><code>Model::firstWhere(string $column, mixed $operator = '=', mixed $value = null): ?Model</code></b>: <code>where(...)->first()</code> 的快捷方式。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+use App\Models\User;
+
+// --- 使用 find ---
+$userId = 1;
+$user = User::find($userId);
+if ($user) {
+echo "找到用户 (find): " . $user->name . "\n";
+} else {
+echo "ID 为 {$userId} 的用户不存在。\n";
+}
+
+// --- 使用 findOrFail (更常用) ---
+try {
+$userIdOrFail = 100; // 假设 ID 100 不存在
+$userOrFail = User::findOrFail($userIdOrFail);
+// 如果找到，代码继续执行
+echo "找到用户 (findOrFail): " . $userOrFail->name . "\n";
+} catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+// 如果找不到，会捕获到异常
+echo "ID 为 {$userIdOrFail} 的用户不存在 (触发了 404)。\n";
+// abort(404); // 可以手动触发 404 页面
+}
+
+// --- 使用 firstWhere ---
+$adminUser = User::firstWhere('is_admin', true);
+if ($adminUser) {
+echo "找到第一个管理员: " . $adminUser->name . "\n";
+}
+?&gt;</code></pre>
+
+        <h3 id="s7-3-3">聚合函数</h3>
+        <p>Eloquent 也支持直接调用查询构建器的聚合函数。</p>
+        <pre><code class="language-php">&lt;?php
+use App\Models\Order;
+
+$totalOrders = Order::count(); // 获取订单总数
+$maxAmount = Order::where('status', 'completed')->max('amount'); // 获取已完成订单的最大金额
+$averageAmount = Order::avg('amount'); // 获取所有订单的平均金额
+
+echo "总订单数: {$totalOrders}\n";
+echo "最高订单金额: {$maxAmount}\n";
+echo "平均订单金额: {$averageAmount}\n";
+?&gt;</code></pre>
+
+        <h3 id="s7-3-4">刷新模型</h3>
+        <p>如果你获取了一个模型实例，然后数据库中的对应记录可能被其他进程修改了，你可以使用 <code>refresh()</code> 方法从数据库重新加载模型的属性。</p>
+        <pre><code class="language-php">&lt;?php
+$post = Post::find(1);
+// ... 可能经过了一些时间或其他操作 ...
+$post->refresh(); // 从数据库重新加载 $post 的数据
+?&gt;</code></pre>
+
+        <hr />
+
+        <h2 id="s7-4">7.4 Eloquent 集合 (Collections)</h2>
+        <p>像 <code>all()</code>, <code>get()</code>, <code>findMany()</code> 这些返回多个模型的方法，它们返回的不是普通的 PHP 数组，而是一个 <code>Illuminate\Database\Eloquent\Collection</code> 对象（它继承自 Laravel 基础的 <code>Illuminate\Support\Collection</code>）。</p>
+        <p>Collection 对象提供了非常多方便的、链式调用的方法来处理数据集合，远比操作普通数组强大。例如：</p>
+        <ul>
+            <li>迭代: <code>foreach</code>, <code>map()</code>, <code>filter()</code>, <code>reject()</code>, <code>each()</code></li>
+            <li>检查: <code>count()</code>, <code>isEmpty()</code>, <code>isNotEmpty()</code>, <code>contains()</code></li>
+            <li>获取: <code>first()</code>, <code>last()</code>, <code>pluck()</code>, <code>where()</code> (集合上的 where)</li>
+            <li>转换: <code>toArray()</code>, <code>toJson()</code></li>
+            <li>排序: <code>sortBy()</code>, <code>sortByDesc()</code></li>
+            <li>分组: <code>groupBy()</code></li>
+            <li>聚合: <code>sum()</code>, <code>avg()</code>, <code>max()</code>, <code>min()</code></li>
+            <li>等等... 查阅 Laravel 文档的 "Collections" 部分。</li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+use App\Models\Product;
+
+// 获取所有价格低于 100 的产品
+$products = Product::where('price', '&lt;', 100)->get(); // $products 是一个 Collection
+
+// 检查集合是否为空
+if ($products->isNotEmpty()) {
+// 筛选出库存大于 0 的产品
+$inStockProducts = $products->filter(function ($product) {
+return $product->stock > 0;
+});
+
+// 获取所有在库产品的名称列表
+$productNames = $inStockProducts->pluck('name');
+
+// 计算在库产品的平均价格
+$averagePrice = $inStockProducts->avg('price');
+
+echo "在库产品数量: " . $inStockProducts->count() . "\n";
+echo "平均价格: " . number_format($averagePrice, 2) . "\n";
+echo "产品名称: " . $productNames->implode(', ') . "\n"; // 用逗号连接名称
+}
+?&gt;</code></pre>
+        <p class="note">熟练使用 Collection 提供的丰富方法可以极大地简化数据处理逻辑。</p>
+
+        <hr />
+
+        <h2 id="s7-5">7.5 插入与更新模型</h2>
+
+        <h3 id="s7-5-1">创建新记录</h3>
+        <p>有两种主要方式：</p>
+        <ol>
+            <li><b>实例化 + 设置属性 + <code>save()</code>:</b>
+                <pre><code class="language-php">&lt;?php
+use App\Models\Post;
+use Illuminate\Http\Request; // 假设在控制器中
+
+// 1. 创建一个新的 Post 模型实例
+$post = new Post;
+
+// 2. 设置模型的属性 (对应数据库列)
+$post->title = $request->input('title'); // 假设从请求获取数据
+$post->content = $request->input('content');
+$post->user_id = auth()->id(); // 获取当前登录用户的 ID
+$post->is_published = $request->boolean('is_published'); // 处理布尔值输入
+
+// 3. 调用 save() 方法将模型插入数据库
+$success = $post->save(); // 返回 true 或 false
+
+if ($success) {
+// 插入成功， $post 对象现在会包含数据库生成的 ID 和时间戳
+echo "文章创建成功，ID: " . $post->id;
+} else {
+echo "文章创建失败！";
+}
+?&gt;</code></pre>
+                <p><code>save()</code> 方法会自动处理 <code>created_at</code> 和 <code>updated_at</code> 时间戳（如果模型启用了的话）。</p>
+            </li>
+            <li class="mt-2"><b>使用 <code>create()</code> 方法 (批量赋值):</b>
+                <pre><code class="language-php">&lt;?php
+use App\Models\Post;
+use Illuminate\Http\Request;
+
+// 直接使用 create 方法创建并保存记录
+// 需要在 Post 模型中设置 $fillable 或 $guarded (见下文)
+try {
+$post = Post::create([
+'title' => $request->input('title'),
+'content' => $request->input('content'),
+'user_id' => auth()->id(),
+'is_published' => $request->boolean('is_published'),
+// created_at 和 updated_at 会自动填充
+]);
+// create() 方法返回创建成功的模型实例
+echo "文章创建成功 (使用 create)，ID: " . $post->id;
+
+} catch (\Illuminate\Database\Eloquent\MassAssignmentException $e) {
+// 如果尝试批量赋值未在 $fillable 中或在 $guarded 中的属性，会抛出异常
+echo "批量赋值错误: " . $e->getMessage();
+}
+?&gt;</code></pre>
+            </li>
+        </ol>
+
+        <h3 id="s7-5-2">批量赋值保护 (Mass Assignment Protection)</h3>
+        <p class="danger"><b>安全重点：</b> 当你使用 <code>create()</code>, <code>update()</code>, <code>fill()</code>, <code>forceCreate()</code>, <code>forceUpdate()</code> 等方法，通过**数组**一次性设置模型的多个属性时，Laravel 会进行**批量赋值保护**，以防止恶意用户通过请求注入不想被修改的字段（例如，用户提交表单时偷偷加入一个 <code>'is_admin' => 1</code> 字段）。</p>
+        <p>你**必须**在你的 Eloquent 模型中，通过以下两种方式之一来明确指定哪些属性是**允许**被批量赋值的：</p>
+        <ol>
+            <li><b><code>$fillable</code> 属性 (白名单):</b> 在模型中定义一个 <code>$fillable</code> 数组，包含所有<b>允许</b>通过批量赋值来设置的属性名。<b>这是推荐的方式。</b>
+                <pre><code class="language-php">namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+
+class Post extends Model {
+/**
+* The attributes that are mass assignable.
+*
+* @var array&lt;int, string&gt;
+*/
+protected $fillable = [
+'title',
+'content',
+'user_id',
+'is_published',
+'published_at',
+// 只有列在这里的属性才能通过 create() 或 update([]) 赋值
+];
+// ...
+}</code></pre>
+            </li>
+            <li><b><code>$guarded</code> 属性 (黑名单):</b> 在模型中定义一个 <code>$guarded</code> 数组，包含所有<b>不允许</b>通过批量赋值来设置的属性名。
+                <pre><code class="language-php">namespace App&lt;2>Models;
+use Illuminate\Database\Eloquent\Model;  
+
+class User extends Model {
+/**
+* The attributes that aren't mass assignable.
+*
+* @var array&lt;int, string&gt;
+*/
+protected $guarded = [
+'id', // 通常 id 不允许批量赋值
+'is_admin', // 不允许用户自己设置管理员权限
+'remember_token',
+// 没有列在这里的属性都允许批量赋值
+];
+// ...
+}</code></pre>
+                <p><b>如果你想允许所有属性都被批量赋值（通常只在非常简单的内部模型或确知安全的情况下使用），可以将 <code>$guarded</code> 设为空数组：</b></p>
+                <pre><code class="language-php">protected $guarded = []; // 禁用批量赋值保护 (谨慎使用!)</code></pre>
+            </li>
+        </ol>
+        <p><b>两者选其一即可，不能同时使用。推荐使用 <code>$fillable</code>，因为它更明确地表达了意图（只允许这些）。</b> 如果你不设置 <code>$fillable</code> 或 <code>$guarded</code>，那么使用 <code>create()</code> 或 <code>update()</code> 传入数组时会抛出 <code>MassAssignmentException</code>。</p>
+
+        <h3 id="s7-5-3">更新记录</h3>
+        <ol>
+            <li><b><code>save()</code> 方法：</b>
+                <pre><code class="language-php">&lt;?php
+use App\Models\Post;
+use Illuminate\Http\Request;
+
+function updatePost(Request $request, string $id) {
+// 1. 查找要更新的模型
+$post = Post::findOrFail($id);
+
+// 2. 修改需要更新的属性
+$post->title = $request->input('title');
+$post->content = $request->input('content');
+// $post->updated_at 会自动更新
+
+// 3. 调用 save() 保存更改
+$success = $post->save();
+
+if ($success) { echo "文章更新成功！"; } else { echo "更新失败！"; }
+}
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b>批量更新 <code>update()</code>:</b>
+                <pre><code class="language-php">&lt;?php
+use App\Models\Post;
+use Illuminate\Http\Request;
+
+function quickUpdate(Request $request, string $id) {
+// 查找模型并直接使用 update() 更新
+// 同样需要 $fillable 或 $guarded 设置
+$affected = Post::findOrFail($id)->update([
+'title' => $request->input('title'),
+'is_published' => $request->boolean('is_published'),
+]); // 返回受影响的行数 (通常是 1 或 0)
+
+echo "文章更新，影响行数: " . $affected;
+}
+
+// 也可以结合 where 进行批量更新 (这是查询构建器的方法，会绕过模型事件)
+/*
+$affected = Post::where('user_id', 5)
+->where('is_published', false)
+->update(['is_published' => true]);
+*/
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b><code>firstOrCreate()</code> / <code>updateOrCreate()</code>:</b>
+                <ul>
+                    <li><b><code>firstOrCreate(array $attributes, array $values = [])</code>:</b> 尝试根据 <code>$attributes</code> 查找记录，如果找到则返回该实例，如果找不到则用合并了 <code>$attributes</code> 和 <code>$values</code> 的数据创建并返回新实例。</li>
+                    <li><b><code>updateOrCreate(array $attributes, array $values = [])</code>:</b> 尝试根据 <code>$attributes</code> 查找记录，如果找到则用 <code>$values</code> 更新该实例并返回，如果找不到则用合并了 <code>$attributes</code> 和 <code>$values</code> 的数据创建并返回新实例。</li>
+                    <li>这两个方法对于需要确保记录存在（不存在则创建）或存在时更新的场景非常有用。它们也受批量赋值保护的影响。</li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+use App\Models\User;
+
+// 查找 email 为 'a@b.c' 的用户，如果不存在则创建
+$user1 = User::firstOrCreate(
+['email' => 'a@b.c'], // 查找条件
+['name' => 'New User', 'password' => bcrypt('password')] // 如果创建，使用的额外数据
+);
+
+// 查找 email 为 'd@e.f' 的用户，如果存在则更新 name，如果不存在则创建
+$user2 = User::updateOrCreate(
+['email' => 'd@e.f'], // 查找条件
+['name' => 'Updated Or Created Name', 'password' => bcrypt('newpass')] // 更新或创建时使用的值
+);
+?&gt;</code></pre>
+            </li>
+            </ol>
+
+            <hr/>
+
+            <h2 id="s7-6">7.6 删除模型</h2>
+            <ul>
+                <li><b>通过模型实例删除：</b>
+                    <pre><code class="language-php">&lt;?php
+use App\Models\Post;
+
+$post = Post::find(10);
+if ($post) {
+$deleted = $post->delete(); // 返回 true 或 false
+if ($deleted) { echo "ID 为 10 的文章已删除。"; }
+}
+?&gt;</code></pre>
+                </li>
+                <li><b>通过主键删除：</b>
+                    <pre><code class="language-php">&lt;?php
+use App\Models\Post;
+
+// 删除单个 ID
+$deletedCount1 = Post::destroy(11);
+
+// 删除多个 ID
+$deletedCount2 = Post::destroy([12, 13, 14]);
+
+// 通过集合删除
+// $postsToDelete = Post::where('is_spam', true)->get();
+// $deletedCount3 = Post::destroy($postsToDelete);
+
+echo "删除了 {$deletedCount1} + {$deletedCount2} 条记录。";
+?&gt;</code></pre>
+                    <p class="note"><code>destroy()</code> 方法会加载每个模型实例并调用其 <code>delete()</code> 方法，因此会触发模型事件（见后文）。</p>
+                </li>
+                <li><b>通过查询删除：</b>
+                    <pre><code class="language-php">&lt;?php
+use App\Models\Post;
+
+// 删除所有 2024 年之前的文章
+$deletedCount = Post::where('created_at', '&lt;', '2024-01-01')->delete();
+echo "删除了 {$deletedCount} 条旧文章。";
+?&gt;</code></pre>
+                    <p class="warning"><b>注意：</b> 通过查询直接删除<b>不会</b>触发任何模型事件（如 <code>deleting</code>, <code>deleted</code>），也不会执行模型的软删除逻辑（见下文）。</p>
+                </li>
+            </ul>
+
+            <h3 id="s7-6-1">软删除 (Soft Deletes)</h3>
+            <p>有时我们不想真正从数据库中删除记录（例如保留用户订单记录但标记用户已注销），而是希望将其“标记”为已删除，并在常规查询中自动将其排除。这就是软删除。</p>
+            <p><b>设置步骤：</b></p>
+            <ol>
+                <li><b>数据库迁移：</b> 在对应表的迁移文件中，使用 <code>$table->softDeletes();</code> 添加一个名为 <code>deleted_at</code> 的 nullable TIMESTAMP 列。
+                    <pre><code class="language-php">// 在迁移文件的 up() 方法中
+Schema::table('users', function (Blueprint $table) {
+$table->softDeletes(); // 添加 deleted_at 列
+});
+// 在 down() 方法中对应添加
+// $table->dropSoftDeletes();</code></pre>
+                    然后运行 <code>php artisan migrate</code>。
+                </li>
+                <li><b>模型设置：</b> 在 Eloquent 模型类中，<code>use</code> (引入) <code>Illuminate\Database\Eloquent\SoftDeletes</code> Trait。
+                    <pre><code class="language-php">&lt;?php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes; // 引入 Trait  
+
+class User extends Model
+{
+use SoftDeletes; // 使用 Trait
+
+// ... 其他模型代码 ...
+}
+?&gt;</code></pre>
+                </li>
+            </ol>
+            <p><b>行为变化：</b></p>
+            <ul>
+                <li>当你在使用了 <code>SoftDeletes</code> Trait 的模型实例上调用 <code>delete()</code> 方法时，记录不会从数据库中移除，而是其 <code>deleted_at</code> 列会被设置为当前的时间戳。</li>
+                <li>所有正常的 Eloquent 查询（如 <code>all()</code>, <code>get()</code>, <code>find()</code>, <code>first()</code> 等）会自动排除那些 <code>deleted_at</code> 不为 NULL 的记录。</li>
+            </ul>
+            <p><b>查询软删除的记录：</b></p>
+            <ul>
+                <li><b><code>withTrashed(): Builder</code>:</b> 在查询中包含已被软删除的记录。
+                    <pre><code class="language-php">$allUsersIncludingTrashed = User::withTrashed()->get();</code></pre>
+                </li>
+                <li><b><code>onlyTrashed(): Builder</code>:</b> 只获取已被软删除的记录。
+                    <pre><code class="language-php">$deletedUsers = User::onlyTrashed()->where('created_at', '&lt;', '2023-01-01')->get();</code></pre>
+                </li>
+                <li><b>检查模型实例是否被软删除：</b> 使用 <code>$user->trashed(): bool</code> 方法。</li>
+            </ul>
+            <p><b>恢复软删除的记录：</b></p>
+            <ul>
+                <li><b><code>restore(): bool</code>:</b> 在一个已被软删除的模型实例上调用 <code>restore()</code> 方法，会将其 <code>deleted_at</code> 设回 <code>null</code>，使其在常规查询中再次可见。</li>
+                <pre><code class="language-php">$user = User::onlyTrashed()->find(15);
+if ($user && $user->trashed()) {
+$user->restore();
+echo "用户 15 已恢复。";
+}</code></pre>
+            </ul>
+            <p><b>永久删除记录：</b></p>
+            <ul>
+                <li><b><code>forceDelete(): ?bool</code>:</b> 在模型实例（无论是否被软删除）上调用 <code>forceDelete()</code> 会真正从数据库中删除该记录。</li>
+                <li>也可以在查询上调用：<code>User::onlyTrashed()->where(...)->forceDelete();</code></li>
+            </ul>
+            <p class="note">软删除对于需要保留记录历史或实现“回收站”功能的场景非常有用。</p>
+
+            <hr />
+
+            <h2 id="s7-7">7.7 模型事件 (Model Events - 简介)</h2>
+            <p>Eloquent 模型在其生命周期中会触发多个**事件**，允许你在模型的特定状态变化时（例如即将保存、已保存、即将删除、已删除等）执行自定义的逻辑。</p>
+            <p>常见的事件包括：<code>retrieved</code>, <code>creating</code>, <code>created</code>, <code>updating</code>, <code>updated</code>, <code>saving</code>, <code>saved</code>, <code>deleting</code>, <code>deleted</code>, <code>restoring</code>, <code>restored</code>, <code>forceDeleting</code>, <code>forceDeleted</code>。</p>
+            <p>你可以通过以下方式监听这些事件：</p>
+            <ul>
+                <li><b>模型观察者 (Observers):</b> 创建一个专门的观察者类来监听一个模型的所有事件。使用 <code>php artisan make:observer UserObserver --model=User</code> 创建，然后在 <code>AppServiceProvider</code> 或其他服务提供者中注册。</li>
+                <li><b>模型内的闭包：</b> 在模型的静态 <code>booted()</code> 方法中使用静态事件方法注册闭包监听器，例如 <code>static::creating(function ($user) { ... });</code>。</li>
+            </ul>
+            <p><b>用途示例：</b></p>
+            <ul>
+                <li>在创建用户 (<code>creating</code>) 时自动生成 UUID 或哈希密码。</li>
+                <li>在文章更新 (<code>updating</code>) 时自动更新 <code>updated_by</code> 字段。</li>
+                <li>在订单保存 (<code>saving</code>) 时自动计算总价。</li>
+                <li>在用户删除 (<code>deleted</code>) 后发送通知邮件。</li>
+            </ul>
+            <p class="note">模型事件提供了强大的钩子来处理模型生命周期中的各种逻辑，是保持模型代码整洁的重要工具。具体实现将在后续章节或进阶学习中涉及。</p>
+
+    </div>
+
+    <hr />
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 7 部分结束 ---</p>
+
+</div>
+</body>
+</html>

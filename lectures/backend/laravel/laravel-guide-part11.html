@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laravel 详细讲义 - Part 11: 用户认证与授权</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+        }
+        .prose code::before, .prose code::after { content: none !important; }
+        .prose code { background-color: #f3f4f6; color: #374151; padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.875em; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+        .prose pre code { background-color: transparent; color: inherit; padding: 0; font-size: inherit; white-space: pre; }
+        .prose ul > li::marker { color: #6b7280; }
+        .prose ol > li::marker { color: #6b7280; }
+        .prose a { color: #2563eb; }
+        .prose a:hover { color: #1d4ed8; text-decoration: underline;}
+        .prose b { font-weight: 600; }
+        .prose strong { font-weight: 600; }
+        .prose hr { border-color: #e5e7eb; margin-top: 2em; margin-bottom: 2em;}
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; font-weight: 700; margin-bottom: 0.8em; padding-bottom: 0.3em; border-bottom: 1px solid #e5e7eb;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; font-weight: 600; margin-top: 1.8em; margin-bottom: 0.8em; padding-bottom: 0.3em; border-bottom: 1px solid #e5e7eb;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; font-weight: 600; margin-top: 1.5em; margin-bottom: 0.6em;}
+        .prose h4 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; margin-top: 1.2em; margin-bottom: 0.5em;}
+        .prose p { margin-top: 1.25em; margin-bottom: 1.25em; }
+        .prose ul, .prose ol { margin-top: 1.25em; margin-bottom: 1.25em; padding-left: 1.625em; }
+        .prose li { margin-top: 0.5em; margin-bottom: 0.5em; }
+        .note { background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 1em; margin: 1.5em 0; border-radius: 0 0.375rem 0.375rem 0; color: #1e40af;}
+        .warning { background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 1em; margin: 1.5em 0; border-radius: 0 0.375rem 0.375rem 0; color: #92400e;}
+        .danger { background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 1em; margin: 1.5em 0; border-radius: 0 0.375rem 0.375rem 0; color: #991b1b;}
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>Laravel 详细讲义 - Part 11: 用户认证与授权</h1>
+    <p class="text-gray-500 text-sm">这是 Laravel 系列讲义的第十一部分 (共 17 部分)。</p>
+
+    <hr />
+
+    <div>
+        <h2 id="s11-intro">引言：你是谁？你能做什么？</h2>
+        <p>在几乎所有的 Web 应用中，我们都需要处理两个基本问题：</p>
+        <ol>
+            <li><b>认证 (Authentication - Authn): "你是谁？"</b> - 验证用户的身份，确认他们是他们声称的那个人。通常通过用户名/密码、令牌或其他凭证来完成。核心是<b>识别身份</b>。</li>
+            <li><b>授权 (Authorization - Authz): "你能做什么？"</b> - 在确认用户身份之后，决定该用户是否有权限执行特定的操作或访问特定的资源。核心是<b>控制权限</b>。</li>
+        </ol>
+        <p>Laravel 为这两个方面都提供了强大、灵活且易于使用的解决方案。</p>
+
+        <hr />
+
+        <h2 id="s11-1">11.1 认证 (Authentication)</h2>
+
+        <h3 id="s11-1-1">Laravel Starter Kits (入门套件)</h3>
+        <p>虽然 Laravel 提供了认证所需的底层机制，但从头开始编写所有的登录、注册、密码重置等功能的路由、控制器和视图是非常繁琐的。因此，Laravel 官方提供了几个**入门套件 (Starter Kits)** 来快速搭建认证系统的脚手架。</p>
+        <p><b>强烈推荐使用入门套件来开始你的项目！</b></p>
+        <ul>
+            <li><b>Laravel Breeze:**</b>
+                <ul>
+                    <li>提供了一个<b>简单、最小化</b>的认证脚手架。</li>
+                    <li>包含登录、注册、密码重置、邮箱验证等功能。</li>
+                    <li>可以选择不同的前端技术栈：
+                        <ul>
+                            <li>默认：使用 Blade 模板和 Tailwind CSS。</li>
+                            <li>可选：使用 Inertia.js 配合 Vue 或 React (用于构建单页面应用 SPA)。</li>
+                            <li>可选：仅生成 API 认证路由和控制器 (配合 Sanctum)。</li>
+                        </ul>
+                    </li>
+                    <li><b>安装：</b>
+                        <pre><code class="language-bash"># 1. 安装 Breeze 包
+composer require laravel/breeze --dev
+
+2. 运行安装命令 (选择你的技术栈)
+php artisan breeze:install # 会交互式提问，或指定如 blade, vue, react, api
+
+例如: php artisan breeze:install blade
+3. 安装前端依赖并编译
+npm install
+npm run dev # 或 npm run build 用于生产
+
+4. 运行数据库迁移 (会创建 users, password_reset_tokens 等表)
+php artisan migrate</code></pre>
+                    </li>
+                    <li><b>优点：</b> 代码相对简单直接，易于理解和定制。是学习 Laravel 认证流程的好起点。</li>
+                </ul>
+            </li>
+            <li class="mt-4"><b>Laravel Jetstream:**</b>
+                <ul>
+                    <li>提供了一个功能更丰富、更强大的认证和应用基础脚手架。</li>
+                    <li>包含 Breeze 的所有功能，<b>额外</b>还包括：
+                        <ul>
+                            <li>用户个人资料管理（更新信息、密码、头像）。</li>
+                            <li><b>双因素认证 (2FA)</b>。</li>
+                            <li>浏览器会话管理。</li>
+                            <li>可选的团队管理 (Team Management) 功能。</li>
+                            <li>API 支持（使用 Laravel Sanctum）。</li>
+                        </ul>
+                    </li>
+                    <li>技术栈选择：
+                        <ul>
+                            <li><b>Livewire + Blade:</b> 使用 Livewire 构建动态交互界面，后端仍然使用 Blade 模板。</li>
+                            <li><b>Inertia.js + Vue/React:</b> 构建现代化的单页面应用 (SPA)。</li>
+                        </ul>
+                    </li>
+                    <li><b>安装：</b>
+                        <pre><code class="language-bash"># 1. 安装 Jetstream 包
+composer require laravel/jetstream
+
+2. 运行安装命令 (选择技术栈和是否需要团队功能)
+php artisan jetstream:install livewire # 或 inertia
+
+php artisan jetstream:install livewire --teams # 如果需要团队功能
+3. 安装前端依赖并编译
+npm install
+npm run dev # 或 npm run build
+
+4. 运行数据库迁移
+php artisan migrate</code></pre>
+                    </li>
+                    <li><b>优点：</b> 功能非常全面，提供了很多开箱即用的高级特性。<b>缺点：</b> 代码相对 Breeze 更复杂，定制起来可能需要更深入的理解。</li>
+                </ul>
+            </li>
+        </ul>
+        <p class="note"><b>建议：</b> 如果你是 Laravel 新手，或者项目需求相对简单，从 <b>Breeze</b> 开始通常更容易。如果需要更高级的功能或打算使用 Livewire/Inertia，可以考虑 Jetstream。</p>
+
+        <h3 id="s11-1-2">核心认证操作 (即使使用 Starter Kit 也应理解)</h3>
+        <p>Laravel 的认证功能主要通过 <code>Auth</code> Facade (<code>Illuminate\Support\Facades\Auth</code>) 或全局辅助函数 <code>auth()</code> 来访问。</p>
+        <ul>
+            <li><b>用户模型与配置：</b>
+                <ul>
+                    <li>默认情况下，Laravel 使用 <code>App\Models\User</code> 模型进行认证。这个模型通常需要继承自 <code>Illuminate\Foundation\Auth\User as Authenticatable</code> 类。</li>
+                    <li>认证相关的配置在 <code>config/auth.php</code> 文件中。你可以配置不同的**守卫 (Guards)** 和**用户提供者 (Providers)**。
+                        <ul>
+                            <li><b>Guard:**</b> 定义了用户如何被认证（例如 <code>web</code> 守卫使用 Session，<code>api</code> 守卫可能使用 Token）。</li>
+                            <li><b>Provider:**</b> 定义了如何从存储（通常是数据库）中检索用户信息（例如 <code>eloquent</code> 提供者使用 User 模型）。</li>
+                        </ul>
+                        通常情况下，默认配置就够用了。
+                    </li>
+                </ul>
+            </li>
+            <li class="mt-2"><b>尝试用户登录: <code>Auth::attempt()</code></b>
+                <ul>
+                    <li><code>Auth::attempt(array $credentials, bool $remember = false): bool</code></li>
+                    <li>接收一个包含用户凭证（通常是 <code>email</code> 或 <code>username</code> 和 <code>password</code>）的数组。</li>
+                    <li>它会自动：
+                        <ol>
+                            <li>根据凭证中的 email/username 查找用户。</li>
+                            <li>使用 <code>Hash::check()</code> (或配置的哈希驱动) 比较用户输入的明文密码和数据库中存储的哈希密码。</li>
+                            <li>如果凭证有效，它会将用户认证信息**存入 Session**，并返回 <code>true</code>。</li>
+                            <li>如果 <code>$remember</code> 参数为 <code>true</code>，会生成一个长效的“记住我” Cookie。</li>
+                            <li>如果凭证无效，返回 <code>false</code>。</li>
+                        </ol>
+                    </li>
+                </ul>
+                <pre><code class="language-php">&lt;?php
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth; // 引入 Auth Facade  
+
+class LoginController extends Controller
+{
+public function authenticate(Request $request): \Illuminate\Http\RedirectResponse
+{
+// 1. 验证表单输入 (例如 email 和 password 必填)
+$credentials = $request->validate([
+'email' => ['required', 'email'],
+'password' => ['required'],
+]);
+
+    // 2. 获取 'remember' 复选框的值 (布尔值)
+    $remember = $request->boolean('remember');
+
+    // 3. 尝试使用凭证进行登录认证
+    if (Auth::attempt($credentials, $remember)) {
+        // 认证成功...
+
+        // !! 重要：重新生成 Session ID 防止会话固定攻击 !!
+        $request->session()->regenerate();
+
+        // 重定向到用户登录后应该去的页面 (例如 dashboard)
+        return redirect()->intended('dashboard'); // intended 会尝试重定向前一个页面，否则到 /dashboard
+    }
+
+    // 4. 认证失败...
+    // 重定向回登录页，并附带一个错误消息 (闪存到 Session)
+    return back()->withErrors([
+        'email' => '提供的凭证不匹配我们的记录。', // 'email' 键让错误显示在 email 字段下
+    ])->onlyInput('email'); // onlyInput 会将 email 字段旧值闪存回去
+}
+}
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b>用户登出: <code>Auth::logout()</code></b>
+                <ul><li>使当前认证的用户登出。</li><li>为了安全，登出时应该同时让当前 Session 失效并重新生成 CSRF 令牌。</li></ul>
+                <pre><code class="language-php">&lt;?php
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;  
+
+class LoginController extends Controller // 或者 LogoutController
+{
+public function logout(Request $request): \Illuminate\Http\RedirectResponse
+{
+// 登出当前用户
+Auth::logout();  
+
+    // 使当前 Session 失效，防止会话劫持
+    $request->session()->invalidate();
+
+    // 重新生成 CSRF 令牌
+    $request->session()->regenerateToken();
+
+    // 重定向到首页或其他页面
+    return redirect('/');
+}
+}
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b>访问已认证用户的信息：</b>
+                <pre><code class="language-php">&lt;?php
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
+
+// 在控制器方法、视图或代码的其他地方...
+
+// 检查用户是否登录
+if (Auth::check()) { // 或者 auth()->check()
+// 获取当前登录的用户模型实例
+$user = Auth::user(); // 或者 auth()->user()
+// 或者 $user = $request->user(); (如果 Request 对象可用)
+
+// 获取用户 ID
+$userId = Auth::id(); // 或者 auth()->id()
+
+echo "用户已登录！ID: {$userId}, 姓名: " . htmlspecialchars($user->name);
+} else {
+echo "用户未登录。";
+}
+
+// 检查用户是否是访客 (未登录)
+if (Auth::guest()) { // 或者 auth()->guest()
+echo "访客你好！";
+}
+?&gt;</code></pre>
+            </li>
+            <li class="mt-2"><b>保护路由：使用 <code>auth</code> 中间件</b>
+                <p>可以通过将 <code>auth</code> 中间件应用到路由或控制器来要求用户必须登录才能访问。</p>
+                <pre><code class="language-php">// routes/web.php
+use App\Http\Controllers\DashboardController;
+
+// 单个路由
+Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth');
+
+// 路由组
+Route::middleware(['auth', 'verified'])->group(function () { // 要求登录且邮箱已验证
+Route::get('/profile', ...);
+Route::post('/settings', ...);
+});
+
+// 在控制器构造函数中 (前面已展示过)
+// public function __construct() { $this->middleware('auth'); }</code></pre>
+                <p>如果未认证用户尝试访问受 <code>auth</code> 中间件保护的路由，会被自动重定向到名为 <code>login</code> 的路由（通常是登录页面）。这个重定向行为可以在 <code>app/Http/Middleware/Authenticate.php</code> 中间件里定制。</p>
+            </li>
+            <li class="mt-2"><b>密码重置与邮箱验证：</b>
+                <p>Laravel 内置了发送密码重置链接、处理密码重置、发送邮箱验证链接、处理邮箱验证的逻辑。Starter Kits 通常会生成必要的路由、视图和控制器。如果需要手动实现或定制，请查阅 Laravel 官方文档的“安全” -> “密码重置”和“邮箱验证”部分。</p>
+            </li>
+        </ul>
+
+        <hr />
+
+        <h2 id="s11-2">11.2 授权 (Authorization) - 控制用户权限</h2>
+        <p>认证解决了“用户是谁”的问题，而授权则解决“这个用户能做什么”的问题。例如，用户 A 是否能编辑用户 B 发布的文章？管理员用户是否能删除其他用户的评论？</p>
+        <p>Laravel 提供了两种主要的授权方式：<b>Gates (门)</b> 和 <b>Policies (策略)</b>。</p>
+
+        <h3 id="s11-2-1">Gates (门)</h3>
+        <ul>
+            <li>Gates 通常是基于**闭包 (Closure)** 定义的、简单的授权检查。</li>
+            <li>它们通常用于那些**与特定模型没有直接关联**的操作，或者用于简单的、全局性的权限检查（例如，检查用户是否是管理员）。</li>
+            <li>定义 Gates 的地方是 <code>app/Providers/AuthServiceProvider.php</code> 文件的 <code>boot()</code> 方法中。</li>
+        </ul>
+        <p><b>定义 Gate：</b></p>
+        <pre><code class="language-php">&lt;?php
+// app/Providers/AuthServiceProvider.php
+namespace App\Providers;
+
+use App\Models\User;
+use App\Models\Post; // 假设需要检查文章权限
+use Illuminate\Support\Facades\Gate; // 引入 Gate Facade
+use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+
+class AuthServiceProvider extends ServiceProvider
+{
+/**
+* The policy mappings for the application. (后面讲 Policy 会用到)
+* @var array&lt;class-string, class-string&gt;
+*/
+protected $policies = [
+// Post::class => PostPolicy::class,
+];  
+
+/**
+ * Register any authentication / authorization services.
+ */
+public function boot(): void
+{
+    $this->registerPolicies(); // 注册 Policy (如果使用的话)
+
+    // --- 定义 Gates ---
+
+    // 定义一个名为 'view-admin-dashboard' 的 Gate
+    // 闭包接收当前用户 $user (可能为 null)
+    Gate::define('view-admin-dashboard', function (?User $user) {
+        // 只有当用户存在且 is_admin 属性为 true 时才允许
+        return $user !== null && $user->is_admin === true;
+    });
+
+    // 定义一个带参数的 Gate，检查用户是否能更新某篇文章
+    // 第二个参数 $post 会在检查时传入
+    Gate::define('update-post', function (?User $user, Post $post) {
+        // 允许文章作者或管理员更新
+        if ($user === null) return false; // 未登录用户不允许
+        return $user->id === $post->user_id || $user->is_admin === true;
+    });
+
+    // Gate 也可以直接返回 Response::allow() 或 Response::deny('错误消息')
+    /*
+    Gate::define('delete-post', function (User $user, Post $post) {
+        return $user->id === $post->user_id
+                    ? Response::allow()
+                    : Response::deny('你无权删除这篇不属于你的文章。');
+    });
+    */
+}
+}
+?&gt;</code></pre>
+        <p><b>检查 Gates：</b></p>
+        <ul>
+            <li><b>在代码中 (例如 Controller):</b>
+                <ul>
+                    <li><code>Gate::allows('ability-name', $arguments)</code>: 返回布尔值。</li>
+                    <li><code>Gate::denies('ability-name', $arguments)</code>: 返回布尔值。</li>
+                    <li><code>$request->user()->can('ability-name', $arguments)</code>: (常用) 返回布尔值。</li>
+                    <li><code>$request->user()->cannot('ability-name', $arguments)</code>: 返回布尔值。</li>
+                    <li><b><code>$this->authorize('ability-name', $arguments)</code>:</b> (在 Controller 中常用) 如果 Gate 返回 <code>false</code>，它会自动抛出 <code>AuthorizationException</code> (通常渲染为 403 Forbidden 页面)。</li>
+                </ul>
+            </li>
+            <li><b>在 Blade 视图中：</b>
+                <ul>
+                    <li><code>@can('ability-name', $arguments) ... @elsecan(...) ... @else ... @endcan</code></li>
+                    <li><code>@cannot('ability-name', $arguments) ... @endcannot</code></li>
+                </ul>
+            </li>
+        </ul>
+        <pre><code class="language-php">&lt;?php
+// 在某个 Controller 方法中检查 Gate
+use Illuminate\Support\Facades\Gate;
+use App\Models\Post;
+use Illuminate\Http\Request;
+
+public function update(Request $request, string $postId)
+{
+$post = Post::findOrFail($postId);
+
+// 方法一：使用 Gate Facade
+// if (Gate::denies('update-post', $post)) {
+//     abort(403);
+// }
+
+// 方法二：使用 User 对象的 can 方法 (常用)
+// if ($request->user()->cannot('update-post', $post)) {
+//     abort(403);
+// }
+
+// 方法三：使用 Controller 的 authorize 方法 (最简洁，推荐)
+// 如果授权失败，会自动抛出异常并返回 403 响应
+$this->authorize('update-post', $post);
+
+// --- 授权通过，执行更新逻辑 ---
+// ...
+}
+?&gt;</code></pre>
+        <pre><code class="language-php">&lt;!-- 在 Blade 视图中检查 Gate --&gt;
+@can('view-admin-dashboard')
+&lt;a href="/admin"&gt;进入管理后台&lt;/a&gt;
+@endcan
+
+@can('update-post', $post) {{-- 假设视图中存在 $post 变量 --}}
+&lt;a href="{{ route('posts.edit', $post) }}"&gt;编辑文章&lt;/a&gt;
+@endcan
+</code></pre>
+
+        <h3 id="s11-2-2">Policies (策略)</h3>
+        <ul>
+            <li>Policies 是将特定**模型 (Model)** 的所有授权逻辑组织到一个单独的**类**中。</li>
+            <li>它比 Gates 更结构化，特别适合用于围绕模型进行的 CRUD 操作权限控制。</li>
+            <li>创建一个 Policy 类：
+                <pre><code class="language-bash">php artisan make:policy PostPolicy --model=Post</code></pre>
+                这会创建 <code>app/Policies/PostPolicy.php</code> 并关联到 <code>Post</code> 模型 (如果使用了 <code>--model</code>)。
+            </li>
+            <li><b>Policy 类结构：</b> 类中的公共方法对应于你想要检查的**能力 (ability)**。方法名通常对应于 Controller 的动作名或自定义能力名。
+                <ul>
+                    <li>每个策略方法至少接收当前登录的 <code>User</code> 对象作为第一个参数（如果允许游客执行某些操作，可以类型提示 <code>?User</code>）。</li>
+                    <li>通常还会接收与该能力相关的模型实例作为后续参数（例如 <code>update(User $user, Post $post)</code>）。</li>
+                    <li>方法需要返回 <code>true</code> (允许) 或 <code>false</code> (拒绝)。</li>
+                    <li>可以定义一个 <code>before(User $user, string $ability)</code> 方法。如果在 <code>before</code> 方法中返回了非 null 的值（<code>true</code> 或 <code>false</code>），则该值会作为最终的授权结果，不再调用后续的策略方法（常用于给管理员赋予所有权限）。</li>
+                </ul>
+            </li>
+            <li><b>注册 Policy：</b> 需要在 <code>app/Providers/AuthServiceProvider.php</code> 的 <code>$policies</code> 属性中将模型类映射到其对应的策略类：
+                <pre><code class="language-php">protected $policies = [
+Post::class => PostPolicy::class,
+// '\App\Models\Post' => '\App\Policies\PostPolicy', // 另一种写法
+];</code></pre>
+                然后确保在 <code>boot()</code> 方法中调用了 <code>$this->registerPolicies();</code> (默认已调用)。如果你的模型和策略遵循 Laravel 的命名约定（例如 <code>App\Models\Post</code> 和 <code>App\Policies\PostPolicy</code>），Laravel 通常能自动发现它们，无需手动注册。
+            </li>
+            <li><b>检查 Policies：</b> 检查策略的方式与检查 Gate 非常相似，但通常第一个参数是能力名称字符串，第二个参数是相关的模型实例。Laravel 会自动找到该模型对应的 Policy 类并调用相应的方法。
+                <ul>
+                    <li><b>在代码中 (例如 Controller):</b>
+                        <ul>
+                            <li><code>$request->user()->can('update', $post)</code></li>
+                            <li><code>$request->user()->cannot('delete', $post)</code></li>
+                            <li><b><code>$this->authorize('update', $post)</code> (常用)</b></li>
+                            <li>对于不需要模型实例的能力（如创建），传递类名：<code>$this->authorize('create', Post::class)</code>。</li>
+                        </ul>
+                    </li>
+                    <li><b>在 Blade 视图中：</b>
+                        <ul>
+                            <li><code>@can('update', $post) ... @endcan</code></li>
+                            <li><code>@cannot('delete', $post) ... @endcannot</code></li>
+                            <li><code>@can('create', App\Models\Post::class) ... @endcan</code></li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        <p><b>示例 (<code>app/Policies/PostPolicy.php</code>):</b></p>
+        <pre><code class="language-php">&lt;?php
+
+namespace App\Policies;
+
+use App\Models\Post;
+use App\Models\User;
+use Illuminate\Auth\Access\Response;
+
+class PostPolicy
+{
+/**
+* 在所有其他策略方法之前运行 (可选)。
+* 如果返回非 null 值，则直接使用该结果。
+*/
+public function before(User $user, string $ability): bool|null
+{
+// 例如，如果用户是管理员，允许执行所有操作
+if ($user->is_admin) { // 假设 User 模型有 is_admin 属性
+return true;
+}
+return null; // 返回 null 继续执行其他策略方法
+}  
+
+/**
+ * Determine whether the user can view any models.
+ * 用户是否有权查看文章列表 (通常都允许)
+ */
+public function viewAny(?User $user): bool // 允许游客查看，所以用 ?User
+{
+    return true;
+}
+
+/**
+ * Determine whether the user can view the model.
+ * 用户是否有权查看指定的文章 (例如，只允许查看已发布的，或自己的草稿)
+ */
+public function view(?User $user, Post $post): bool
+{
+    // 允许所有人查看已发布的文章
+    if ($post->is_published) {
+        return true;
+    }
+    // 只允许作者查看未发布的文章 (需要用户登录)
+    return $user?->id === $post->user_id;
+}
+
+/**
+ * Determine whether the user can create models.
+ * 用户是否有权创建文章 (通常需要登录)
+ */
+public function create(User $user): bool
+{
+    return $user !== null; // 或者检查特定权限 $user->can_create_posts
+}
+
+/**
+ * Determine whether the user can update the model.
+ * 用户是否有权更新指定的文章
+ */
+public function update(User $user, Post $post): bool
+{
+    // 只允许文章作者更新
+    return $user->id === $post->user_id;
+}
+
+/**
+ * Determine whether the user can delete the model.
+ * 用户是否有权删除指定的文章
+ */
+public function delete(User $user, Post $post): bool
+{
+    // 只允许文章作者删除
+    return $user->id === $post->user_id;
+}
+
+/**
+ * Determine whether the user can restore the model. (用于软删除)
+ */
+public function restore(User $user, Post $post): bool
+{
+    // 通常与 update 权限相同
+    return $user->id === $post->user_id;
+}
+
+/**
+ * Determine whether the user can permanently delete the model. (用于软删除)
+ */
+public function forceDelete(User $user, Post $post): bool
+{
+    // 可能只有管理员能强制删除
+    return $user->is_admin ?? false;
+}
+}
+?&gt;</code></pre>
+        <p class="note"><b>选择 Gates 还是 Policies？</b></p>
+        <ul>
+            <li>对于与特定模型 CRUD 操作相关的授权逻辑，优先使用 Policies，它更结构化。</li>
+            <li>对于不与特定模型关联的、简单的权限检查（如是否管理员、是否能访问某全局功能），使用 Gates 更方便。</li>
+        </ul>
+        <p>结合使用认证和授权，可以构建出安全、权限分明的 Laravel 应用程序。</p>
+
+    </div>
+
+    <hr />
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 11 部分结束 ---</p>
+
+</div>
+</body>
+</html>

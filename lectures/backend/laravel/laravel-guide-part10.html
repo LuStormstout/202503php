@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laravel 详细讲义 - Part 10: 表单处理、验证与 CSRF</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+        }
+        .prose code::before, .prose code::after { content: none !important; }
+        .prose code { background-color: #f3f4f6; color: #374151; padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.875em; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+        .prose pre code { background-color: transparent; color: inherit; padding: 0; font-size: inherit; white-space: pre; }
+        .prose ul > li::marker { color: #6b7280; }
+        .prose ol > li::marker { color: #6b7280; }
+        .prose a { color: #2563eb; }
+        .prose a:hover { color: #1d4ed8; text-decoration: underline;}
+        .prose b { font-weight: 600; }
+        .prose strong { font-weight: 600; }
+        .prose hr { border-color: #e5e7eb; margin-top: 2em; margin-bottom: 2em;}
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; font-weight: 700; margin-bottom: 0.8em; padding-bottom: 0.3em; border-bottom: 1px solid #e5e7eb;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; font-weight: 600; margin-top: 1.8em; margin-bottom: 0.8em; padding-bottom: 0.3em; border-bottom: 1px solid #e5e7eb;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; font-weight: 600; margin-top: 1.5em; margin-bottom: 0.6em;}
+        .prose h4 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; margin-top: 1.2em; margin-bottom: 0.5em;}
+        .prose p { margin-top: 1.25em; margin-bottom: 1.25em; }
+        .prose ul, .prose ol { margin-top: 1.25em; margin-bottom: 1.25em; padding-left: 1.625em; }
+        .prose li { margin-top: 0.5em; margin-bottom: 0.5em; }
+        .note { background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 1em; margin: 1.5em 0; border-radius: 0 0.375rem 0.375rem 0; color: #1e40af;}
+        .warning { background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 1em; margin: 1.5em 0; border-radius: 0 0.375rem 0.375rem 0; color: #92400e;}
+        .danger { background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 1em; margin: 1.5em 0; border-radius: 0 0.375rem 0.375rem 0; color: #991b1b;}
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>Laravel 详细讲义 - Part 10: 表单处理、验证与 CSRF</h1>
+    <p class="text-gray-500 text-sm">这是 Laravel 系列讲义的第十部分 (共 17 部分)。(已再次检查代码缩进及 &lt;&gt; 符号转义)</p>
+
+    <hr />
+
+    <div>
+        <h2 id="s10-intro">引言：与用户交互的核心</h2>
+        <p>Web 应用的核心功能之一就是与用户进行交互，而 HTML 表单是收集用户输入的主要途径。用户通过表单提交数据（如注册信息、搜索词、评论内容等），后端 PHP 程序（在 Laravel 中通常是控制器）需要接收、处理并验证这些数据，同时还要确保交互过程的安全性。</p>
+        <p>本部分将重点介绍 Laravel 如何处理表单提交、获取用户输入、进行数据验证以及防范常见的 CSRF 网络攻击。</p>
+
+        <hr />
+
+        <h2 id="s10-1">10.1 获取请求数据 (<code>Request</code> 对象)</h2>
+        <p>当一个 HTTP 请求到达你的 Laravel 应用时，Laravel 会将其封装成一个 <code>Illuminate\Http\Request</code> 对象。这个对象包含了关于请求的所有信息，例如请求方法、URL、标头、查询参数、POST 数据、上传的文件等等。</p>
+        <p>在控制器方法中，你可以通过**依赖注入**轻松获取当前的 <code>Request</code> 对象实例：</p>
+        <pre><code class="language-php">&lt;?php
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request; // 必须引入 Request 类
+use App\Http\Controllers\Controller;
+
+class FormController extends Controller
+{
+// 在方法参数中类型提示 Request
+public function process(Request $request)
+{
+// 现在可以通过 $request 对象访问请求数据了
+// ...
+}
+}
+?></code></pre>
+        <p><code>Request</code> 对象提供了多种方法来获取输入数据：</p>
+        <ul>
+            <li><b><code>$request->input(string $key, mixed $default = null): mixed</code></b>: 获取单个输入项的值。它会<b>先检查 POST 数据，再检查 GET 数据（查询字符串）</b>。如果键不存在，返回第二个参数指定的默认值（默认为 <code>null</code>）。<b>这是最常用的获取输入的方法。</b></li>
+            <li><b><code>$request->query(string $key, mixed $default = null): mixed</code></b>: 只从 URL 查询字符串 (GET 参数) 中获取输入项。</li>
+            <li><b><code>$request->post(string $key, mixed $default = null): mixed</code></b>: 只从请求体 (POST 参数) 中获取输入项。</li>
+            <li><b><code>$request->all(): array</code></b>: 获取所有输入数据（GET 和 POST 合并）作为一个关联数组。</li>
+            <li><b><code>$request->only(array|string $keys): array</code></b>: 只获取指定键名的输入项。</li>
+            <li><b><code>$request->except(array|string $keys): array</code></b>: 获取除了指定键名之外的所有输入项。</li>
+            <li><b><code>$request->has(string|array $keys): bool</code></b>: 检查一个或多个输入项是否存在于请求中（并且值<b>不是</b>空字符串 <code>""</code>）。</li>
+            <li><b><code>$request->filled(string|array $keys): bool</code></b>: 检查一个或多个输入项是否存在且<b>不是</b>空字符串 <code>""</code>。比 <code>has</code> 更常用，因为它排除了空字符串的情况。</li>
+            <li><b><code>$request->boolean(string $key): bool</code></b>: 获取输入项并将其转换为布尔值。能识别 <code>1</code>, <code>"1"</code>, <code>true</code>, <code>"true"</code>, <code>"on"</code>, <code>"yes"</code> 为 <code>true</code>。</li>
+            <li><b><code>$request->file(string $key): ?UploadedFile</code></b>: 获取上传的文件实例（<code>Illuminate\Http\UploadedFile</code> 对象）。后面文件上传部分会用到。</li>
+            <li><b><code>$request->method(): string</code></b>: 获取请求的 HTTP 方法 (<code>'GET'</code>, <code>'POST'</code>, <code>'PUT'</code> 等)。</li>
+            <li><b><code>$request->isMethod(string $method): bool</code></b>: 检查请求是否为指定的 HTTP 方法。</li>
+            <li>其他常用方法：<code>$request->url()</code> (完整 URL), <code>$request->path()</code> (URI 路径), <code>$request->ip()</code> (客户端 IP), <code>$request->userAgent()</code> (浏览器 User Agent), <code>$request->header('Header-Name')</code> (获取请求头)。</li>
+        </ul>
+
+        <p><b>示例 (在控制器方法中):</b></p>
+        <pre><code class="language-php">&lt;?php
+use Illuminate\Http\Request;
+
+public function store(Request $request)
+{
+// 获取 'username' 输入项，如果不存在则默认为 'guest'
+$username = $request->input('username', 'guest');
+
+// 获取 POST 请求中的 'password'
+$password = $request->post('password');
+
+// 获取 URL 查询参数中的 'ref'
+$ref = $request->query('ref');
+
+// 获取所有输入
+$allInput = $request->all();
+
+// 只获取 'name' 和 'email'
+$nameAndEmail = $request->only(['name', 'email']);
+
+// 检查 'remember_me' 复选框是否被勾选并有值
+if ($request->filled('remember_me')) {
+    echo "用户选择了记住我。\n";
+}
+
+// 获取 'is_admin' 字段的布尔值
+$isAdmin = $request->boolean('is_admin'); // 如果提交了 '1', 'true', 'on', 'yes' 则为 true
+
+// 安全地输出获取到的值 (示例)
+echo "用户名: " . htmlspecialchars($username) . "&lt;br&gt;";
+if ($password) {
+    echo "密码已提交 (长度: " . strlen($password) . ")&lt;br&gt;"; // 不直接输出密码
+}
+if ($ref) {
+    echo "来源: " . htmlspecialchars($ref) . "&lt;br&gt;";
+}
+
+// ... 处理数据 ...
+}
+?></code></pre>
+
+        <hr />
+
+        <h2 id="s10-2">10.2 CSRF 防护 (Cross-Site Request Forgery Protection)</h2>
+
+        <h3 id="s10-2-1">什么是 CSRF 攻击？</h3>
+        <p><b>跨站请求伪造 (CSRF)</b> 是一种常见的 Web 安全漏洞。攻击原理大致如下：</p>
+        <ol>
+            <li>用户登录了你的网站 <code>your-site.com</code>，浏览器中保存了有效的登录凭证（例如 Session Cookie）。</li>
+            <li>用户在<b>没有退出登录</b>的情况下，访问了另一个由攻击者控制的恶意网站 <code>evil.com</code>。</li>
+            <li>恶意网站上可能包含一个隐藏的表单或者一个图片标签 <code>&lt;img src="[http://your-site.com/delete-account](http://your-site.com/delete-account)"&gt;</code>，这个表单或图片会向你的网站 <code>your-site.com</code> 发起一个**用户非自愿的请求**（例如删除账户、修改密码、发送消息等）。</li>
+            <li>因为用户的浏览器在访问 <code>your-site.com</code> 时会自动带上之前保存的 Cookie（包含登录凭证），所以你的网站会认为这个请求是合法的、由已登录用户发起的，并执行了恶意操作。</li>
+        </ol>
+        <p>简单来说，攻击者利用了用户在你网站上的登录状态，诱导用户的浏览器替攻击者发送了一个恶意请求。</p>
+
+        <h3 id="s10-2-2">Laravel 的 CSRF 防护机制</h3>
+        <p>Laravel 提供了一种简单而有效的 CSRF 防护机制，基于 **CSRF 令牌 (Token)**：</p>
+        <ol>
+            <li>Laravel 会为每个用户的活动会话自动生成一个**随机、唯一的 CSRF 令牌**。</li>
+            <li>你需要将这个令牌嵌入到所有“状态改变”的请求表单中（通常是 POST, PUT, PATCH, DELETE 请求）。最简单的方式是在 Blade 表单中使用 <code>@csrf</code> 指令。</li>
+            <li>当表单提交时，这个令牌会随请求一起发送到后端。</li>
+            <li>Laravel 的 <code>VerifyCsrfToken</code> 中间件（默认已包含在 <code>web</code> 中间件组中）会自动拦截这些请求，并**比较**请求中提交的令牌与存储在 Session 中的令牌是否匹配。</li>
+            <li>如果令牌匹配，请求继续正常处理。</li>
+            <li>如果令牌<b>不匹配</b>或<b>缺失</b>，中间件会抛出 <code>TokenMismatchException</code> 异常，通常会导致一个 **419 Page Expired** 错误页面，从而阻止了伪造的请求。</li>
+        </ol>
+
+        <h3 id="s10-2-3">如何使用</h3>
+        <ul>
+            <li><b>在 Blade 表单中添加 <code>@csrf</code>:</b>
+                <p>对于任何使用 POST, PUT, PATCH, DELETE 方法的 HTML 表单，<b>必须</b>在 <code>&lt;form&gt;</code> 标签内添加 <code>@csrf</code> 指令。它会自动生成一个包含 CSRF 令牌的隐藏输入字段。</p>
+                <pre><code class="language-html">&lt;form method="POST" action="/profile"&gt;
+@csrf {{-- 必须添加！ --}}
+&lt;!-- ... 其他表单字段 ... --&gt;
+&lt;button type="submit"&gt;更新资料&lt;/button&gt;
+&lt;/form></code></pre>
+            </li>
+            <li><b>AJAX 请求中的 CSRF 令牌:</b>
+                <p>如果你的应用使用 JavaScript 发送 AJAX 请求（例如使用 Axios, Fetch API），这些请求（如果是 POST, PUT, PATCH, DELETE）也需要包含 CSRF 令牌。通常的做法是：</p>
+                <ol>
+                    <li>在你的主 HTML 布局文件的 <code>&lt;head></code> 中添加一个 meta 标签来存储当前的 CSRF 令牌：
+                        <pre><code class="language-html">&lt;meta name="csrf-token" content="{{ csrf_token() }}"></code></pre>
+                        (<code>csrf_token()</code> 是 Laravel 提供的辅助函数)
+                    </li>
+                    <li>让你的 JavaScript 代码读取这个 meta 标签的值。</li>
+                    <li>在发送 AJAX 请求时，将令牌添加到 HTTP 请求头 <code>X-CSRF-TOKEN</code> 中。</li>
+                </ol>
+                <p class="note">如果你使用 Laravel 默认提供的 <code>resources/js/bootstrap.js</code> 文件，它通常已经配置好了 Axios 库，使其自动读取 meta 标签并将 token 添加到所有 AJAX 请求头中。</p>
+                <pre><code class="language-javascript">// resources/js/bootstrap.js (部分示例)
+import axios from 'axios';
+window.axios = axios;
+
+window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+
+// 自动添加 CSRF Token 到请求头
+let token = document.head.querySelector('meta[name="csrf-token"]');
+if (token) {
+window.axios.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
+} else {
+console.error('CSRF token not found: https://laravel.com/docs/csrf#csrf-x-csrf-token');
+}</code></pre>
+            </li>
+            <li><b>排除特定 URIs:</b> 在极少数情况下（例如接收来自第三方的 webhook），你可能需要将某些 URI 从 CSRF 保护中排除。可以在 <code>app/Http/Middleware/VerifyCsrfToken.php</code> 中间件的 <code>$except</code> 数组属性中添加这些 URI。但要非常谨慎，确保你知道自己在做什么。</li>
+        </ul>
+
+        <hr />
+
+        <h2 id="s10-3">10.3 数据验证 (Validation)</h2>
+        <p class="danger"><b>安全基石：永远不要信任用户输入，必须在服务器端进行验证！</b> 即使前端 JavaScript 做了验证，也必须在后端 PHP 再次验证，因为前端验证可以被轻易绕过。</p>
+        <p>Laravel 提供了非常强大和便捷的数据验证机制。</p>
+
+        <h3 id="s10-3-1">方法一：在控制器中使用 <code>$request->validate()</code></h3>
+        <p>这是最快速、最直接的验证方式，适用于简单的验证场景。</p>
+        <ul>
+            <li>在控制器方法中，调用注入的 <code>Request</code> 对象的 <code>validate()</code> 方法。</li>
+            <li>传入一个关联数组，键是需要验证的<b>字段名</b>（对应表单输入的 <code>name</code> 属性），值是应用到该字段的<b>验证规则</b>字符串（多个规则用管道符 <code>|</code> 分隔）或数组。</li>
+        </ul>
+        <p><b>行为：</b></p>
+        <ul>
+            <li>如果验证<b>通过</b>，<code>validate()</code> 方法会返回一个**只包含**通过验证的字段及其值的关联数组。这很方便，你可以直接将这个返回的数组用于创建或更新模型，避免了接收不必要的或恶意的字段。</li>
+            <li>如果验证<b>失败</b>，<code>validate()</code> 方法会自动执行以下操作：
+                <ul>
+                    <li>抛出一个 <code>Illuminate\Validation\ValidationException</code> 异常。</li>
+                    <li>Laravel 的异常处理器会捕获这个异常。</li>
+                    <li>对于**普通 Web 请求**，它会自动将用户**重定向回上一个页面**。</li>
+                    <li>同时，它会将所有的**验证错误信息**和**用户之前的输入数据**“闪存” (Flash) 到 Session 中（只在下一次请求中可用）。</li>
+                    <li>对于 **AJAX 请求**，它会返回一个包含验证错误信息的 **JSON 响应**（通常是 422 Unprocessable Entity 状态码）。</li>
+                </ul>
+                这一切都是自动完成的，你不需要手动检查验证结果或进行重定向。
+            </li>
+        </ul>
+
+        <p><b>常用验证规则 (仅列举部分，请查阅文档):</b></p>
+        <ul>
+            <li><b>存在性与格式:</b> <code>required</code>, <code>nullable</code>, <code>present</code>, <code>filled</code>, <code>string</code>, <code>integer</code>, <code>numeric</code>, <code>boolean</code>, <code>array</code>, <code>date</code>, <code>date_format:Y-m-d</code>, <code>email</code>, <code>url</code>, <code>ip</code>, <code>json</code>, <code>uuid</code>, <code>alpha</code>, <code>alpha_dash</code>, <code>alpha_num</code></li>
+            <li><b>大小/长度:</b> <code>min:value</code>, <code>max:value</code>, <code>size:value</code>, <code>between:min,max</code> (对数字、字符串、数组、文件都可能适用)</li>
+            <li><b>数据库相关:</b> <code>unique:table,column,except,idColumn</code> (指定字段在表中必须唯一，可选排除某个 ID), <code>exists:table,column</code> (指定字段的值必须在另一个表中存在)</li>
+            <li><b>文件上传:</b> <code>file</code>, <code>image</code>, <code>mimes:jpg,png</code>, <code>mimetypes:image/jpeg</code>, <code>dimensions:min_width=100,min_height=200</code></li>
+            <li><b>关系/比较:</b> <code>confirmed</code> (字段值必须与 <code>字段名_confirmation</code> 字段匹配，常用于密码确认), <code>same:field</code>, <code>different:field</code>, <code>gt:field</code>, <code>gte:field</code>, <code>lt:field</code>, <code>lte:field</code></li>
+            <li><b>其他:</b> <code>in:foo,bar,...</code>, <code>not_in:...</code>, <code>regex:pattern</code>, <code>required_if:anotherfield,value,...</code>, <code>prohibited_if:...</code></li>
+        </ul>
+
+        <p><b>示例 (在 Controller 的 store 方法中):</b></p>
+        <pre><code class="language-php">&lt;?php
+use Illuminate\Http\Request;
+use App\Models\Post;
+
+public function store(Request $request): \Illuminate\Http\RedirectResponse
+{
+// 定义验证规则
+$rules = [
+'title' => 'required|string|max:200|unique:posts,title', // 必填, 字符串, 最长200, 在 posts 表 title 列唯一
+'content' => 'required|string|min:10',                 // 必填, 字符串, 最短 10
+'category_id' => 'required|integer|exists:categories,id', // 必填, 整数, 必须在 categories 表的 id 列存在
+'publish_at' => 'nullable|date|after_or_equal:today', // 可为空, 日期格式, 必须是今天或之后
+'tags' => 'nullable|array',                          // 可为空, 必须是数组
+'tags.*' => 'integer|exists:tags,id',               // 如果 tags 是数组, 数组中每个元素都必须是整数且在 tags 表存在
+'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // 可为空, 必须是图片, 特定格式, 最大 2MB
+];
+
+// 定义自定义错误消息 (可选)
+$messages = [
+    'title.required' => '文章标题不能为空。',
+    'title.unique' => '该标题已存在，请更换一个。',
+    'category_id.exists' => '所选分类无效。',
+    'cover_image.max' => '封面图片大小不能超过 2MB。',
+];
+
+// 执行验证
+$validatedData = $request->validate($rules, $messages);
+// 如果验证失败，代码不会继续执行到这里，会自动重定向
+
+// 验证通过，$validatedData 只包含通过验证的字段
+// 使用 $validatedData 创建文章...
+$post = Post::create($validatedData); // 注意：模型需要设置 $fillable
+
+// 重定向并显示成功消息
+return redirect()->route('posts.show', $post)->with('success', '文章创建成功！');
+}
+?></code></pre>
+
+        <h3 id="s10-3-2">方法二：表单请求类 (Form Requests - 推荐用于复杂验证)</h3>
+        <p>当验证逻辑变得复杂，或者你想在多个地方重用相同的验证规则时，将验证逻辑从控制器中分离出来放到专门的**表单请求类 (Form Request)** 中是更好的做法。</p>
+        <p><b>创建 Form Request:</b></p>
+        <pre><code class="language-bash">php artisan make:request StorePostRequest</code></pre>
+        <p>这会在 <code>app/Http/Requests/</code> 目录下创建 <code>StorePostRequest.php</code> 文件。</p>
+        <p><b>Form Request 类结构：</b></p>
+        <ul>
+            <li><b><code>authorize(): bool</code></b>:** 这个方法用于**授权**。你可以在这里编写逻辑，判断当前登录的用户是否有权执行这个请求。如果返回 <code>true</code>，请求继续；如果返回 <code>false</code>，会抛出 <code>AuthorizationException</code>（通常渲染为 403 Forbidden 页面）。默认返回 <code>false</code>，**你需要修改它！** 通常至少要返回 <code>true</code>（如果不需要特殊授权），或者根据用户权限判断。</li>
+            <li><b><code>rules(): array</code></b>:** 这个方法**必须**返回一个包含验证规则的数组，格式与传递给 <code>$request->validate()</code> 的规则数组完全相同。</li>
+            <li><b><code>messages(): array</code></b> (可选):** 返回自定义错误消息的数组。</li>
+            <li><b><code>attributes(): array</code> (可选):</b> 返回自定义属性名称的数组，用于错误消息（例如，将 <code>'email'</code> 显示为 <code>'邮箱地址'</code>）。</li>
+        </ul>
+        <p><b>示例 (<code>app/Http/Requests/StorePostRequest.php</code>):</b></p>
+        <pre><code class="language-php">&lt;?php
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth; // 引入 Auth Facade 用于授权
+
+class StorePostRequest extends FormRequest
+{
+/**
+* Determine if the user is authorized to make this request.
+* 决定当前用户是否有权发起这个请求。
+*/
+public function authorize(): bool
+{
+// 示例：只允许已登录用户创建文章
+return Auth::check();
+// 或者更复杂的权限检查:
+// return $this->user()->can('create', Post::class); // 假设定义了 PostPolicy
+}
+
+/**
+ * Get the validation rules that apply to the request.
+ * 获取应用于请求的验证规则。
+ *
+ * @return array&lt;string, \Illuminate\Contracts\Validation\ValidationRule|array|string&gt;
+ */
+public function rules(): array
+{
+    // 返回验证规则数组
+    return [
+        'title' => 'required|string|max:200|unique:posts,title',
+        'content' => 'required|string|min:10',
+        'category_id' => 'required|integer|exists:categories,id',
+        'publish_at' => 'nullable|date|after_or_equal:today',
+        'tags' => 'nullable|array',
+        'tags.*' => 'integer|exists:tags,id',
+        'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+    ];
+}
+
+/**
+ * Get custom error messages for validator errors. (可选)
+ * 获取自定义的错误消息。
+ *
+ * @return array&lt;string, string&gt;
+ */
+public function messages(): array
+{
+    return [
+        'title.required' => '文章标题为必填项。',
+        'title.unique' => '此标题已被使用。',
+        // ... 其他自定义消息
+    ];
+}
+
+/**
+ * Get custom attributes for validator errors. (可选)
+ * 获取验证器错误的自定义属性名称。
+ *
+ * @return array&lt;string, string&gt;
+ */
+public function attributes(): array
+{
+    return [
+        'category_id' => '文章分类',
+        'publish_at' => '发布日期',
+        // ...
+    ];
+}
+}
+?></code></pre>
+
+        <p><b>在控制器中使用 Form Request:</b></p>
+        <p>只需要在控制器方法的参数列表中，将原来的 <code>Request</code> 类型提示替换为你创建的 Form Request 类。Laravel 会自动解析它。</p>
+        <pre><code class="language-php">&lt;?php
+namespace App\Http\Controllers;
+
+// 引入你的 Form Request 类
+use App\Http\Requests\StorePostRequest;
+use App\Models\Post;
+use Illuminate\Http\RedirectResponse;
+
+class PostController extends Controller
+{
+// 在方法签名中类型提示 StorePostRequest
+public function store(StorePostRequest $request): RedirectResponse
+{
+// 如果代码能执行到这里，说明 authorize() 返回了 true，
+// 并且 rules() 中的验证已经通过了！
+
+    // 直接使用 $request->validated() 获取通过验证的数据数组
+    $validatedData = $request->validated();
+
+    // 使用验证后的数据创建文章
+    $post = Post::create($validatedData);
+
+    return redirect()->route('posts.show', $post)->with('success', '文章创建成功！');
+}
+}
+?></code></pre>
+        <p class="note">使用 Form Request 可以让控制器保持非常干净，专注于核心业务逻辑，是处理复杂表单验证的推荐方式。</p>
+
+        <h3 id="s10-3-3">在 Blade 视图中显示验证错误</h3>
+        <p>当使用 <code>$request->validate()</code> 或 Form Request 验证失败并自动重定向回表单页面时，Laravel 会将错误信息存储在 Session 中，并通过 <code>web</code> 中间件组自动将一个名为 <code>$errors</code> 的变量（<code>Illuminate\Support\MessageBag</code> 实例）共享给所有视图。</p>
+        <p>你可以使用 <code>$errors</code> 变量来显示错误信息：</p>
+        <ul>
+            <li><b><code>$errors->any(): bool</code>:</b> 检查是否存在任何验证错误。</li>
+            <li><b><code>$errors->all(): array</code>:</b> 获取所有错误消息的数组。</li>
+            <li><b><code>$errors->has(string $field): bool</code>:</b> 检查特定字段是否有错误。</li>
+            <li><b><code>$errors->first(string $field): ?string</code>:</b> 获取特定字段的**第一条**错误消息。</li>
+        </ul>
+        <p><b>使用 <code>@error</code> 指令 (最方便):</b></p>
+        <p><code>@error</code> 指令提供了一种简洁的方式来检查特定字段是否有错误，并可以直接在指令内部访问 <code>$message</code> 变量（包含错误消息）。</p>
+        <pre><code class="language-html">&lt;!-- 在表单视图中，例如 create.blade.php --&gt;
+&lt;form method="POST" action="{{ route('posts.store') }}">
+@csrf
+
+&lt;div class="mb-4"&gt;
+    &lt;label for="title" class="block text-sm font-medium text-gray-700"&gt;标题&lt;/label&gt;
+    &lt;!--
+        1. 使用 old('title') 保持上次提交的值 (如果验证失败)
+        2. 使用 @error 检查 'title' 字段是否有错误
+        3. 如果有错误，给 input 添加红色边框类 (示例)
+    --&gt;
+    &lt;input type="text" name="title" id="title"
+           value="{{ old('title') }}"
+           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 @error('title') border-red-500 @enderror"&gt;
+
+    &lt;!-- 如果 'title' 字段有错误，显示第一条错误消息 --&gt;
+    @error('title')
+        &lt;p class="mt-1 text-xs text-red-600"&gt;{{ $message }}&lt;/p&gt;
+    @enderror
+&lt;/div&gt;
+
+&lt;div class="mb-4"&gt;
+    &lt;label for="content" class="block text-sm font-medium text-gray-700"&gt;内容&lt;/label&gt;
+    &lt;textarea name="content" id="content" rows="5"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 @error('content') border-red-500 @enderror"
+    &gt;{{ old('content') }}&lt;/textarea&gt; &lt;!-- textarea 使用 old() 填充内容 --&gt;
+     @error('content')
+        &lt;p class="mt-1 text-xs text-red-600"&gt;{{ $message }}&lt;/p&gt;
+    @enderror
+&lt;/div&gt;
+
+&lt;!-- 其他字段 ... --&gt;
+
+&lt;div&gt;
+    &lt;button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"&gt;创建文章&lt;/button&gt;
+&lt;/div&gt;
+
+&lt;!-- (可选) 显示所有错误摘要 --&gt;
+@if ($errors-&gt;any())
+    &lt;div class="mt-4 p-3 bg-red-100 text-red-700 rounded border border-red-300"&gt;
+        &lt;b&gt;提交出错：&lt;/b&gt;
+        &lt;ul class="list-disc list-inside mt-1"&gt;
+            @foreach ($errors-&gt;all() as $error)
+                &lt;li&gt;{{ $error }}&lt;/li&gt;
+            @endforeach
+        &lt;/ul&gt;
+    &lt;/div&gt;
+@endif
+&lt;/form>
+</code></pre>
+
+        <h3 id="s10-3-4">表单值重填: <code>old()</code> 辅助函数</h3>
+        <p>当验证失败，Laravel 重定向回表单页面时，它会自动将用户**上次提交的输入数据**闪存到 Session 中。为了提升用户体验（避免用户重新填写所有内容），你应该在表单的输入字段中使用 <code>old()</code> 辅助函数来获取并显示这些旧的输入值。</p>
+        <p><b>语法：</b> <code>old(string $key, mixed $default = null)</code></p>
+        <ul>
+            <li><code>$key</code>: 输入字段的名称。</li>
+            <li><code>$default</code> (可选): 如果 Session 中没有对应的旧输入值，则返回这个默认值。</li>
+        </ul>
+        <p><b>用法示例（见上方 Blade 表单示例）：</b></p>
+        <ul>
+            <li>文本输入框: <code>value="{{ old('username') }}"</code></li>
+            <li>Textarea: <code>&lt;textarea ...&gt;{{ old('description') }}&lt;/textarea&gt;</code></li>
+            <li>下拉列表 (Select):
+                <pre><code class="language-php">&lt;select name="country"&gt;
+@foreach ($countries as $code => $name)
+    &lt;option value="{{ $code }}" @selected(old('country') == $code)&gt;
+        {{ $name }}
+    &lt;/option&gt;
+@endforeach
+&lt;/select>
+{{-- @selected() 指令会在条件为 true 时输出 'selected' --}}</code></pre>
+            </li>
+            <li>复选框 (Checkbox):
+                <pre><code class="language-php">&lt;input type="checkbox" name="terms" value="1" @checked(old('terms', false))> 我同意
+{{-- @checked() 指令会在条件为 true 时输出 'checked' --}}
+{{-- 第二个参数是默认值，如果 'terms' 没在 old 输入中，则使用 false --}}</code></pre>
+            </li>
+            <li>单选按钮 (Radio):
+                <pre><code class="language-php">&lt;input type="radio" name="gender" value="male" @checked(old('gender') === 'male')> 男
+&lt;input type="radio" name="gender" value="female" @checked(old('gender') === 'female')> 女</code></pre>
+            </li>
+        </ul>
+        <p class="note">结合使用验证错误显示 (<code>@error</code>) 和旧值重填 (<code>old()</code>) 可以创建用户友好的表单体验。</p>
+
+    </div>
+
+    <hr />
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 10 部分结束 ---</p>
+
+</div>
+</body>
+</html>

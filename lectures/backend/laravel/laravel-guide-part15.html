@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laravel 详细讲义 - Part 15: 任务调度与队列</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h2[id], h3[id], h4[id] {
+            scroll-margin-top: 2rem;
+        }
+
+        .prose code::before, .prose code::after {
+            content: none !important;
+        }
+
+        .prose code {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .prose pre {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+            border: 1px solid #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            white-space: pre;
+        }
+
+        .prose ul > li::marker {
+            color: #6b7280;
+        }
+
+        .prose ol > li::marker {
+            color: #6b7280;
+        }
+
+        .prose a {
+            color: #2563eb;
+        }
+
+        .prose a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        .prose b {
+            font-weight: 600;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        .prose hr {
+            border-color: #e5e7eb;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .prose h3 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .prose h4 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+
+        .prose ul, .prose ol {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+        }
+
+        .prose li {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .note {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #1e40af;
+        }
+
+        .warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #92400e;
+        }
+
+        .danger {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1em;
+            margin: 1.5em 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto max-w-4xl bg-white shadow-lg rounded-lg my-8 p-6 md:p-10 prose prose-lg max-w-none">  
+
+    <h1>Laravel 详细讲义 - Part 15: 任务调度与队列</h1>
+    <p class="text-gray-500 text-sm">这是 Laravel 系列讲义的第十五部分 (共 17 部分)。</p>
+
+    <hr/>
+
+    <div>
+        <h2 id="s15-intro">引言：自动化与后台处理</h2>
+        <p>Web 应用除了响应用户的即时请求外，往往还需要执行两类特殊的任务：</p>
+        <ol>
+            <li><b>计划任务 (Scheduled Tasks):</b> 需要在特定时间或按固定频率自动执行的任务，例如：
+                <ul>
+                    <li>每晚生成统计报告。</li>
+                    <li>每天清理过期的临时文件或数据库记录。</li>
+                    <li>每周发送营销邮件。</li>
+                    <li>每小时从外部 API 同步数据。</li>
+                </ul>
+            </li>
+            <li><b>后台任务 (Background Jobs):</b> 处理那些耗时较长、不适合在 Web
+                请求生命周期内同步完成的操作，以免阻塞用户请求、导致页面响应缓慢甚至超时。例如：
+                <ul>
+                    <li>发送邮件（特别是大量邮件）。</li>
+                    <li>处理用户上传的图片（生成缩略图、添加水印等）。</li>
+                    <li>处理视频转码。</li>
+                    <li>调用缓慢的第三方 API。</li>
+                    <li>生成复杂的报表。</li>
+                </ul>
+            </li>
+        </ol>
+        <p>Laravel 分别提供了**任务调度器 (Task Scheduler)** 和**队列系统 (Queue System)** 来优雅地处理这两类任务。</p>
+
+        <hr/>
+
+        <h2 id="s15-1">15.1 任务调度 (Task Scheduling)</h2>
+        <p>Laravel 的任务调度器允许你使用流畅、富有表现力的 PHP 代码来定义你的命令调度计划，而无需直接编辑服务器的 Crontab
+            文件（尽管最终还是需要一条 Cron 条目来驱动 Laravel 的调度器）。</p>
+
+        <h3 id="s15-1-1">定义计划任务</h3>
+        <p>所有的计划任务都定义在 <code>app/Console/Kernel.php</code> 文件的 <code>schedule</code> 方法中。这个方法接收一个
+            <code>IlluminateConsoleSchedulingSchedule</code> 实例 (<code>$schedule</code>)，你可以用它来注册你的任务。</p>
+        <p><b>可以调度的任务类型：</b></p>
+        <ul>
+            <li><b>Artisan 命令:** 最常用。调用你创建的或 Laravel 内置的 Artisan 命令。
+                <pre><code class="language-php">$schedule->command('emails:send --force')->daily();</code></pre>
+            </li>
+            <li><b>队列任务 (Jobs):** 直接将一个 Job 类实例推送到队列中按计划执行。
+                <pre><code
+                        class="language-php">$schedule->job(new ProcessDailyReports)-&gt;dailyAt('02:00');</code></pre>
+            </li>
+            <li><b>Shell 命令:** 执行操作系统的命令。
+                <pre><code
+                        class="language-php">$schedule->exec('npm run production')->yearly(); // 例如每年更新前端资源</code></pre>
+            </li>
+            <li><b>调用闭包:** 执行一个简单的匿名函数。
+                <pre><code class="language-php">$schedule->call(function () {
+DB::table('logs')->where('created_at', '<', now()->subMonth())->delete();
+})->monthly(); // 每月清理一个月前的日志</code></pre>
+            </li>
+        </ul>
+
+        <h3 id="s15-1-2">设置执行频率</h3>
+        <p><code>$schedule</code> 对象提供了大量链式方法来定义任务的执行频率：</p>
+        <ul>
+            <li><b>常用频率：</b> <code>cron('* * * * *')</code> (使用标准 Cron 表达式), <code>everyMinute()</code>,
+                <code>everyTwoMinutes()</code>, <code>everyFiveMinutes()</code>, <code>everyTenMinutes()</code>, <code>everyFifteenMinutes()</code>,
+                <code>everyThirtyMinutes()</code>, <code>hourly()</code>, <code>hourlyAt(17)</code> (每小时的第 17 分钟),
+                <code>daily()</code> (每天 00:00), <code>dailyAt('13:00')</code> (每天 13:00), <code>twiceDaily(1,
+                    13)</code> (每天 1:00 和 13:00), <code>weekly()</code> (每周日 00:00), <code>weeklyOn(1,
+                    '8:00')</code> (每周一 8:00), <code>monthly()</code> (每月第一天 00:00), <code>monthlyOn(4,
+                    '15:00')</code> (每月第四天 15:00), <code>quarterly()</code>, <code>yearly()</code>。
+            </li>
+            <li><b>条件约束 (链式调用):</b>
+                <ul>
+                    <li><code>weekdays()</code>: 只在周一到周五执行。</li>
+                    <li><code>sundays()</code>, <code>mondays()</code>, ...</li>
+                    <li><code>between('8:00', '17:00')</code>: 只在每天的 8:00 到 17:00 之间执行。</li>
+                    <li><code>when(Closure)</code>: 传递一个闭包，只有闭包返回 <code>true</code> 时才执行。</li>
+                    <li><code>environments('production')</code>: 只在指定的环境下执行（例如只在生产环境）。</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3 id="s15-1-3">防止任务重叠</h3>
+        <p>如果一个任务执行时间较长，可能会超过它的执行周期（例如一个每分钟执行的任务耗时超过 1
+            分钟），为了防止上一次任务还没执行完，下一次任务就开始执行，可以使用：</p>
+        <ul>
+            <li><b><code>withoutOverlapping(int $expiresAt = 1440)</code>:</b> 确保同一时间只有一个该任务的实例在运行。它需要使用
+                Laravel 的缓存系统来设置锁。<code>$expiresAt</code> 是锁的最长有效时间（分钟）。
+            </li>
+        </ul>
+
+        <h3 id="s15-1-4">单服务器调度</h3>
+        <p>在多服务器部署环境中，你通常希望计划任务只在其中**一台**服务器上运行，而不是每台服务器都运行一遍。可以使用：</p>
+        <ul>
+            <li><b><code>onOneServer()</code>:</b> 确保任务只在获得锁的第一台服务器上运行。同样需要配置缓存驱动。</li>
+        </ul>
+
+        <h3 id="s15-1-5">维护模式</h3>
+        <p>默认情况下，当你的应用处于维护模式时 (通过 <code>php artisan down</code>)，计划任务<b>不会</b>运行。如果你希望某个任务即使在维护模式下也要运行，可以链式调用
+            <code>evenInMaintenanceMode()</code>。</p>
+
+        <h3 id="s15-1-6">运行调度器 (服务器配置)</h3>
+        <p class="danger"><b>关键步骤：</b> 仅仅在 <code>Kernel.php</code> 中定义任务是不够的！你需要在你的服务器上配置一个
+            **Cron 作业 (Cron Job)**，让它**每分钟**执行一次 Laravel 的 <code>schedule:run</code> Artisan 命令。</p>
+        <p>打开服务器的 Crontab 配置（通常通过命令 <code>crontab -e</code>），添加类似下面这样一行：</p>
+        <pre><code class="language-bash">* * * * * cd /path-to-your-laravel-project &amp;&amp; php artisan schedule:run &gt;&gt; /dev/null 2&gt;&amp;1</code></pre>
+        <p><b>解释：</b></p>
+        <ul>
+            <li><code>* * * * *</code>: Cron 表达式，表示“每分钟”。</li>
+            <li><code>cd /path-to-your-laravel-project</code>: 切换到你的 Laravel 项目根目录（<b>必须</b>替换成你的实际路径）。
+            </li>
+            <li><code>&amp;&amp;</code>: 确保前面的 <code>cd</code> 命令成功执行后再执行后面的命令。</li>
+            <li><code>php artisan schedule:run</code>: 执行 Laravel 的调度器命令。</li>
+            <li><code>&gt;&gt; /dev/null</code>: 将命令的标准输出重定向到 "null 设备"（即丢弃输出）。</li>
+            <li><code>2&gt;&amp;1</code>: 将标准错误输出重定向到标准输出（也一并丢弃）。这样可以防止 Cron
+                作业产生不必要的邮件通知。如果你想将输出记录到文件，可以改为 <code>&gt;&gt; /path/to/your/schedule.log 2&gt;&amp;1</code>。
+            </li>
+        </ul>
+        <p>当这个 Cron 作业每分钟运行时，Laravel 的 <code>schedule:run</code> 命令会检查 <code>Kernel.php</code>
+            中定义的所有任务，并只运行那些**当前时间**应该执行的任务。</p>
+
+        <h3 id="s15-1-7">相关 Artisan 命令</h3>
+        <ul>
+            <li><code>php artisan schedule:list</code>: 查看所有已定义的计划任务及其下次运行时间。</li>
+            <li><code>php artisan schedule:test [--name=CommandName]</code>: 立即运行指定的计划任务进行测试。</li>
+        </ul>
+
+        <p><b>示例 (<code>app/Console/Kernel.php</code>):</b></p>
+        <pre><code class="language-php">&lt;?php
+namespace App\Console;
+
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+use App\Jobs\GenerateMonthlyReport; // 引入 Job 类
+use App\Console\Commands\CleanupOldLogs; // 引入自定义命令  
+
+class Kernel extends ConsoleKernel
+{
+/**
+* 定义应用的命令调度。
+*
+* @param  \Illuminate\Console\Scheduling\Schedule  $schedule
+* @return void
+*/
+protected function schedule(Schedule $schedule): void
+{
+// 示例 1: 每天凌晨 3:15 运行一个自定义 Artisan 命令
+// $schedule->command('app:cleanup-old-logs')->dailyAt('03:15');
+// 或者直接使用类名 (如果命令已注册)
+$schedule->command(CleanupOldLogs::class, ['--days' => 30]) // 可以传递参数
+->dailyAt('03:15')
+->withoutOverlapping(60) // 防止重叠，锁有效期 60 分钟
+->onOneServer(); // 只在一台服务器上运行  
+
+    // 示例 2: 每周一上午 8 点运行一个队列任务
+    $schedule->job(new GenerateMonthlyReport) // 可以传入 Job 实例
+             ->weeklyOn(1, '08:00'); // 1 代表周一
+
+    // 示例 3: 每小时清理一次缓存
+    $schedule->command('cache:clear')->hourly();
+
+    // 示例 4: 每 5 分钟执行一个闭包 (只在生产环境)
+    $schedule->call(function () {
+        // ... 执行一些快速检查任务 ...
+    })->everyFiveMinutes()->environments('production');
+
+    // 示例 5: 每天执行一次数据库备份 (调用 shell 命令)
+    // $schedule->exec('sh /path/to/backup-script.sh')->dailyAt('01:00');
+}
+
+/**
+ * Register the commands for the application.
+ * 注册应用的命令 (自定义命令通常会自动发现，无需手动注册)
+ */
+protected function commands(): void
+{
+    $this->load(__DIR__.'/Commands');
+
+    require base_path('routes/console.php');
+}
+}
+?&gt;</code></pre>
+
+        <hr/>
+
+        <h2 id="s15-2">15.2 队列 (Queues) - 处理后台任务</h2>
+        <p>队列系统允许你将耗时的任务（例如发送邮件、处理上传的图片）推迟到后台异步处理，从而极大地提高 Web
+            请求的响应速度，改善用户体验。</p>
+
+        <h3 id="s15-2-1">核心概念</h3>
+        <ol>
+            <li><b>任务 (Job):</b> 一个代表了需要在后台执行的具体任务的 PHP 类。它通常包含一个 <code>handle()</code>
+                方法，里面是实际的任务处理逻辑。
+            </li>
+            <li><b>队列 (Queue):</b> 一个“先进先出”(FIFO) 的任务等候列表。当你想让一个任务在后台执行时，你将它“分发
+                (Dispatch)”到队列中。
+            </li>
+            <li><b>队列驱动 (Driver):</b> 决定了任务被放入队列后实际存储在哪里。常见的驱动包括：
+                <ul>
+                    <li><code>sync</code> (同步): 任务不会被放入队列，而是立即在当前进程中执行。主要用于本地开发或测试。
+                    </li>
+                    <li><code>database</code>: 将任务信息存储在数据库表中。设置简单，性能中等。</li>
+                    <li><code>redis</code>: 使用 Redis 列表存储任务。速度快，是常用的生产环境选择。</li>
+                    <li><code>beanstalkd</code>: 一个快速、轻量级的内存队列服务器。</li>
+                    <li><code>sqs</code>: 使用 Amazon SQS 云服务。</li>
+                </ul>
+            </li>
+            <li><b>队列处理器 (Worker):</b> 一个（或多个）**独立的、通常需要长时间运行的 PHP 进程**。它负责持续地从队列中取出任务，并执行任务的
+                <code>handle()</code> 方法。
+            </li>
+        </ol>
+
+        <h3 id="s15-2-2">配置队列</h3>
+        <ul>
+            <li><b>选择驱动：</b> 在 <code>.env</code> 文件中设置 <code>QUEUE_CONNECTION</code> 为你选择的驱动名称（如
+                <code>database</code>, <code>redis</code>, <code>sync</code>）。
+            </li>
+            <li><b>配置连接：</b> 在 <code>config/queue.php</code> 文件中，找到对应驱动的配置块，并根据需要修改（例如 Redis
+                的主机/端口，数据库连接等，它们通常也会读取 <code>.env</code> 中的相关变量）。
+            </li>
+            <li><b>如果使用 <code>database</code> 驱动：</b>
+                <ol>
+                    <li>运行 <code>php artisan queue:table</code> 来生成创建 <code>jobs</code> 表和
+                        <code>failed_jobs</code> 表的数据库迁移文件。
+                    </li>
+                    <li>运行 <code>php artisan migrate</code> 来创建这些表。</li>
+                </ol>
+            </li>
+            <li><b>如果使用 <code>redis</code> 驱动：</b>
+                <ol>
+                    <li>确保你的服务器上安装并运行了 Redis 服务。</li>
+                    <li>确保你的 PHP 安装了 Redis 扩展 (<code>phpredis</code>) 或者通过 Composer 安装了 <code>predis/predis</code>
+                        包。
+                    </li>
+                    <li>在 <code>.env</code> 中配置好 Redis 连接信息 (<code>REDIS_HOST</code>,
+                        <code>REDIS_PASSWORD</code>, <code>REDIS_PORT</code>)。
+                    </li>
+                </ol>
+            </li>
+        </ul>
+
+        <h3 id="s15-2-3">创建任务 (Job)</h3>
+        <p>使用 Artisan 命令创建 Job 类：</p>
+        <pre><code class="language-bash">php artisan make:job ProcessUploadedImage</code></pre>
+        <p>这会在 <code>app/Jobs/</code> 目录下创建 <code>ProcessUploadedImage.php</code> 文件。</p>
+        <p><b>Job 类结构：</b></p>
+        <pre><code class="language-php">&lt;?php
+namespace App\Jobs;
+
+use App\Models\Image; // 假设需要操作 Image 模型
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue; // 实现此接口表示任务应被推送到队列
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels; // 自动序列化 Eloquent 模型
+use Illuminate\Support\Facades\Log; // 用于日志记录
+// use Throwable; // 用于捕获异常  
+
+class ProcessUploadedImage implements ShouldQueue // 实现 ShouldQueue 接口
+{
+use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+// 使用 public 属性或通过构造函数传递任务所需的数据
+public $image; // 可以是 Image 模型实例
+
+/**
+ * Create a new job instance.
+ * 构造函数，用于接收任务所需的数据。
+ *
+ * @param Image $image 要处理的图片模型
+ * @return void
+ */
+public function __construct(Image $image) // 依赖注入 Image 模型
+{
+    $this->image = $image;
+    // 可以在这里设置任务的队列、连接等
+    // $this->onQueue('processing');
+    // $this->onConnection('redis');
+}
+
+/**
+ * Execute the job.
+ * 执行任务的核心逻辑。
+ * Worker 进程会调用这个方法。
+ */
+public function handle(): void
+{
+    // 可以在这里注入其他依赖
+    // public function handle(ImageProcessor $processor): void { ... }
+
+    Log::info("开始处理图片 ID: {$this->image->id}");
+
+    try {
+        // --- 这里是耗时的图片处理逻辑 ---
+        // 例如：生成缩略图、添加水印、上传到云存储等
+        // $processor->generateThumbnail($this->image->path);
+        // $processor->addWatermark($this->image->path);
+        sleep(5); // 模拟耗时操作
+
+        // 更新图片状态或其他数据库记录
+        $this->image->status = 'processed';
+        $this->image->save();
+
+        Log::info("图片 ID: {$this->image->id} 处理完成。");
+
+    } catch (\Exception $e) {
+        // 处理任务失败的情况
+        Log::error("处理图片 ID {$this->image->id} 时失败", ['error' => $e->getMessage()]);
+
+        // 可以选择：
+        // 1. 记录失败状态到数据库
+        // $this->image->status = 'failed';
+        // $this->image->error_message = $e->getMessage();
+        // $this->image->save();
+
+        // 2. 释放任务，让它稍后重试 (如果配置了重试次数)
+        //    可以指定延迟多少秒后重试
+        // $this->release(60); // 60 秒后重试
+
+        // 3. 标记任务为彻底失败，不会再重试
+        // $this->fail($e); // 可以传递异常对象
+
+        // 如果不调用 release 或 fail，任务会根据 --tries 设置自动重试
+    }
+}
+
+/**
+ * Handle a job failure. (可选)
+ * 当任务最终失败（超过最大尝试次数）时调用。
+ *
+ * @param  \Throwable  $exception
+ * @return void
+ */
+// public function failed(Throwable $exception): void
+// {
+//     // 发送通知给管理员等
+//     Log::critical("任务彻底失败！Image ID: {$this->image->id}", ['exception' => $exception]);
+// }
+}
+?&gt;</code></pre>
+        <p class="note"><b><code>SerializesModels</code> Trait:</b> 这个 Trait 很重要，它使得当 Job 被序列化存入队列时，其中的
+            Eloquent 模型属性只存储模型的 ID。当 Job 被 Worker 取出并反序列化时，它会自动根据 ID
+            从数据库重新检索完整的模型实例，避免了序列化整个复杂对象可能带来的问题。</p>
+
+        <h3 id="s15-2-4">分发任务 (Dispatching Jobs)</h3>
+        <p>在你的 Web 请求处理代码（例如 Controller）中，当需要执行一个耗时任务时，就分发对应的 Job 到队列中。</p>
+        <p><b>基本分发：</b></p>
+        <pre><code class="language-php">&lt;?php
+use App\Jobs\ProcessUploadedImage;
+use App\Models\Image;
+use Illuminate\Http\Request;
+
+class ImageUploadController extends Controller
+{
+public function store(Request $request)
+{
+// ... 处理文件上传，将信息存入数据库，获得 $image 模型实例 ...
+// $image = Image::create(['path' => $uploadedFilePath, 'status' => 'pending']);  
+
+    // 分发处理图片的 Job 到默认队列
+    ProcessUploadedImage::dispatch($image);
+    // 或者使用辅助函数：
+    // dispatch(new ProcessUploadedImage($image));
+
+    // 立即返回响应给用户，告知上传成功，后台正在处理
+    return back()->with('success', '图片上传成功，正在后台处理...');
+}
+}
+?&gt;</code></pre>
+        <p><b>其他分发选项 (链式调用)：</b></p>
+        <ul>
+            <li><b>延迟执行：</b>
+                <pre><code>ProcessUploadedImage::dispatch($image)->delay(now()->addMinutes(5)); // 5 分钟后执行</code></pre>
+            </li>
+            <li><b>指定队列：</b>
+                <pre><code>ProcessUploadedImage::dispatch($image)->onQueue('image-processing');</code></pre>
+            </li>
+            <li><b>指定连接：</b>
+                <pre><code>ProcessUploadedImage::dispatch($image)->onConnection('redis');</code></pre>
+            </li>
+            <li><b>条件分发：</b>
+                <pre><code>ProcessUploadedImage::dispatchIf($user->isAdmin(), $image); // 如果用户是管理员才分发
+ProcessUploadedImage::dispatchUnless($image->isAlreadyProcessed(), $image); // 如果图片未处理才分发</code></pre>
+            </li>
+            <li><b>在数据库事务提交后分发：</b> (常用) 确保只有当相关的数据库操作成功提交后，才将 Job 推入队列。
+                <pre><code>ProcessUploadedImage::dispatch($image)->afterCommit();</code></pre>
+            </li>
+            <li><b>链式任务 (Job Chaining):</b> 定义一组需要按顺序执行的任务。
+                <pre><code class="language-php">use Illuminate\Support\Facades\Bus;
+
+Bus::chain([
+new OptimizeImage($image),
+new AddWatermark($image),
+new NotifyUser($image->user)
+])->dispatch(); // 只有前一个任务成功完成，才会执行下一个</code></pre>
+            </li>
+        </ul>
+
+        <h3 id="s15-2-5">运行队列处理器 (Queue Worker)</h3>
+        <p>分发了任务之后，你需要启动一个（或多个）<b>队列 Worker 进程</b>来实际处理这些任务。</p>
+        <p>在服务器的**命令行**中运行：</p>
+        <pre><code class="language-bash"># 处理默认连接上的默认队列中的任务
+php artisan queue:work
+
+处理 redis 连接上的 emails 和 notifications 队列
+php artisan queue:work redis --queue=emails,notifications
+
+指定最大尝试次数为 3 次
+php artisan queue:work --tries=3
+
+指定每个任务的最大执行时间为 120 秒
+php artisan queue:work --timeout=120
+
+如果队列为空，则等待 5 秒再检查 (减少 CPU 占用)
+php artisan queue:work --sleep=5
+
+只处理队列中的一个任务然后退出 (用于测试或特定场景)
+php artisan queue:work --once
+在处理完当前任务后停止 worker (用于部署时平滑重启)
+php artisan queue:work --stop-when-empty (当队列为空时停止)
+或者在另一个终端运行 php artisan queue:restart (发送重启信号给所有 worker)</code></pre>
+        <p class="danger"><b>生产环境部署：</b></p>
+        <ul>
+            <li><code>php artisan queue:work</code> 命令需要<b>持续运行</b>才能处理队列任务。如果它意外退出（例如因为错误、服务器重启），队列任务就会堆积。
+            </li>
+            <li>因此，在生产环境中，<b>必须</b>使用一个<b>进程管理工具</b>（如 <b>Supervisor</b>, systemd）来监控 <code>php
+                artisan queue:work</code> 进程，确保它始终运行，并在退出时自动重启。
+            </li>
+            <li>配置 Supervisor 来运行多个 Worker 进程可以提高任务处理的并发能力。</li>
+            <li><b>部署新代码时：</b> 如果你更新了 Job 类的代码，需要**平滑地重启**所有 Worker 进程，让它们加载新代码。运行
+                <code>php artisan queue:restart</code> 会通知所有 Worker 在处理完当前任务后退出，然后 Supervisor
+                会自动用新代码重启它们。
+            </li>
+        </ul>
+
+        <h3 id="s15-2-6">处理失败的任务 (Failed Jobs)</h3>
+        <ul>
+            <li>当一个 Job 在执行时抛出异常，并且超过了最大尝试次数（<code>--tries</code> 或 Job 类自身的
+                <code>$tries</code> 属性），它会被标记为失败。
+            </li>
+            <li>Laravel 会将失败的 Job 信息记录到 <code>failed_jobs</code> 数据库表中（前提是你已经运行了 <code>php
+                artisan queue:failed-table</code> 迁移）。
+            </li>
+            <li><b>查看失败任务：</b> <code>php artisan queue:failed</code></li>
+            <li><b>重试失败任务：</b>
+                <ul>
+                    <li>重试特定 ID 的任务：<code>php artisan queue:retry &lt;UUID&gt;</code></li>
+                    <li>重试所有失败任务：<code>php artisan queue:retry --all</code></li>
+                    <li>重试指定队列的失败任务：<code>php artisan queue:retry --queue=emails</code></li>
+                </ul>
+            </li>
+            <li><b>删除失败任务：</b>
+                <ul>
+                    <li>删除特定 ID 的任务：<code>php artisan queue:forget &lt;UUID&gt;</code></li>
+                    <li>删除所有失败任务：<code>php artisan queue:flush</code></li>
+                </ul>
+            </li>
+        </ul>
+        <p class="note">队列系统是构建高性能、可伸缩 Web 应用的重要组成部分。</p>
+
+    </div>
+
+    <hr/>
+    <p class="text-center text-gray-500 text-sm mt-8">--- PHP 讲义第 15 部分结束 ---</p>
+
+</div>
+</body>
+</html>

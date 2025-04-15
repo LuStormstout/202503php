@@ -291,7 +291,7 @@ if ($score >= 90) {
             代码时，可以提高可读性。</p>
         <p><b>语法：</b></p>
         <pre><code class="language-php">&lt;p&gt;
-            <?php if ($is_admin): ?>
+&lt;?php if ($is_admin): ?>
 欢迎回来，管理员！
 &lt;a href="/admin"&gt;进入管理后台&lt;/a&gt;
 &lt;?php elseif ($is_logged_in): ?>
@@ -346,30 +346,30 @@ default: // 可选的
 $role = 'editor'; // 假设用户角色是编辑
 
 switch ($role) {
-case 'admin':
-echo "显示：用户管理、文章管理、系统设置\n";
-break; // 执行完 admin 的就跳出
+    case 'admin':
+        echo "显示：用户管理、文章管理、系统设置\n";
+        break; // 执行完 admin 的就跳出
 
-case 'editor':
-    echo "显示：文章管理\n";
-    // 注意这里故意没有 break! 会继续执行下面的 case
+    case 'editor':
+        echo "显示：文章管理\n";
+        // 注意这里故意没有 break! 会继续执行下面的 case
 
-case 'author':
-    echo "显示：写新文章\n";
-    break; // 执行完 author 的就跳出 (editor 角色也会执行到这里)
+    case 'author':
+        echo "显示：写新文章\n";
+        break; // 执行完 author 的就跳出 (editor 角色也会执行到这里)
 
-case 'subscriber':
-    echo "显示：查看文章\n";
-    break;
+    case 'subscriber':
+        echo "显示：查看文章\n";
+        break;
 
-default:
-    echo "无效的角色或未登录用户。\n";
+    default:
+        echo "无效的角色或未登录用户。\n";
 }
 
 /*
 输出会是：
-显示：文章管理
-显示：写新文章
+    显示：文章管理
+    显示：写新文章
 */
 ?&gt;</code></pre>
         <p class="warning">由于 <code>switch</code> 默认使用 <code>==</code> 比较且容易忘记 <code>break</code>，在处理需要精确匹配或类型敏感的情况时，使用

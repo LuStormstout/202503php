@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线商城 MVP - 第九章：完善后台管理 - 订单查看</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Basic code block styling */
+        pre code {
+            display: block;
+            white-space: pre;
+            background-color: #2d3748; /* bg-gray-800 */
+            color: #e2e8f0; /* text-gray-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        /* Basic prose styling */
+        .prose {
+            max-width: 80ch;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; margin-bottom: 0.5em; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose p { margin-bottom: 1em; line-height: 1.6;}
+        .prose ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose li { margin-bottom: 0.5em; }
+        .prose code:not(pre code) { background-color: #edf2f7; /* bg-gray-200 */ color: #1a202c; /* text-gray-900 */ padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.9em; }
+        .prose strong { font-weight: bold; }
+        .prose blockquote { border-left: 4px solid #cbd5e0; padding-left: 1em; color: #4a5568; margin-left: 0; margin-right: 0; font-style: italic;}
+        .prose a { color: #3182ce; text-decoration: none; }
+        .prose a:hover { text-decoration: underline; }
+        .table-container { overflow-x: auto; margin-bottom: 1em; }
+        .prose table { width: 100%; border-collapse: collapse; }
+        .prose th, .prose td { border: 1px solid #e2e8f0; padding: 0.5em 0.75em; text-align: left; }
+        .prose th { background-color: #f7fafc; font-weight: bold; }
+        .note { background-color: #ebf8ff; border-left: 4px solid #63b3ed; padding: 1rem; margin-bottom: 1em; color: #2c5282; }
+        .warning { background-color: #fffaf0; border-left: 4px solid #ecc94b; padding: 1rem; margin-bottom: 1em; color: #744210; }
+        .step { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; background-color: #f9fafb; }
+        .step-title { font-weight: bold; font-size: 1.25rem; margin-bottom: 0.75rem; color: #1f2937; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-8 prose">
+
+<h1 class="text-4xl font-bold mb-6 text-center">第九章：在线商城 MVP - 完善后台管理 - 订单查看</h1>
+<p class="text-center text-lg text-gray-600 mb-8">为管理员提供查看订单列表和详情的功能</p>
+
+<div class="note">
+    <p>本章基于前几章完成的前提，特别是已有 `orders` 和 `order_items` 数据表，并且后台管理区域 (`/admin` prefix) 及 `admin` 中间件已设置好。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 1：定义后台订单管理路由</h3>
+    <p>我们需要在 `/admin` 路由组中添加用于查看订单列表和订单详情的路由。</p>
+    <p><strong>操作：</strong> 编辑路由文件。</p>
+    <p><strong>文件：</strong> <code>routes/web.php</code></p>
+    <p><strong>在 `/admin` 路由组内添加以下路由定义：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+// ... 其他 use 语句 ...
+use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Admin\OrderController as AdminOrderController; // 引入后台订单控制器
+
+// ... 前台路由 ...
+// ... 购物车路由 ...
+
+// ==================================
+// 后台管理路由
+// ==================================
+Route::middleware(['auth', 'admin'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+
+    // 仪表盘
+    Route::get('/', function () {
+        return redirect()->route('admin.orders.index'); // 改为重定向到订单列表
+    })->name('dashboard');
+
+    // 分类管理
+    Route::resource('categories', AdminCategoryController::class);
+
+    // 商品管理
+    Route::resource('products', AdminProductController::class);
+
+    // --- 添加订单管理路由 ---
+    Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index'); // 订单列表
+    Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show'); // 订单详情
+    // (未来可以添加更新状态等路由)
+    // Route::patch('/orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('orders.updateStatus');
+
+});
+
+// ... Breeze 认证路由 ...
+require __DIR__.'/auth.php';
+
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 2：创建后台订单控制器 (`Admin\OrderController`)</h3>
+    <p>创建用于处理后台订单查看逻辑的控制器。</p>
+    <p><strong>操作 1：</strong> 使用 Artisan 命令生成控制器。</p>
+    <pre><code class="language-bash">php artisan make:controller Admin/OrderController --model=Order</code></pre>
+    <p><strong>操作 2：</strong> 编辑控制器文件，实现 `index` 和 `show` 方法。</p>
+    <p><strong>文件：</strong> <code>app/Http/Controllers/Admin/OrderController.php</code></p>
+    <p><strong>修改后完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Http/Controllers/Admin/OrderController.php
+
+namespace App\Http\Controllers\Admin; // 确保命名空间正确
+
+use App\Http\Controllers\Controller;
+use App\Models\Order;
+use App\Models\User; // 用于可能的筛选
+use Illuminate\Http\Request;
+
+class OrderController extends Controller
+{
+    /**
+     * 显示所有订单列表 (后台)。
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Contracts\View\View
+     */
+    public function index(Request $request)
+    {
+        $query = Order::with('user:id,name') // 预加载用户信息 (只选择需要的列)
+                      ->withCount('items')     // 加载订单项数量
+                      ->latest();             // 按最新排序
+
+        // (可选) 添加按状态筛选
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        // (可选) 添加按用户搜索 (需要前端配合)
+        // if ($request->filled('user_search')) {
+        //     $searchTerm = $request->input('user_search');
+        //     $query->whereHas('user', function ($q) use ($searchTerm) {
+        //         $q->where('name', 'like', "%{$searchTerm}%")
+        //           ->orWhere('email', 'like', "%{$searchTerm}%");
+        //     });
+        // }
+
+        $orders = $query->paginate(20)->withQueryString(); // 分页并保留查询参数
+
+        // 获取所有可能的订单状态用于筛选下拉菜单 (可以从 Order 模型常量获取)
+        $statuses = [
+            Order::STATUS_PENDING,
+            Order::STATUS_PROCESSING,
+            Order::STATUS_COMPLETED,
+            Order::STATUS_CANCELLED,
+        ];
+
+        return view('admin.orders.index', compact('orders', 'statuses')); // 使用后台视图
+    }
+
+    /**
+     * 显示指定的订单详情 (后台)。
+     *
+     * @param  \App\Models\Order  $order (路由模型绑定)
+     * @return \Illuminate\Contracts\View\View
+     */
+    public function show(Order $order)
+    {
+        // 预加载订单的详细信息：用户信息、订单项以及订单项关联的商品信息
+        $order->load([
+            'user', // 加载完整的用户信息
+            'items.product' => function ($query) {
+                // 即使商品被软删除或不存在，也尝试加载关联，视图中再处理
+                $query->withTrashed()->select('id', 'name', 'slug', 'image');
+            }
+        ]);
+
+        return view('admin.orders.show', compact('order')); // 使用后台视图
+    }
+
+    // --- 后续章节可以添加更新订单状态等方法 ---
+    // public function updateStatus(Request $request, Order $order) { ... }
+}
+
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 3：创建后台订单管理视图</h3>
+    <p>创建用于展示订单列表和订单详情的 Blade 视图文件。</p>
+    <p><strong>操作 1：</strong> 创建订单列表视图文件。</p>
+    <p><strong>文件：</strong> <code>resources/views/admin/orders/index.blade.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+@extends('layouts.admin') {{-- 继承后台布局 --}}
+
+@section('title', '订单管理')
+
+@section('content')
+&lt;div class="card border-0 shadow-sm"&gt;
+    &lt;div class="card-header bg-white"&gt;
+        &lt;h5 class="mb-0"&gt;订单列表&lt;/h5&gt;
+        {{-- (可选) 筛选区域 --}}
+        &lt;form action="{{ route('admin.orders.index') }}" method="GET" class="mt-2"&gt;
+            &lt;div class="row g-2 align-items-center"&gt;
+                &lt;div class="col-md-3"&gt;
+                    &lt;select name="status" class="form-select form-select-sm" onchange="this.form.submit()"&gt;
+                        &lt;option value=""&gt;所有状态&lt;/option&gt;
+                        @foreach($statuses as $status)
+                            &lt;option value="{{ $status }}" {{ request('status') == $status ? 'selected' : '' }}&gt;
+                                {{ ucfirst($status) }} {{-- 可以优化为显示中文状态名 --}}
+                            &lt;/option&gt;
+                        @endforeach
+                    &lt;/select&gt;
+                &lt;/div&gt;
+                 {{-- 可以添加用户搜索等 --}}
+                 &lt;!--
+                 &lt;div class="col-md-4"&gt;
+                    &lt;input type="text" name="user_search" class="form-control form-control-sm" placeholder="搜索用户名称或邮箱..." value="{{ request('user_search') }}"&gt;
+                 &lt;/div&gt;
+                 &lt;div class="col-md-1"&gt;
+                     &lt;button type="submit" class="btn btn-secondary btn-sm"&gt;搜索&lt;/button&gt;
+                 &lt;/div&gt;
+                 --&gt;
+                 &lt;div class="col-md-auto ms-auto"&gt;
+                    @if(request('status') || request('user_search'))
+                        &lt;a href="{{ route('admin.orders.index') }}" class="btn btn-outline-secondary btn-sm"&gt;清除筛选&lt;/a&gt;
+                    @endif
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/form&gt;
+    &lt;/div&gt;
+    &lt;div class="card-body p-0"&gt;
+        &lt;div class="table-responsive"&gt;
+            &lt;table class="table table-hover mb-0 align-middle"&gt;
+                &lt;thead class="table-light"&gt;
+                    &lt;tr&gt;
+                        &lt;th scope="col"&gt;订单号&lt;/th&gt;
+                        &lt;th scope="col"&gt;客户&lt;/th&gt;
+                        &lt;th scope="col"&gt;下单时间&lt;/th&gt;
+                        &lt;th scope="col" class="text-center"&gt;商品数&lt;/th&gt;
+                        &lt;th scope="col" class="text-end"&gt;总金额&lt;/th&gt;
+                        &lt;th scope="col" class="text-center"&gt;状态&lt;/th&gt;
+                        &lt;th scope="col" class="text-center" style="width: 100px;"&gt;操作&lt;/th&gt;
+                    &lt;/tr&gt;
+                &lt;/thead&gt;
+                &lt;tbody&gt;
+                    @forelse ($orders as $order)
+                        &lt;tr&gt;
+                            &lt;th scope="row"&gt;#{{ $order->id }}&lt;/th&gt;
+                            &lt;td&gt;{{ $order->user->name ?? 'N/A' }}&lt;/td&gt;
+                            &lt;td&gt;{{ $order->created_at->format('Y-m-d H:i') }}&lt;/td&gt;
+                            &lt;td class="text-center"&gt;{{ $order->items_count }}&lt;/td&gt;
+                            &lt;td class="text-end fw-bold"&gt;￥{{ number_format($order->total_price, 2) }}&lt;/td&gt;
+                            &lt;td class="text-center"&gt;
+                                &lt;span class="badge rounded-pill
+                                    @switch($order->status)
+                                        @case(App\Models\Order::STATUS_PENDING) bg-warning text-dark @break
+                                        @case(App\Models\Order::STATUS_PROCESSING) bg-info text-dark @break
+                                        @case(App\Models\Order::STATUS_COMPLETED) bg-success @break
+                                        @case(App\Models\Order::STATUS_CANCELLED) bg-secondary @break
+                                        @default bg-light text-dark
+                                    @endswitch"&gt;
+                                    {{-- 建议在 Order 模型中添加一个获取状态显示名称的方法 --}}
+                                    {{-- {{ $order->status_text }} --}}
+                                    {{ ucfirst($order->status) }}
+                                &lt;/span&gt;
+                            &lt;/td&gt;
+                            &lt;td class="text-center"&gt;
+                                &lt;a href="{{ route('admin.orders.show', $order) }}" class="btn btn-outline-primary btn-sm" title="查看详情"&gt;
+                                    &lt;i class="bi bi-eye-fill"&gt;&lt;/i&gt;
+                                &lt;/a&gt;
+                                {{-- 后续添加编辑状态等按钮 --}}
+                            &lt;/td&gt;
+                        &lt;/tr&gt;
+                    @empty
+                        &lt;tr&gt;
+                            &lt;td colspan="7" class="text-center text-muted py-4"&gt;暂无订单数据。&lt;/td&gt;
+                        &lt;/tr&gt;
+                    @endforelse
+                &lt;/tbody&gt;
+            &lt;/table&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+     @if ($orders->hasPages())
+    &lt;div class="card-footer bg-white"&gt;
+        {{ $orders->links() }}
+    &lt;/div&gt;
+    @endif
+&lt;/div&gt;
+@endsection
+</code></pre>
+
+    <p><strong>操作 2：</strong> 创建订单详情视图文件。</p>
+    <p><strong>文件：</strong> <code>resources/views/admin/orders/show.blade.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+@extends('layouts.admin')
+
+@section('title', '订单详情 #' . $order->id)
+
+@section('content')
+&lt;div class="d-flex justify-content-between align-items-center mb-4"&gt;
+    &lt;h2&gt;订单详情 &lt;span class="text-muted"&gt;#{{ $order->id }}&lt;/span&gt;&lt;/h2&gt;
+    &lt;a href="{{ route('admin.orders.index') }}" class="btn btn-outline-secondary"&gt;&lt;i class="bi bi-arrow-left"&gt;&lt;/i&gt; 返回订单列表&lt;/a&gt;
+&lt;/div&gt;
+
+&lt;div class="row"&gt;
+    &lt;!-- 订单信息 --&gt;
+    &lt;div class="col-md-6 mb-4"&gt;
+        &lt;div class="card shadow-sm border-0 h-100"&gt;
+            &lt;div class="card-header bg-light"&gt;
+                &lt;h5 class="mb-0"&gt;&lt;i class="bi bi-receipt me-2"&gt;&lt;/i&gt;订单信息&lt;/h5&gt;
+            &lt;/div&gt;
+            &lt;div class="card-body"&gt;
+                &lt;dl class="row mb-0"&gt;
+                    &lt;dt class="col-sm-4"&gt;订单号:&lt;/dt&gt;
+                    &lt;dd class="col-sm-8"&gt;#{{ $order->id }}&lt;/dd&gt;
+
+                    &lt;dt class="col-sm-4"&gt;下单用户:&lt;/dt&gt;
+                    &lt;dd class="col-sm-8"&gt;{{ $order->user->name ?? 'N/A' }} (ID: {{ $order->user_id }})&lt;/dd&gt;
+
+                    &lt;dt class="col-sm-4"&gt;下单时间:&lt;/dt&gt;
+                    &lt;dd class="col-sm-8"&gt;{{ $order->created_at->format('Y-m-d H:i:s') }}&lt;/dd&gt;
+
+                    &lt;dt class="col-sm-4"&gt;订单状态:&lt;/dt&gt;
+                    &lt;dd class="col-sm-8"&gt;
+                         &lt;span class="badge rounded-pill
+                            @switch($order->status)
+                                @case(App\Models\Order::STATUS_PENDING) bg-warning text-dark @break
+                                @case(App\Models\Order::STATUS_PROCESSING) bg-info text-dark @break
+                                @case(App\Models\Order::STATUS_COMPLETED) bg-success @break
+                                @case(App\Models\Order::STATUS_CANCELLED) bg-secondary @break
+                                @default bg-light text-dark
+                            @endswitch"&gt;
+                            {{ ucfirst($order->status) }}
+                         &lt;/span&gt;
+                         {{-- 后续可添加修改状态按钮 --}}
+                    &lt;/dd&gt;
+
+                     &lt;dt class="col-sm-4"&gt;Stripe Session ID:&lt;/dt&gt;
+                     &lt;dd class="col-sm-8"&gt;&lt;code&gt;{{ $order->stripe_checkout_session_id ?? 'N/A' }}&lt;/code&gt;&lt;/dd&gt;
+
+                    &lt;dt class="col-sm-4"&gt;订单总额:&lt;/dt&gt;
+                    &lt;dd class="col-sm-8 fw-bold text-danger"&gt;￥{{ number_format($order->total_price, 2) }}&lt;/dd&gt;
+
+                    @if($order->notes)
+                    &lt;dt class="col-sm-4"&gt;订单备注:&lt;/dt&gt;
+                    &lt;dd class="col-sm-8"&gt;{{ $order->notes }}&lt;/dd&gt;
+                    @endif
+                &lt;/dl&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- 收货信息 --&gt;
+    &lt;div class="col-md-6 mb-4"&gt;
+        &lt;div class="card shadow-sm border-0 h-100"&gt;
+             &lt;div class="card-header bg-light"&gt;
+                &lt;h5 class="mb-0"&gt;&lt;i class="bi bi-truck me-2"&gt;&lt;/i&gt;收货信息&lt;/h5&gt;
+            &lt;/div&gt;
+            &lt;div class="card-body"&gt;
+                 &lt;dl class="row mb-0"&gt;
+                    &lt;dt class="col-sm-4"&gt;收货人:&lt;/dt&gt;
+                    &lt;dd class="col-sm-8"&gt;{{ $order->shipping_name }}&lt;/dd&gt;
+
+                    &lt;dt class="col-sm-4"&gt;联系电话:&lt;/dt&gt;
+                    &lt;dd class="col-sm-8"&gt;{{ $order->shipping_phone }}&lt;/dd&gt;
+
+                    &lt;dt class="col-sm-4"&gt;收货地址:&lt;/dt&gt;
+                    &lt;dd class="col-sm-8"&gt;{{ $order->shipping_address }}&lt;/dd&gt;
+                 &lt;/dl&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;!-- 订单商品 --&gt;
+&lt;div class="card shadow-sm border-0 mt-4"&gt;
+    &lt;div class="card-header bg-light"&gt;
+         &lt;h5 class="mb-0"&gt;&lt;i class="bi bi-box-seam me-2"&gt;&lt;/i&gt;商品列表&lt;/h5&gt;
+    &lt;/div&gt;
+    &lt;div class="card-body p-0"&gt;
+        &lt;div class="table-responsive"&gt;
+            &lt;table class="table align-middle mb-0"&gt;
+                &lt;thead class="table-light"&gt;
+                    &lt;tr&gt;
+                        &lt;th scope="col" style="width: 80px;"&gt;图片&lt;/th&gt;
+                        &lt;th scope="col"&gt;商品名称&lt;/th&gt;
+                        &lt;th scope="col" class="text-end"&gt;购买单价&lt;/th&gt;
+                        &lt;th scope="col" class="text-center"&gt;数量&lt;/th&gt;
+                        &lt;th scope="col" class="text-end"&gt;小计&lt;/th&gt;
+                    &lt;/tr&gt;
+                &lt;/thead&gt;
+                &lt;tbody&gt;
+                    @foreach($order->items as $item)
+                    &lt;tr&gt;
+                        &lt;td&gt;
+                            @if($item->product)
+                                &lt;a href="{{ route('products.show', $item->product->slug) }}" target="_blank"&gt;
+                                @if($item->product->image)
+                                    &lt;img src="{{ Storage::disk('public')->url($item->product->image) }}" alt="{{ $item->product_name ?? $item->product->name }}" class="img-thumbnail" style="max-height: 60px;"&gt;
+                                @else
+                                    &lt;img src="https://via.placeholder.com/100x100.png/CCCCCC?text=No+Image" class="img-thumbnail" alt="No Image" style="max-height: 60px;"&gt;
+                                @endif
+                                &lt;/a&gt;
+                            @else
+                                 &lt;img src="https://via.placeholder.com/100x100.png/CCCCCC?text=N/A" class="img-thumbnail" alt="Product Not Available" style="max-height: 60px;"&gt;
+                            @endif
+                        &lt;/td&gt;
+                        &lt;td&gt;
+                            @if($item->product)
+                            &lt;a href="{{ route('products.show', $item->product->slug) }}" class="text-decoration-none text-dark" target="_blank"&gt;
+                                {{ $item->product_name ?? $item->product->name }}
+                            &lt;/a&gt;
+                            &lt;br&gt;&lt;small class="text-muted"&gt;Product ID: {{ $item->product_id }}&lt;/small&gt;
+                            @else
+                                &lt;span class="text-muted"&gt;{{ $item->product_name ?? '(商品已删除 - ID: '.$item->product_id.')' }}&lt;/span&gt;
+                            @endif
+                        &lt;/td&gt;
+                        &lt;td class="text-end"&gt;￥{{ number_format($item->price, 2) }}&lt;/td&gt; {{-- 显示购买时的价格快照 --}}
+                        &lt;td class="text-center"&gt;{{ $item->quantity }}&lt;/td&gt;
+                        &lt;td class="text-end fw-medium"&gt;￥{{ number_format($item->price * $item->quantity, 2) }}&lt;/td&gt;
+                    &lt;/tr&gt;
+                    @endforeach
+                &lt;/tbody&gt;
+                 &lt;tfoot class="table-light"&gt;
+                    &lt;tr&gt;
+                        &lt;td colspan="4" class="text-end fw-bold border-0"&gt;订单总额:&lt;/td&gt;
+                        &lt;td class="text-end fw-bold fs-5 text-danger border-0"&gt;￥{{ number_format($order->total_price, 2) }}&lt;/td&gt;
+                    &lt;/tr&gt;
+                &lt;/tfoot&gt;
+            &lt;/table&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+@endsection
+
+</code></pre>
+</div>
+
+
+<div class="step">
+    <h3 class="step-title">步骤 4：添加后台导航链接</h3>
+    <p>在后台布局的侧边栏中添加指向订单管理的链接。</p>
+    <p><strong>操作：</strong> 编辑后台布局文件。</p>
+    <p><strong>文件：</strong> <code>resources/views/layouts/admin.blade.php</code></p>
+    <p><strong>在侧边栏 `ul` 中添加订单管理链接：</strong></p>
+    <pre><code class="language-html">&lt;!-- resources/views/layouts/admin.blade.php (侧边栏片段) --&gt;
+&lt;ul class="nav nav-pills flex-column mb-auto"&gt;
+    &lt;li class="nav-item"&gt;
+        &lt;a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : 'text-white' }}"&gt;
+            &lt;i class="bi bi-speedometer2 me-2"&gt;&lt;/i&gt; 仪表盘
+        &lt;/a&gt;
+    &lt;/li&gt;
+    &lt;li&gt;
+        &lt;a href="{{ route('admin.categories.index') }}" class="nav-link {{ request()->routeIs('admin.categories.*') ? 'active' : 'text-white' }}"&gt;
+            &lt;i class="bi bi-tags me-2"&gt;&lt;/i&gt; 分类管理
+        &lt;/a&gt;
+    &lt;/li&gt;
+    &lt;li&gt;
+        &lt;a href="{{ route('admin.products.index') }}" class="nav-link {{ request()->routeIs('admin.products.*') ? 'active' : 'text-white' }}"&gt;
+            &lt;i class="bi bi-box-seam me-2"&gt;&lt;/i&gt; 商品管理
+        &lt;/a&gt;
+    &lt;/li&gt;
+    &lt;!-- 添加订单管理链接 --&gt;
+    &lt;li&gt;
+        &lt;a href="{{ route('admin.orders.index') }}" class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : 'text-white' }}"&gt;
+           &lt;i class="bi bi-receipt me-2"&gt;&lt;/i&gt; 订单管理
+        &lt;/a&gt;
+    &lt;/li&gt;
+    &lt;!-- ... 用户管理等 ... --&gt;
+    &lt;!-- 返回前台链接 ... --&gt;
+&lt;/ul&gt;
+</code></pre>
+</div>
+
+
+<h2 class="text-3xl font-semibold mt-8 mb-4">第九章总结</h2>
+<p>我们为管理员添加了查看订单的核心功能。通过创建后台专属的路由、控制器和视图，管理员现在可以方便地查看系统中的所有订单列表，按状态筛选，并能点进查看单个订单的详细信息，包括客户信息、收货地址和购买的商品列表。</p>
+<p>这为后续实现更复杂的后台订单管理功能（如修改订单状态、标记发货、处理退款等）打下了基础。</p>
+
+<hr class="my-8 border-gray-300">
+
+<p>到目前为止，我们的“在线商城 MVP”已经具备了用户认证、商品分类与管理、商品展示、数据库购物车、基础下单（无支付但记录订单）和后台查看订单等核心功能。这已经是一个相当复杂的应用基础了。</p>
+<p>接下来，我们可以选择：</p>
+<ol>
+    <li>继续构建原计划的**高级功能**，例如实现**库存管理和 SKU**？</li>
+    <li>或者，实现**用户评价系统**？</li>
+    <li>或者，实现更完善的**后台订单状态管理**？</li>
+    <li>或者，进入**测试**章节，为我们已有的功能编写测试？</li>
+    <li>或者，讨论**部署**？</li>
+</ol>
+
+</body>
+</html>

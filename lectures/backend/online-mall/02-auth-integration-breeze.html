@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线商城 MVP - 第二章：集成用户认证系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Basic code block styling */
+        pre code {
+            display: block;
+            white-space: pre;
+            background-color: #2d3748; /* bg-gray-800 */
+            color: #e2e8f0; /* text-gray-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        /* Basic prose styling */
+        .prose {
+            max-width: 80ch;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; margin-bottom: 0.5em; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose p { margin-bottom: 1em; line-height: 1.6;}
+        .prose ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose li { margin-bottom: 0.5em; }
+        .prose code:not(pre code) { background-color: #edf2f7; /* bg-gray-200 */ color: #1a202c; /* text-gray-900 */ padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.9em; }
+        .prose strong { font-weight: bold; }
+        .prose blockquote { border-left: 4px solid #cbd5e0; padding-left: 1em; color: #4a5568; margin-left: 0; margin-right: 0; font-style: italic;}
+        .prose a { color: #3182ce; text-decoration: none; }
+        .prose a:hover { text-decoration: underline; }
+        .table-container { overflow-x: auto; margin-bottom: 1em; }
+        .prose table { width: 100%; border-collapse: collapse; }
+        .prose th, .prose td { border: 1px solid #e2e8f0; padding: 0.5em 0.75em; text-align: left; }
+        .prose th { background-color: #f7fafc; font-weight: bold; }
+        .note { background-color: #ebf8ff; border-left: 4px solid #63b3ed; padding: 1rem; margin-bottom: 1em; color: #2c5282; }
+        .warning { background-color: #fffaf0; border-left: 4px solid #ecc94b; padding: 1rem; margin-bottom: 1em; color: #744210; }
+        .step { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; background-color: #f9fafb; }
+        .step-title { font-weight: bold; font-size: 1.25rem; margin-bottom: 0.75rem; color: #1f2937; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-8 prose">
+
+<h1 class="text-4xl font-bold mb-6 text-center">第二章：在线商城 MVP - 集成用户认证系统</h1>
+<p class="text-center text-lg text-gray-600 mb-8">使用 Laravel Breeze 快速搭建认证基础</p>
+
+<div class="step">
+    <h3 class="step-title">步骤 1：修改用户表迁移文件</h3>
+    <p>我们需要修改 Laravel 自带的创建用户表的迁移文件，添加用于区分角色的 `role` 字段和用于存储头像的 `avatar` 字段。</p>
+    <p><strong>操作：</strong> 打开项目 `database/migrations/` 目录下文件名包含 `_create_users_table.php` 的文件。</p>
+    <p><strong>文件：</strong> <code>database/migrations/YYYY_MM_DD_HHMMSS_create_users_table.php</code> (时间戳部分会不同)</p>
+    <p><strong>修改后完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // database/migrations/YYYY_MM_DD_HHMMSS_create_users_table.php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     * 执行迁移 - 创建 users 表
+     */
+    public function up(): void
+    {
+        Schema::create('users', function (Blueprint $table) {
+            $table-&gt;id(); // 自增主键 ID
+            $table-&gt;string('name'); // 用户名
+            $table-&gt;string('email')-&gt;unique(); // 邮箱，添加唯一索引
+            $table-&gt;timestamp('email_verified_at')-&gt;nullable(); // 邮箱验证时间，允许为空
+            $table-&gt;string('password'); // 哈希后的密码
+            $table-&gt;rememberToken(); // "记住我" 功能的 Token
+            // --- 添加以下字段 ---
+            $table-&gt;string('role')-&gt;default('customer')-&gt;index(); // 用户角色，默认为 'customer', 添加索引
+            $table-&gt;string('avatar')-&gt;nullable(); // 用户头像 URL，允许为空
+            // --- 添加结束 ---
+            $table-&gt;timestamps(); // 创建 created_at 和 updated_at 时间戳字段
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     * 回滚迁移 - 删除 users 表
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('users');
+    }
+};
+</code></pre>
+    <p class="text-sm text-gray-600"><strong>注意：</strong> 如果你之前已经运行过 `php artisan migrate` 命令创建了 `users` 表，你需要先回滚迁移 (`php artisan migrate:rollback`) 或者使用 `php artisan migrate:fresh` (会清空所有数据！) 才能让修改生效。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 2：修改用户模型 (`User` Model)</h3>
+    <p>为了方便地操作新增的 `role` 和 `avatar` 字段，我们需要将它们添加到 `User` 模型的 `$fillable` (允许批量赋值) 和 `$casts` (类型转换) 属性中。</p>
+    <p><strong>操作：</strong> 打开用户模型文件。</p>
+    <p><strong>文件：</strong> <code>app/Models/User.php</code></p>
+    <p><strong>修改后完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Models/User.php
+
+namespace App\Models;
+
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens; // 如果需要 API 认证
+
+class User extends Authenticatable // 如果需要邮箱验证, implements MustVerifyEmail
+{
+    use HasApiTokens, HasFactory, Notifiable; // 保留 Traits
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array&lt;int, string&gt;
+     */
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'role',      // <-- 添加 role
+        'avatar',    // <-- 添加 avatar
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array&lt;int, string&gt;
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array&lt;string, string&gt;
+     */
+    protected $casts = [
+        'email_verified_at' =&gt; 'datetime',
+        'password' =&gt; 'hashed',
+        'role' =&gt; 'string',      // <-- 添加 role 类型转换
+        'avatar' =&gt; 'string',    // <-- 添加 avatar 类型转换
+    ];
+
+    // --- 模型关联关系将在后续章节定义 ---
+}
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 3：安装 Laravel Breeze</h3>
+    <p>Laravel Breeze 是官方提供的轻量级认证脚手架。</p>
+    <p><strong>操作：</strong> 使用 Composer 安装 Breeze 开发依赖。</p>
+    <pre><code class="language-bash">composer require laravel/breeze --dev</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 4：运行 Breeze 安装命令</h3>
+    <p>此命令将生成认证相关的路由、控制器、视图等文件。</p>
+    <p><strong>操作：</strong> 执行 Artisan 命令，选择 Blade 栈。</p>
+    <pre><code class="language-bash">php artisan breeze:install blade</code></pre>
+    <div class="note">
+        <p><strong>重要说明：</strong></p>
+        <ul>
+            <li>此命令会生成包括登录、注册、密码重置等功能的后端逻辑和前端视图。</li>
+            <li>生成的视图位于 <code>resources/views/auth/</code> 等目录，默认使用 **Tailwind CSS** 进行样式化。</li>
+            <li>根据我们之前的决定，**我们将直接使用这些 Tailwind 样式的认证页面**，以避免大量的前端样式转换工作。商城其他非认证页面将使用 Bootstrap 构建。</li>
+        </ul>
+    </div>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 5：安装前端依赖并编译</h3>
+    <p>Breeze 安装过程修改了 `package.json`，需要安装新的依赖并编译资源。</p>
+    <p><strong>操作 1：</strong> 安装 npm 依赖包。</p>
+    <pre><code class="language-bash">npm install</code></pre>
+    <p><strong>操作 2：</strong> 启动 Vite 开发服务器（或进行生产构建）。</p>
+    <pre><code class="language-bash">npm run dev</code></pre>
+    <p><strong>说明：</strong> 在开发过程中，保持 `npm run dev` 命令在后台运行，它会监听文件变化并提供热模块替换 (HMR)。如果只需要生成最终文件，可以运行 `npm run build`。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 6：运行数据库迁移</h3>
+    <p>执行数据库迁移以创建（或更新）`users` 表以及 Breeze 可能依赖的 `password_reset_tokens` 表。</p>
+    <p><strong>操作：</strong> 在项目根目录的终端中运行 Artisan 命令。</p>
+    <pre><code class="language-bash">php artisan migrate</code></pre>
+    <p class="text-sm text-gray-600">(如果遇到关于 `users` 表已存在的错误，并且你确定要应用新的结构，可以运行 `php artisan migrate:fresh`，但这会**删除所有数据库表和数据**，请仅在开发初期或明确知道后果时使用。)</p>
+</div>
+
+<h2 class="text-3xl font-semibold mt-8 mb-4">第二章总结</h2>
+<p>恭喜！我们已经成功地为“在线商城 MVP”项目集成了用户认证功能。我们更新了 `users` 表结构和对应的 `User` 模型以支持 `role` 和 `avatar` 字段，并使用 Laravel Breeze 快速生成了注册、登录、密码重置等功能所需的后端逻辑和前端视图（采用 Tailwind CSS 样式）。</p>
+<p>现在，你可以尝试访问 `/register` 注册新用户，然后通过 `/login` 登录系统了。登录后可以访问 `/profile` 页面（虽然功能简单）。</p>
+
+<hr class="my-8 border-gray-300">
+
+<p>在 **第三章** 中，我们将开始设计和创建商城核心的数据库表结构，包括商品 (products)、分类 (categories) 以及它们之间的关联表，并使用 Migrations 将这些结构应用到数据库中。</p>
+
+</body>
+</html>

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线商城 MVP - 第六章：实现购物车功能 (数据库版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Basic code block styling */
+        pre code {
+            display: block;
+            white-space: pre;
+            background-color: #2d3748; /* bg-gray-800 */
+            color: #e2e8f0; /* text-gray-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        /* Basic prose styling */
+        .prose {
+            max-width: 80ch;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; margin-bottom: 0.5em; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose p { margin-bottom: 1em; line-height: 1.6;}
+        .prose ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose li { margin-bottom: 0.5em; }
+        .prose code:not(pre code) { background-color: #edf2f7; /* bg-gray-200 */ color: #1a202c; /* text-gray-900 */ padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.9em; }
+        .prose strong { font-weight: bold; }
+        .prose blockquote { border-left: 4px solid #cbd5e0; padding-left: 1em; color: #4a5568; margin-left: 0; margin-right: 0; font-style: italic;}
+        .prose a { color: #3182ce; text-decoration: none; }
+        .prose a:hover { text-decoration: underline; }
+        .table-container { overflow-x: auto; margin-bottom: 1em; }
+        .prose table { width: 100%; border-collapse: collapse; }
+        .prose th, .prose td { border: 1px solid #e2e8f0; padding: 0.5em 0.75em; text-align: left; }
+        .prose th { background-color: #f7fafc; font-weight: bold; }
+        .note { background-color: #ebf8ff; border-left: 4px solid #63b3ed; padding: 1rem; margin-bottom: 1em; color: #2c5282; }
+        .warning { background-color: #fffaf0; border-left: 4px solid #ecc94b; padding: 1rem; margin-bottom: 1em; color: #744210; }
+        .step { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; background-color: #f9fafb; }
+        .step-title { font-weight: bold; font-size: 1.25rem; margin-bottom: 0.75rem; color: #1f2937; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-8 prose">
+
+<h1 class="text-4xl font-bold mb-6 text-center">第六章：在线商城 MVP - 实现购物车功能 (数据库版)</h1>
+<p class="text-center text-lg text-gray-600 mb-8">使用数据库持久化存储购物车数据</p>
+
+<div class="note">
+    <p>本章基于前几章完成的前提，特别是第三章已经创建了 `carts` 和 `cart_items` 数据表以及对应的 `Cart` 和 `CartItem` 模型和它们之间的关联关系。</p>
+    <p>我们将主要关注**已登录用户**的购物车功能实现。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 1：更新购物车路由定义</h3>
+    <p>为了方便在控制器中使用路由模型绑定来操作 `CartItem`，我们需要将更新和删除路由的参数从之前的 `{product}` 修改为 `{cartItem}`。</p>
+    <p><strong>操作：</strong> 编辑路由文件。</p>
+    <p><strong>文件：</strong> <code>routes/web.php</code></p>
+    <p><strong>修改后的购物车路由部分：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+// ... 其他 use 语句 ...
+use App\Http\Controllers\CartController;
+
+// ... 前台商品展示路由 ...
+
+// ==================================
+// 购物车路由
+// ==================================
+Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+Route::post('/cart', [CartController::class, 'add'])->name('cart.add');
+// --- 修改下面两条路由的参数为 {cartItem} ---
+Route::patch('/cart/{cartItem}', [CartController::class, 'update'])->name('cart.update'); // 使用 CartItem ID 更新
+Route::delete('/cart/{cartItem}', [CartController::class, 'remove'])->name('cart.remove'); // 使用 CartItem ID 删除
+
+// ... 后台管理路由 ...
+
+// ... Breeze 认证路由 ...
+require __DIR__.'/auth.php';
+
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 2：实现 `CartController` 数据库逻辑</h3>
+    <p>现在我们将重写 `CartController` 的方法，使其操作数据库中的 `carts` 和 `cart_items` 表，而不是 Session。</p>
+    <p><strong>操作：</strong> 编辑控制器文件。</p>
+    <p><strong>文件：</strong> <code>app/Http/Controllers/CartController.php</code></p>
+    <p><strong>修改后完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Http/Controllers/CartController.php
+
+namespace App\Http\Controllers;
+
+use App\Models\Cart;
+use App\Models\CartItem; // 引入 CartItem
+use App\Models\Product;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth; // 引入 Auth
+
+class CartController extends Controller
+{
+    /**
+     * 中间件：确保访问购物车相关操作的用户已登录
+     * (除了可能允许公开查看购物车的 index 方法)
+     */
+    public function __construct()
+    {
+        // 对 'add', 'update', 'remove' 方法应用 'auth' 中间件
+        $this->middleware('auth')->except(['index']);
+        // index 方法可以公开访问，但在方法内部检查用户状态
+    }
+
+
+    /**
+     * 显示用户的购物车页面。
+     */
+    public function index()
+    {
+        $cart = null;
+        $cartItems = collect(); // 默认为空集合
+        $totalPrice = 0;
+
+        // 检查用户是否登录
+        if (Auth::check()) {
+            $user = Auth::user();
+            // 查找或创建用户的购物车，并预加载项目及其关联的产品信息
+            // 使用 firstOrCreate 避免重复创建购物车
+            $cart = $user->cart()->firstOrCreate();
+            // 预加载 items 关系，以及 items 关联的 product 关系
+            // 同时只选择 product 需要的字段
+            $cart->load(['items.product' => function ($query) {
+                $query->select('id', 'name', 'slug', 'price', 'image'); // 选择所需字段
+            }]);
+            $cartItems = $cart->items;
+
+            // 计算总价 (可以利用 Cart 模型中的访问器，如果已定义)
+             // $totalPrice = $cart->total_price; // 使用访问器
+             // 或者手动计算
+             $totalPrice = $cartItems->reduce(function ($carry, $item) {
+                return $carry + ($item->quantity * $item->product->price);
+            }, 0);
+
+        } else {
+            // 对于未登录用户，可以显示空购物车或引导登录
+            // 或者在后续实现基于 Session 的访客购物车
+             return view('cart.index', compact('cartItems', 'totalPrice'))->with('warning', '请先登录以查看或使用购物车功能。');
+        }
+
+        return view('cart.index', compact('cart', 'cartItems', 'totalPrice'));
+    }
+
+    /**
+     * 添加商品到购物车。
+     */
+    public function add(Request $request)
+    {
+        // 验证输入
+        $validated = $request->validate([
+            'product_id' => ['required', 'integer', 'exists:products,id'],
+            'quantity' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $productId = $validated['product_id'];
+        $quantity = $validated['quantity'];
+        $user = Auth::user(); // auth 中间件已确保用户登录
+
+        // 查找商品 (确保是上架商品)
+        $product = Product::active()->find($productId);
+        if (!$product) {
+            return back()->with('error', '无法添加商品，商品不存在或已下架。')->withInput();
+        }
+
+        // 获取或创建用户的购物车
+        $cart = $user->cart()->firstOrCreate();
+
+        // 查找购物车中是否已存在该商品
+        $cartItem = $cart->items()->where('product_id', $productId)->first();
+
+        if ($cartItem) {
+            // 如果存在，增加数量
+            $cartItem->increment('quantity', $quantity);
+        } else {
+            // 如果不存在，创建新的购物车项目
+            $cart->items()->create([
+                'product_id' => $productId,
+                'quantity' => $quantity,
+                // 可以在这里存储价格快照 (可选)
+                // 'price' => $product->price,
+            ]);
+        }
+
+        return back()->with('success', '"' . $product->name . '" 已成功添加到购物车！');
+    }
+
+    /**
+     * 更新购物车中商品的数量。
+     * 使用了路由模型绑定自动注入 CartItem 实例。
+     */
+    public function update(Request $request, CartItem $cartItem) // 参数改为 CartItem
+    {
+        // 验证输入
+        $validated = $request->validate([
+            'quantity' => ['required', 'integer', 'min:1'],
+        ]);
+
+        // 授权检查：确保这个 cartItem 属于当前登录用户的购物车
+        // if ($cartItem->cart->user_id !== Auth::id()) {
+        //     abort(403, '无权修改此购物车项目。');
+        // }
+        // 或者使用 Policy (推荐)
+         $this->authorize('update', $cartItem); // 需要创建 CartItemPolicy
+
+        // 更新数量
+        $cartItem->update(['quantity' => $validated['quantity']]);
+
+        return back()->with('success', '购物车商品数量已更新！');
+    }
+
+    /**
+     * 从购物车中移除商品。
+     * 使用了路由模型绑定自动注入 CartItem 实例。
+     */
+    public function remove(CartItem $cartItem) // 参数改为 CartItem
+    {
+        // 授权检查：确保这个 cartItem 属于当前登录用户的购物车
+        // if ($cartItem->cart->user_id !== Auth::id()) {
+        //     abort(403, '无权删除此购物车项目。');
+        // }
+        // 或者使用 Policy (推荐)
+        $this->authorize('delete', $cartItem); // 需要创建 CartItemPolicy
+
+        // 删除购物车项目
+        $cartItem->delete();
+
+        return back()->with('success', '商品已从购物车移除。');
+    }
+}
+
+</code></pre>
+    <div class="warning">
+        <p><strong>授权 (Authorization):</strong> 上述 `update` 和 `remove` 方法中包含了授权检查的注释。在实际项目中，强烈建议创建一个 `CartItemPolicy` 来处理这些权限检查，而不是直接在控制器中判断 `user_id`。可以使用 `php artisan make:policy CartItemPolicy --model=CartItem` 创建，然后在 Policy 中实现 `update` 和 `delete` 方法，并在 `AuthServiceProvider` 中注册。</p>
+        <p><strong>CartItemPolicy 示例逻辑 (简化):</strong></p>
+        <pre><code class="language-php">// app/Policies/CartItemPolicy.php (需要创建并注册)
+namespace App\Policies;
+
+use App\Models\CartItem;
+use App\Models\User;
+
+class CartItemPolicy
+{
+    /**
+     * Determine whether the user can update the model.
+     */
+    public function update(User $user, CartItem $cartItem): bool
+    {
+        // 检查 cartItem 是否属于该用户的购物车
+        return $user->id === $cartItem->cart->user_id;
+    }
+
+    /**
+     * Determine whether the user can delete the model.
+     */
+    public function delete(User $user, CartItem $cartItem): bool
+    {
+        // 检查 cartItem 是否属于该用户的购物车
+        return $user->id === $cartItem->cart->user_id;
+    }
+
+    // ... 其他策略方法 ...
+}
+</code></pre>
+        <p>并在 `AuthServiceProvider` 的 `$policies` 数组中注册: `\App\Models\CartItem::class => \App\Policies\CartItemPolicy::class,`。</p>
+    </div>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 4：更新购物车视图 (`cart/index.blade.php`)</h3>
+    <p>修改购物车视图以使用从数据库获取的 `$cart` 和 `$cartItems` 数据。</p>
+    <p><strong>操作：</strong> 编辑视图文件。</p>
+    <p><strong>文件：</strong> <code>resources/views/cart/index.blade.php</code></p>
+    <p><strong>修改后完整内容 (与 Session 版类似，但数据来源不同，表单 action 指向不同参数)：</strong></p>
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+@extends('layouts.app')
+
+@section('title', '我的购物车')
+
+@push('styles')
+    &lt;link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"&gt;
+@endpush
+
+@section('content')
+&lt;div class="container"&gt;
+    &lt;h1 class="mb-4"&gt;我的购物车&lt;/h1&gt;
+
+    {{-- 检查购物车是否有内容 --}}
+    @if($cartItems && $cartItems->count() > 0)
+        &lt;div class="table-responsive shadow-sm"&gt;
+            &lt;table class="table align-middle table-hover mb-0"&gt;
+                &lt;thead class="table-light"&gt;
+                    &lt;tr&gt;
+                        &lt;th scope="col" style="width: 100px;"&gt;商品图片&lt;/th&gt;
+                        &lt;th scope="col"&gt;商品名称&lt;/th&gt;
+                        &lt;th scope="col" class="text-end"&gt;单价&lt;/th&gt;
+                        &lt;th scope="col" class="text-center" style="width: 170px;"&gt;数量&lt;/th&gt; {{-- 稍微加宽 --}}
+                        &lt;th scope="col" class="text-end"&gt;小计&lt;/th&gt;
+                        &lt;th scope="col" class="text-center" style="width: 100px;"&gt;操作&lt;/th&gt;
+                    &lt;/tr&gt;
+                &lt;/thead&gt;
+                &lt;tbody&gt;
+                    {{-- 遍历购物车中的商品项 --}}
+                    @foreach($cartItems as $item)
+                     {{-- 确保关联的 product 存在 --}}
+                     @if($item->product)
+                        &lt;tr&gt;
+                            &lt;td&gt;
+                                &lt;a href="{{ route('products.show', $item->product->slug) }}"&gt;
+                                    @if($item->product->image)
+                                        &lt;img src="{{ Storage::disk('public')->url($item->product->image) }}" alt="{{ $item->product->name }}" class="img-thumbnail" style="max-height: 80px;"&gt;
+                                    @else
+                                         &lt;img src="https://via.placeholder.com/100x100.png/CCCCCC?text=No+Image" class="img-thumbnail" alt="No Image Available" style="max-height: 80px;"&gt;
+                                    @endif
+                                &lt;/a&gt;
+                            &lt;/td&gt;
+                            &lt;td&gt;
+                                &lt;a href="{{ route('products.show', $item->product->slug) }}" class="text-decoration-none text-dark fw-medium"&gt; {{-- fw-medium 加粗一点 --}}
+                                    {{ $item->product->name }}
+                                &lt;/a&gt;
+                            &lt;/td&gt;
+                            &lt;td class="text-end"&gt;￥{{ number_format($item->product->price, 2) }}&lt;/td&gt;
+                            &lt;td&gt;
+                                {{-- 更新数量的表单，action 指向 cart.update 并传入 $item->id --}}
+                                &lt;form action="{{ route('cart.update', $item->id) }}" method="POST" class="d-flex justify-content-center align-items-center"&gt;
+                                    @csrf
+                                    @method('PATCH')
+                                    &lt;input type="number" name="quantity" class="form-control form-control-sm text-center me-2" value="{{ $item->quantity }}" min="1" style="width: 70px;" aria-label="商品数量"&gt;
+                                    &lt;button type="submit" class="btn btn-outline-secondary btn-sm"&gt;
+                                        &lt;i class="bi bi-arrow-repeat"&gt;&lt;/i&gt; {{-- 更新图标 --}}
+                                    &lt;/button&gt;
+                                &lt;/form&gt;
+                            &lt;/td&gt;
+                            &lt;td class="text-end fw-bold"&gt;￥{{ number_format($item->product->price * $item->quantity, 2) }}&lt;/td&gt;
+                            &lt;td class="text-center"&gt;
+                                {{-- 移除商品的表单，action 指向 cart.remove 并传入 $item->id --}}
+                                &lt;form action="{{ route('cart.remove', $item->id) }}" method="POST" onsubmit="return confirm('确定要移除此商品吗？');"&gt;
+                                    @csrf
+                                    @method('DELETE')
+                                    &lt;button type="submit" class="btn btn-danger btn-sm" title="移除商品"&gt;
+                                        &lt;i class="bi bi-trash-fill"&gt;&lt;/i&gt;
+                                    &lt;/button&gt;
+                                &lt;/form&gt;
+                            &lt;/td&gt;
+                        &lt;/tr&gt;
+                      @endif
+                    @endforeach
+                &lt;/tbody&gt;
+                &lt;tfoot class="table-light"&gt;
+                    &lt;tr&gt;
+                        &lt;td colspan="4" class="text-end fw-bold border-0"&gt;总计:&lt;/td&gt; {{-- border-0 移除顶部边框 --}}
+                        &lt;td class="text-end fw-bold fs-5 text-danger border-0"&gt;￥{{ number_format($totalPrice, 2) }}&lt;/td&gt;
+                        &lt;td class="border-0"&gt;&lt;/td&gt;
+                    &lt;/tr&gt;
+                &lt;/tfoot&gt;
+            &lt;/table&gt;
+        &lt;/div&gt;
+
+        &lt;!-- 操作按钮区域 --&gt;
+        &lt;div class="d-flex justify-content-between mt-4"&gt;
+            &lt;a href="{{ route('products.index') }}" class="btn btn-outline-secondary"&gt;&lt;i class="bi bi-arrow-left"&gt;&lt;/i&gt; 继续购物&lt;/a&gt;
+            &lt;a href="{{ route('checkout.index') }}" class="btn btn-primary btn-lg"&gt;去结算 &lt;i class="bi bi-arrow-right"&gt;&lt;/i&gt;&lt;/a&gt; {{-- 假设结算路由为 checkout.index --}}
+        &lt;/div&gt;
+
+    @else
+        {{-- 购物车为空时的提示 --}}
+        @guest
+             &lt;div class="alert alert-warning text-center" role="alert"&gt;
+                请先 &lt;a href="{{ route('login') }}" class="alert-link"&gt;登录&lt;/a&gt; 以使用购物车功能。
+             &lt;/div&gt;
+        @else
+             &lt;div class="alert alert-info text-center" role="alert"&gt;
+                您的购物车是空的！快去 &lt;a href="{{ route('products.index') }}" class="alert-link"&gt;选购商品&lt;/a> 吧。
+             &lt;/div&gt;
+        @endguest
+    @endif
+&lt;/div&gt;
+@endsection
+
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 5：确认商品页面的“加入购物车”表单</h3>
+    <p>确保商品详情页和列表页（如果列表页有“加入购物车”按钮）的表单指向正确的路由 (`cart.add`)。</p>
+    <p><strong>操作：</strong> 检查视图文件。</p>
+    <p><strong>文件：</strong> <code>resources/views/products/show.blade.php</code>, <code>resources/views/products/index.blade.php</code></p>
+    <p><strong>确认表单 Action:</strong></p>
+    <pre><code class="language-html">&lt;form action="{{ route('cart.add') }}" method="POST" ...&gt;
+    @csrf
+    &lt;input type="hidden" name="product_id" value="{{ $product->id }}"&gt;
+    &lt;input type="number" name="quantity" value="1" ...&gt;
+    &lt;button type="submit" ...&gt;加入购物车&lt;/button&gt;
+&lt;/form&gt;
+</code></pre>
+    <p>这部分代码通常不需要修改。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 6：更新导航栏购物车数量 (数据库版)</h3>
+    <p>修改视图合成器 (View Composer) 以从数据库获取当前登录用户的购物车项目数量。</p>
+    <p><strong>操作 1：</strong> 编辑服务提供者文件。</p>
+    <p><strong>文件：</strong> <code>app/Providers/AppServiceProvider.php</code></p>
+    <p><strong>修改 `boot` 方法中的视图合成器逻辑：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Providers/AppServiceProvider.php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Auth; // 引入 Auth
+use Illuminate\Pagination\Paginator;
+
+class AppServiceProvider extends ServiceProvider
+{
+    // ... register() ...
+
+    public function boot(): void
+    {
+        Paginator::useBootstrapFive();
+
+        // 共享购物车项目数量给所有视图 (或特定视图/布局)
+        View::composer('*', function ($view) {
+            $cartItemCount = 0; // 默认为 0
+            if (Auth::check()) { // 检查用户是否登录
+                // 获取用户的购物车，并统计 items 的数量
+                // 使用 withCount('items') 效率更高，避免加载所有 items
+                $cart = Auth::user()->cart()->withCount('items')->first();
+                if ($cart) {
+                    $cartItemCount = $cart->items_count; // 获取 items_count 属性
+                }
+                // 注意：如果用户可能没有购物车记录 (例如新注册用户还未添加任何东西)，需要处理 $cart 为 null 的情况
+                // 上面的 firstOrCreate 逻辑在 CartController 中，这里只查询
+                // 更健壮的方式是: $cartItemCount = Auth::user()->cart?->items_count ?? 0; (PHP 8 nullsafe operator)
+            }
+            // 共享 $cartItemCount 变量
+            $view->with('cartItemCount', $cartItemCount);
+        });
+    }
+}
+</code></pre>
+    <p><strong>操作 2：</strong> 确认布局文件中的显示逻辑。</p>
+    <p><strong>文件：</strong> <code>resources/views/layouts/app.blade.php</code> (或其他包含导航栏的文件)</p>
+    <p><strong>确认导航栏中的角标代码：</strong></p>
+    <pre><code class="language-html">&lt;!-- resources/views/layouts/app.blade.php (导航栏片段) --&gt;
+&lt;li class="nav-item"&gt;
+    &lt;a class="nav-link position-relative" href="{{ route('cart.index') }}"&gt;
+        &lt;i class="bi bi-cart"&gt;&lt;/i&gt; 购物车
+        {{-- 显示购物车数量角标 (变量名改为 cartItemCount) --}}
+        @if(isset($cartItemCount) && $cartItemCount > 0)
+            &lt;span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"&gt;
+                {{ $cartItemCount }}
+                &lt;span class="visually-hidden"&gt;items in cart&lt;/span&gt;
+            &lt;/span&gt;
+        @endif
+    &lt;/a&gt;
+&lt;/li&gt;
+</code></pre>
+</div>
+
+<h2 class="text-3xl font-semibold mt-8 mb-4">第六章总结</h2>
+<p>我们成功地将在线商城的购物车功能切换到了基于数据库的实现。我们创建了 `CartController` 来处理数据库交互，更新了视图以反映数据库数据，并调整了导航栏以显示来自数据库的购物车项目数量。这个实现为已登录用户提供了持久化的购物车体验，是构建更完整电商功能的重要一步。</p>
+<p>需要注意的是，我们当前主要关注已登录用户的购物车。访客购物车的实现（通常结合 Session 和数据库）会更复杂一些，可以在此基础上进一步扩展。</p>
+
+<hr class="my-8 border-gray-300">
+
+<p>接下来，我们将进入 **第七章：基础下单流程**。我们将创建一个简单的结算页面，允许用户填写收货信息，并将购物车内容“转换”为数据库中的订单记录（本章暂不涉及支付）。</p>
+
+</body>
+</html>

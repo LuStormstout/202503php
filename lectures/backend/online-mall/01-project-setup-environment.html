@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线商城 MVP - 第一章：项目初始化与环境配置</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Basic code block styling */
+        pre code {
+            display: block;
+            white-space: pre;
+            background-color: #2d3748; /* bg-gray-800 */
+            color: #e2e8f0; /* text-gray-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        /* Basic prose styling */
+        .prose {
+            max-width: 80ch;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; margin-bottom: 0.5em; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose p { margin-bottom: 1em; line-height: 1.6;}
+        .prose ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose li { margin-bottom: 0.5em; }
+        .prose code:not(pre code) { background-color: #edf2f7; /* bg-gray-200 */ color: #1a202c; /* text-gray-900 */ padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.9em; }
+        .prose strong { font-weight: bold; }
+        .prose blockquote { border-left: 4px solid #cbd5e0; padding-left: 1em; color: #4a5568; margin-left: 0; margin-right: 0; font-style: italic;}
+        .prose a { color: #3182ce; text-decoration: none; }
+        .prose a:hover { text-decoration: underline; }
+        .table-container { overflow-x: auto; margin-bottom: 1em; }
+        .prose table { width: 100%; border-collapse: collapse; }
+        .prose th, .prose td { border: 1px solid #e2e8f0; padding: 0.5em 0.75em; text-align: left; }
+        .prose th { background-color: #f7fafc; font-weight: bold; }
+        .note { background-color: #ebf8ff; border-left: 4px solid #63b3ed; padding: 1rem; margin-bottom: 1em; color: #2c5282; }
+        .warning { background-color: #fffaf0; border-left: 4px solid #ecc94b; padding: 1rem; margin-bottom: 1em; color: #744210; }
+        .step { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; background-color: #f9fafb; }
+        .step-title { font-weight: bold; font-size: 1.25rem; margin-bottom: 0.75rem; color: #1f2937; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-8 prose">
+
+<h1 class="text-4xl font-bold mb-6 text-center">第一章：在线商城 MVP - 项目初始化与环境配置</h1>
+<p class="text-center text-lg text-gray-600 mb-8"><b>关于 MVP 的解释：</b>MVP 是 Minimum Viable Product（最小可行产品）的缩写。</p>
+<p class="text-center text-lg text-gray-600 mb-8">在软件开发中，这是一种常见的策略，指的是先用最少的资源（时间和代码）构建出一个包含核心功能、能够解决最基本用户需求、可以运行和发布的产品版本。</p>
+<p class="text-center text-lg text-gray-600 mb-8">按照详细步骤搭建在线商城项目的基础环境</p>
+
+<div class="step">
+    <h3 class="step-title">步骤 1：创建 Laravel 项目</h3>
+    <p>使用 Composer 在你的开发目录下创建一个新的 Laravel 12 项目。</p>
+    <p><strong>操作：</strong> 在终端执行以下命令。</p>
+    <pre><code class="language-bash">composer create-project laravel/laravel online-mall</code></pre>
+    <p><strong>说明：</strong> 这将在当前目录下创建一个名为 `online-mall` 的文件夹，并下载 Laravel 框架。</p>
+    <p><strong>后续操作：</strong> 进入项目目录。</p>
+    <pre><code class="language-bash">cd online-mall</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 2：配置环境变量 (`.env`)</h3>
+    <p>环境变量文件 `.env` 用于存储特定于环境的配置，如数据库连接信息、应用密钥、第三方服务凭据等。</p>
+    <p><strong>操作 1：</strong> 复制 `.env.example` 文件为 `.env`。</p>
+    <pre><code class="language-bash">cp .env.example .env</code></pre>
+    <p><strong>操作 2：</strong> 使用文本编辑器打开项目根目录下的 `.env` 文件。</p>
+    <p><strong>文件：</strong> <code>.env</code></p>
+    <p><strong>修改后完整内容 (请仔细检查并根据你的环境修改 `!!!` 标记处)：</strong></p>
+    <pre><code class="language-ini">APP_NAME="Online Mall"                  # 应用名称
+APP_ENV=local                             # 当前环境 (开发: local, 生产: production)
+APP_KEY=                                  # 留空，下一步生成
+APP_DEBUG=true                            # 开启调试模式 (生产环境必须为 false)
+APP_URL=http://online-mall.test           # !!! 修改为你本地访问此项目的 URL
+
+LOG_CHANNEL=stack                         # 日志通道
+LOG_DEPRECATIONS_CHANNEL=null             # 是否记录废弃警告
+LOG_LEVEL=debug                           # 日志级别
+
+DB_CONNECTION=mysql                       # 数据库类型
+DB_HOST=127.0.0.1                         # 数据库主机
+DB_PORT=3306                              # 数据库端口
+DB_DATABASE=online_mall_db                # !!! 商城数据库名称 (需要预先创建)
+DB_USERNAME=root                          # !!! 你的 MySQL 用户名
+DB_PASSWORD=your_db_password              # !!! 你的 MySQL 密码 (如果为空则不填)
+
+BROADCAST_DRIVER=log                      # 广播驱动 (暂不使用 Pusher)
+CACHE_DRIVER=redis                        # 缓存驱动 (使用 Redis 提高性能)
+FILESYSTEM_DISK=public                    # 默认文件系统磁盘 (用于公开文件如商品图片)
+QUEUE_CONNECTION=redis                    # 队列驱动 (使用 Redis 处理后台任务)
+SESSION_DRIVER=redis                      # Session 驱动 (使用 Redis 支持扩展和性能)
+SESSION_LIFETIME=120                      # Session 有效期 (分钟)
+
+MEMCACHED_HOST=127.0.0.1
+
+REDIS_HOST=127.0.0.1                      # Redis 服务器地址
+REDIS_PASSWORD=null                       # Redis 密码 (没有则为 null)
+REDIS_PORT=6379                           # Redis 端口
+REDIS_CLIENT=phpredis                     # 推荐使用 phpredis PHP 扩展
+
+# --- 邮件配置 (后续配置真实的邮件服务商信息) ---
+MAIL_MAILER=log                           # 开发初期先使用 log 驱动，邮件会写入日志文件
+MAIL_HOST=null
+MAIL_PORT=null
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_ENCRYPTION=null
+MAIL_FROM_ADDRESS="hello@example.com"
+MAIL_FROM_NAME="${APP_NAME}"
+
+# --- AWS 配置 (如果未来使用 S3 存储，在此配置) ---
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_DEFAULT_REGION=us-east-1
+AWS_BUCKET=
+AWS_USE_PATH_STYLE_ENDPOINT=false
+
+# --- Pusher 配置 (如果未来使用实时功能，在此配置) ---
+PUSHER_APP_ID=
+PUSHER_APP_KEY=
+PUSHER_APP_SECRET=
+PUSHER_HOST=
+PUSHER_PORT=443
+PUSHER_SCHEME=https
+PUSHER_APP_CLUSTER=mt1
+
+# --- Vite 配置 (通常无需修改) ---
+VITE_APP_NAME="${APP_NAME}"
+VITE_PUSHER_APP_KEY="${PUSHER_APP_KEY}"
+VITE_PUSHER_HOST="${PUSHER_HOST}"
+VITE_PUSHER_PORT="${PUSHER_PORT}"
+VITE_PUSHER_SCHEME="${PUSHER_SCHEME}"
+VITE_PUSHER_APP_CLUSTER="${PUSHER_APP_CLUSTER}"
+
+# --- Stripe 配置 (后续支付集成时在此配置) ---
+STRIPE_KEY=
+STRIPE_SECRET=
+STRIPE_WEBHOOK_SECRET=
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 3：生成应用密钥 (APP_KEY)</h3>
+    <p>应用密钥用于加密 Session 和其他敏感数据，必须设置。</p>
+    <p><strong>操作：</strong> 在项目根目录的终端中运行 Artisan 命令。</p>
+    <pre><code class="language-bash">php artisan key:generate</code></pre>
+    <p><strong>说明：</strong> 这会自动更新 `.env` 文件中的 `APP_KEY` 变量。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 4：创建数据库</h3>
+    <p>根据 `.env` 文件中的 `DB_DATABASE` 设置，创建对应的数据库。</p>
+    <p><strong>操作：</strong> 在你的 MySQL 客户端（如 MySQL Workbench, Sequel Ace, DBeaver, 或命令行）执行以下 SQL 命令。</p>
+    <pre><code class="language-sql">-- SQL 命令
+CREATE DATABASE online_mall_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;</code></pre>
+    <p><strong>说明：</strong> 请确保数据库名称 `online_mall_db` 与你 `.env` 文件中的设置一致。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 5：创建存储链接</h3>
+    <p>为了让 Web 服务器能够访问存储在 `storage/app/public` 目录下的文件（如上传的商品图片），需要创建符号链接。</p>
+    <p><strong>操作：</strong> 在项目根目录的终端中运行 Artisan 命令。</p>
+    <pre><code class="language-bash">php artisan storage:link</code></pre>
+    <p><strong>说明：</strong> 这会在 `public` 目录下创建一个名为 `storage` 的符号链接。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 6：配置 Nginx 站点</h3>
+    <p>配置 Web 服务器 Nginx 以正确地将请求路由到 Laravel 应用。</p>
+    <p><strong>操作 1：</strong> 创建 Nginx 站点配置文件。</p>
+    <p><strong>文件路径 (示例):</strong> <code>/etc/nginx/sites-available/online-mall.test</code></p>
+    <p><strong>文件完整内容 (请替换 `/path/to/your/online-mall` 和 `fastcgi_pass` 地址):</strong></p>
+    <pre><code class="language-nginx"># /etc/nginx/sites-available/online-mall.test
+# Nginx 配置 for 在线商城 MVP (Laravel 12)
+
+server {
+    listen 80;
+    listen [::]:80;
+
+    # 域名，确保与 .env 和 hosts 文件一致
+    server_name online-mall.test; # !!! 与 APP_URL 匹配
+
+    # !!! 项目 public 目录的绝对路径 !!!
+    root /path/to/your/online-mall/public; # <--- 修改为你的项目路径
+
+    # 默认索引文件
+    index index.php index.html index.htm;
+
+    charset utf-8;
+
+    # 日志文件路径
+    access_log /var/log/nginx/online-mall.access.log;
+    error_log /var/log/nginx/online-mall.error.log error;
+
+    # Gzip 压缩
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;
+
+    # 核心路由规则：将所有不存在的文件或目录请求转发给 index.php
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    # 处理 PHP 文件请求
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        try_files $uri =404; # 检查 PHP 文件是否存在
+        # !!! 确保 fastcgi_pass 指向正确的 PHP-FPM 监听地址 !!!
+        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock; # <--- 根据你的环境修改这里 (可能是 TCP 端口如 127.0.0.1:9000)
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+        # (可选) 增加超时时间 (如果需要处理耗时请求)
+        # fastcgi_read_timeout 300;
+    }
+
+    # 静态文件缓存
+    location ~* \.(?:css|js|jpg|jpeg|gif|png|ico|svg|woff|woff2|ttf|eot|webp|avif)$ {
+        expires 1y;
+        add_header Cache-Control "public";
+        access_log off;
+        log_not_found off;
+    }
+
+    # 禁止访问隐藏文件
+    location ~ /\. {
+        deny all;
+    }
+}
+</code></pre>
+    <p><strong>操作 2：</strong> 启用 Nginx 站点配置。</p>
+    <pre><code class="language-bash">sudo ln -s /etc/nginx/sites-available/online-mall.test /etc/nginx/sites-enabled/
+# 如果提示文件已存在，先删除旧链接: sudo rm /etc/nginx/sites-enabled/online-mall.test
+</code></pre>
+    <p><strong>操作 3：</strong> 测试 Nginx 配置语法。</p>
+    <pre><code class="language-bash">sudo nginx -t</code></pre>
+    <p><strong>操作 4：</strong> 重新加载 Nginx 服务。</p>
+    <pre><code class="language-bash">sudo systemctl reload nginx # 或 sudo service nginx reload</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 7：配置本地 Hosts 文件</h3>
+    <p>让你的计算机知道将 `online-mall.test` (或你设置的域名) 指向本地 Web 服务器 (127.0.0.1)。</p>
+    <p><strong>操作：</strong> 编辑 hosts 文件 (需要管理员/root权限)。</p>
+    <ul>
+        <li>Linux/macOS: <code>/etc/hosts</code></li>
+        <li>Windows: <code>C:\Windows\System32\drivers\etc\hosts</code></li>
+    </ul>
+    <p><strong>添加行：</strong></p>
+    <pre><code class="language-plaintext">127.0.0.1   online-mall.test # 确保域名与 Nginx 和 .env 配置一致</code></pre>
+    <p><strong>操作：</strong> 保存文件。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 8：初始化 Git 仓库</h3>
+    <p>使用 Git 进行版本控制是开发的标准实践。</p>
+    <p><strong>操作：</strong> 在项目根目录运行 Git 命令。</p>
+    <pre><code class="language-bash">git init
+git add .
+git commit -m "Initial commit: Setup Laravel 12 project for Online Mall MVP"</code></pre>
+    <p><strong>(可选) 关联远程仓库：</strong></p>
+    <pre><code class="language-bash"># git remote add origin &lt;你的远程仓库 URL>
+# git push -u origin main
+</code></pre>
+</div>
+
+<h2 class="text-3xl font-semibold mt-8 mb-4">第一章总结</h2>
+<p>我们已经成功创建了“在线商城 MVP”的 Laravel 12 项目，配置了核心的环境变量（特别是数据库和 Redis 连接），设置了 Nginx Web 服务器以使其能够通过本地域名访问，并初始化了 Git 仓库。项目的基础框架已经搭建完毕。</p>
+
+<hr class="my-8 border-gray-300">
+
+<p>现在，我们已经准备好进入下一步。在 **第二章** 中，我们将开始为商城集成用户认证系统，并调整用户模型以包含角色信息。</p>
+
+</body>
+</html>
+
+这部分是商城项目讲义的文件
+./backend/online-mall/01-project-setup-environment.html
+./backend/online-mall/02-auth-integration-breeze.html
+./backend/online-mall/03-db-migrations-seeding-db-cart.html
+./backend/online-mall/04-product-display.html
+./backend/online-mall/05-admin-category-product-crud.html
+./backend/online-mall/06-cart-implementation-db.html
+./backend/online-mall/07-basic-checkout-flow.html
+./backend/online-mall/08-stripe-integration-basic.html
+./backend/online-mall/09-admin-order-viewing.html
+./backend/online-mall/10-inventory-sku-implementation.html
+./backend/online-mall/11-cart-checkout-sku-stock-update.html
+./backend/online-mall/12-user-review-system.html
+./backend/online-mall/13-admin-order-status-management.html
+./backend/online-mall/14-testing-application-part1.html
+./backend/online-mall/15-deploying-application.html
+./backend/online-mall/16-basic-search-filtering.html
+./backend/online-mall/17-admin-order-status-management-enhanced.html
+./backend/online-mall/18-testing-application-part2.html
+./backend/online-mall/19-deploying-application-final.html
+
+这部分是 PHP 讲义的文件
+./backend/php/01-intro.html
+./backend/php/02-variables-and-types.html
+./backend/php/03-operators.html
+./backend/php/04-control-structures.html
+./backend/php/05-functions.html
+./backend/php/06-string-functions.html
+./backend/php/07-array-functions.html
+./backend/php/08-forms-and-superglobals.html
+./backend/php/09-database-pdo.html
+./backend/php/10-cookies-and-sessions.html
+./backend/php/11-oop-basics.html
+./backend/php/12-oop-inheritance.html
+./backend/php/13-oop-traits-magic.html
+./backend/php/14-namespaces-autoload.html
+./backend/php/15-errors-exceptions.html
+./backend/php/16-composer-and-ecosystem.html
+./backend/php/17-security-and-advanced.html
+./backend/php/a-var-functions.html
+./backend/php/b-math-functions.html
+./backend/php/c-date-time.html
+./backend/php/d-filesystem.html
+./backend/php/e-json.html
+./backend/php/f-regex.html
+./backend/php/g-curl.html
+
+这些是 Laravel 讲义的文件
+./backend/laravel/01-laravel-introduction-installation.html
+./backend/laravel/02-routing-request-lifecycle.html
+./backend/laravel/03-controllers-middleware.html
+./backend/laravel/04-views-blade-template-engine.html
+./backend/laravel/05-database-migrations-seeding.html
+./backend/laravel/06-database-query-builder.html
+./backend/laravel/07-eloquent-orm-basics.html
+./backend/laravel/08-eloquent-relationships.html
+./backend/laravel/09-frontend-asset-management-vite.html
+./backend/laravel/10-form-handling-validation.html
+./backend/laravel/11-authentication-authorization.html
+./backend/laravel/12-artisan-console-commands.html
+./backend/laravel/13-service-container-dependency-injection.html
+./backend/laravel/14-logging-exception-handling.html
+./backend/laravel/15-task-scheduling-queues.html
+./backend/laravel/16-testing-basics.html
+./backend/laravel/17-deployment-further-learning.html

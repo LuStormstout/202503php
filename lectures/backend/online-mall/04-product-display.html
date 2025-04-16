@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线商城 MVP - 第四章：实现商品展示功能</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Basic code block styling */
+        pre code {
+            display: block;
+            white-space: pre;
+            background-color: #2d3748; /* bg-gray-800 */
+            color: #e2e8f0; /* text-gray-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        /* Basic prose styling */
+        .prose {
+            max-width: 80ch;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; margin-bottom: 0.5em; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose p { margin-bottom: 1em; line-height: 1.6;}
+        .prose ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose li { margin-bottom: 0.5em; }
+        .prose code:not(pre code) { background-color: #edf2f7; /* bg-gray-200 */ color: #1a202c; /* text-gray-900 */ padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.9em; }
+        .prose strong { font-weight: bold; }
+        .prose blockquote { border-left: 4px solid #cbd5e0; padding-left: 1em; color: #4a5568; margin-left: 0; margin-right: 0; font-style: italic;}
+        .prose a { color: #3182ce; text-decoration: none; }
+        .prose a:hover { text-decoration: underline; }
+        .table-container { overflow-x: auto; margin-bottom: 1em; }
+        .prose table { width: 100%; border-collapse: collapse; }
+        .prose th, .prose td { border: 1px solid #e2e8f0; padding: 0.5em 0.75em; text-align: left; }
+        .prose th { background-color: #f7fafc; font-weight: bold; }
+        .note { background-color: #ebf8ff; border-left: 4px solid #63b3ed; padding: 1rem; margin-bottom: 1em; color: #2c5282; }
+        .warning { background-color: #fffaf0; border-left: 4px solid #ecc94b; padding: 1rem; margin-bottom: 1em; color: #744210; }
+        .step { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; background-color: #f9fafb; }
+        .step-title { font-weight: bold; font-size: 1.25rem; margin-bottom: 0.75rem; color: #1f2937; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-8 prose">
+
+<h1 class="text-4xl font-bold mb-6 text-center">第四章：在线商城 MVP - 实现商品展示功能</h1>
+<p class="text-center text-lg text-gray-600 mb-8">构建公开的商品列表和详情页面</p>
+
+<div class="note">
+    <p>本章基于前三章完成的前提，数据库中已有 `products`, `categories`, `category_product` 等表结构和基础数据。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 1：定义商品展示路由</h3>
+    <p>我们需要为商品列表页 (`/products`) 和商品详情页 (`/products/{product_slug}`) 定义路由。</p>
+    <p><strong>操作：</strong> 编辑路由文件。</p>
+    <p><strong>文件：</strong> <code>routes/web.php</code></p>
+    <p><strong>确保包含以下路由定义（通常放在文件底部，认证和后台路由之前）：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProductController; // 引入 ProductController
+use App\Http\Controllers\CartController;    // 引入 CartController (为后续步骤准备)
+// ... 其他 use ...
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "web" middleware group. Make something great!
+|
+*/
+
+Route::get('/', function () {
+    // 首页可以重定向到商品列表页或设置专门的欢迎页
+    return redirect()->route('products.index');
+});
+
+// ==================================
+// 商品展示路由 (公开访问)
+// ==================================
+Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+
+// 使用 slug 进行路由模型绑定 ({product:slug})
+Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('products.show');
+
+
+// ==================================
+// 购物车路由 (将在后续章节实现控制器逻辑)
+// ==================================
+Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+Route::post('/cart', [CartController::class, 'add'])->name('cart.add');
+Route::patch('/cart/{cartItem}', [CartController::class, 'update'])->name('cart.update'); // 使用 CartItem ID 更新
+Route::delete('/cart/{cartItem}', [CartController::class, 'remove'])->name('cart.remove'); // 使用 CartItem ID 删除
+
+
+// ==================================
+// 后台管理路由 (将在后续章节实现)
+// ==================================
+Route::middleware(['auth', 'admin']) // 应用登录和管理员中间件
+    ->prefix('admin')              // URL 前缀 /admin
+    ->name('admin.')                // 路由名称前缀 admin.
+    ->group(function () {
+    // ... 后台路由定义 ...
+    // Route::resource('categories', AdminCategoryController::class);
+    // Route::resource('products', AdminProductController::class);
+});
+
+
+// ==================================
+// Breeze 认证路由
+// ==================================
+require __DIR__.'/auth.php';
+
+</code></pre>
+    <div class="note">
+        <p><strong>路由模型绑定 (Slug):</strong> 使用 <code>{product:slug}</code> 会让 Laravel 自动根据 URL 中的 slug 值去 `products` 表的 `slug` 字段查找对应的 `Product` 模型实例，并注入到控制器方法中。请确保你的 `products` 表的 `slug` 字段有唯一索引。</p>
+        <p><strong>购物车路由占位：</strong> 我们已经添加了购物车相关的路由定义，并引入了 `CartController`，但具体的控制器逻辑将在第六章实现。</p>
+    </div>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 2：创建并实现 `ProductController`</h3>
+    <p>创建用于处理前台商品展示逻辑的控制器。</p>
+    <p><strong>操作 1：</strong> 如果 `app/Http/Controllers/ProductController.php` 不存在，使用 Artisan 命令创建。</p>
+    <pre><code class="language-bash">php artisan make:controller ProductController</code></pre>
+    <p><strong>操作 2：</strong> 编辑控制器文件，实现 `index` 和 `show` 方法。</p>
+    <p><strong>文件：</strong> <code>app/Http/Controllers/ProductController.php</code></p>
+    <p><strong>完整文件内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Http/Controllers/ProductController.php
+
+namespace App\Http\Controllers;
+
+use App\Models\Product;
+use App\Models\Category; // 引入 Category 模型
+use Illuminate\Http\Request; // 引入 Request
+
+class ProductController extends Controller
+{
+    /**
+     * 显示商品列表页 (公开)。
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Contracts\View\View
+     */
+    public function index(Request $request)
+    {
+        // 用于分类筛选下拉菜单或列表
+        $categories = Category::orderBy('name')->get();
+        $selectedCategory = null;
+
+        // 基础查询：只获取上架(active)的商品，并预加载其分类信息
+        $productQuery = Product::active()->with('categories');
+
+        // 如果 URL 中包含 category 查询参数，则进行筛选
+        if ($request->query('category')) {
+            $categorySlug = $request->query('category');
+            $selectedCategory = Category::where('slug', $categorySlug)->first();
+
+            if ($selectedCategory) {
+                // 使用 whereHas 来根据关联的分类 slug 进行筛选
+                $productQuery->whereHas('categories', function ($query) use ($categorySlug) {
+                    $query->where('slug', $categorySlug);
+                });
+            } else {
+                // 如果提供了无效的 category slug，可以返回空结果或忽略筛选
+                // 这里选择忽略筛选，显示所有商品
+                // 或者: $productQuery->whereRaw('1 = 0'); // 返回空结果集
+            }
+        }
+
+        // 按最新发布排序，并进行分页 (每页 12 个)
+        // withQueryString() 使得分页链接能保留 URL 中的查询参数 (如 category)
+        $products = $productQuery->latest('created_at')->paginate(12)->withQueryString();
+
+        // 返回视图，并传递数据
+        return view('products.index', compact('products', 'categories', 'selectedCategory'));
+    }
+
+    /**
+     * 显示商品详情页 (公开)。
+     *
+     * @param  \App\Models\Product  $product (通过 slug 路由模型绑定自动注入)
+     * @return \Illuminate\Contracts\View\View|\Illuminate\Http\RedirectResponse
+     */
+    public function show(Product $product)
+    {
+        // 再次检查商品是否上架，防止直接通过 URL 访问未上架商品
+        if (!$product->is_active) {
+            abort(404); // 或者重定向到列表页
+        }
+
+        // 预加载商品的分类信息 (视图中会用到)
+        $product->load('categories');
+
+        // 返回商品详情视图
+        return view('products.show', compact('product'));
+    }
+}
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 3：创建商品列表视图</h3>
+    <p>创建用于展示商品列表和分类筛选的 Blade 视图文件。</p>
+    <p><strong>操作：</strong> 创建视图文件。</p>
+    <p><strong>文件：</strong> <code>resources/views/products/index.blade.php</code></p>
+    <p><strong>完整文件内容 (使用 Bootstrap 5)：</strong></p>
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+@extends('layouts.app') {{-- 继承基础布局 --}}
+
+@section('title', ($selectedCategory ? $selectedCategory-&gt;name . ' - ' : '') . '商品列表') {{-- 动态标题 --}}
+
+@section('content')
+&lt;div class="container"&gt;
+    &lt;div class="row"&gt;
+        &lt;!-- 分类筛选侧边栏 --&gt;
+        &lt;div class="col-lg-3 mb-4"&gt;
+            &lt;div class="sticky-top" style="top: 20px;"&gt; {{-- 让侧边栏在滚动时固定 --}}
+                &lt;h4 class="mb-3"&gt;商品分类&lt;/h4&gt;
+                &lt;div class="list-group list-group-flush"&gt;
+                    &lt;a href="{{ route('products.index') }}"
+                       class="list-group-item list-group-item-action {{ !$selectedCategory ? 'active fw-bold' : '' }}"&gt;
+                       &lt;i class="bi bi-tags-fill me-2"&gt;&lt;/i&gt;所有分类 {{-- 需要 Bootstrap Icons --}}
+                    &lt;/a&gt;
+                    @foreach ($categories as $category)
+                        &lt;a href="{{ route('products.index', ['category' => $category->slug]) }}"
+                           class="list-group-item list-group-item-action {{ $selectedCategory && $selectedCategory->id == $category->id ? 'active fw-bold' : '' }}"&gt;
+                           {{ $category->name }}
+                        &lt;/a&gt;
+                    @endforeach
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- 商品列表区域 --&gt;
+        &lt;div class="col-lg-9"&gt;
+            &lt;h1 class="mb-4"&gt;
+                {{ $selectedCategory ? $selectedCategory->name : '所有商品' }}
+            &lt;/h1&gt;
+
+            &lt;div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4"&gt;
+                @forelse ($products as $product)
+                    &lt;div class="col"&gt;
+                        &lt;div class="card h-100 shadow-sm border-0"&gt;
+                            &lt;a href="{{ route('products.show', $product->slug) }}" class="text-decoration-none"&gt;
+                                @if($product->image)
+                                    &lt;img src="{{ Storage::disk('public')->url($product->image) }}" class="card-img-top" alt="{{ $product->name }}" style="height: 220px; object-fit: cover;"&gt;
+                                @else
+                                     &lt;img src="https://via.placeholder.com/600x400.png/CCCCCC?text=No+Image" class="card-img-top" alt="No Image Available" style="height: 220px; object-fit: cover;"&gt;
+                                @endif
+                            &lt;/a&gt;
+                            &lt;div class="card-body d-flex flex-column"&gt;
+                                &lt;h5 class="card-title flex-grow-1"&gt;
+                                    &lt;a href="{{ route('products.show', $product->slug) }}" class="text-decoration-none text-dark stretched-link"&gt;{{ Str::limit($product->name, 50) }}&lt;/a&gt;
+                                &lt;/h5&gt;
+                                &lt;p class="card-text fw-bold text-danger fs-5 mb-2"&gt;￥{{ number_format($product->price, 2) }}&lt;/p&gt;
+                                &lt;!-- 可以放一个简单的加入购物车按钮 -->
+                                &lt;form action="{{ route('cart.add') }}" method="POST" class="mt-auto"&gt;
+                                    @csrf
+                                    &lt;input type="hidden" name="product_id" value="{{ $product->id }}"&gt;
+                                    &lt;input type="hidden" name="quantity" value="1"&gt;
+                                    &lt;button type="submit" class="btn btn-sm btn-warning w-100"&gt;加入购物车&lt;/button&gt;
+                                &lt;/form&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                @empty
+                    &lt;div class="col-12"&gt;
+                        &lt;div class="alert alert-warning text-center" role="alert"&gt;
+                          暂无商品信息。
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                @endforelse
+            &lt;/div&gt;
+
+            &lt;!-- 分页链接 --&gt;
+            &lt;div class="mt-5 d-flex justify-content-center"&gt;
+                {{ $products->links() }}
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+@endsection
+</code></pre>
+    <div class="note">
+        <p>请确保在 `AppServiceProvider` 的 `boot` 方法中调用了 `Paginator::useBootstrapFive();` 以使分页链接样式正确。</p>
+        <p>如果需要图标 (如 `bi-tags-fill`)，记得在主布局 `layouts/app.blade.php` 中引入 Bootstrap Icons 的 CSS。</p>
+    </div>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 4：创建商品详情视图</h3>
+    <p>创建用于展示单个商品详细信息的 Blade 视图文件。</p>
+    <p><strong>操作：</strong> 创建视图文件。</p>
+    <p><strong>文件：</strong> <code>resources/views/products/show.blade.php</code></p>
+    <p><strong>完整文件内容 (使用 Bootstrap 5)：</strong></p>
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+@extends('layouts.app')
+
+@section('title', $product->name)
+
+@section('content')
+&lt;div class="container"&gt;
+    &lt;div class="row gx-lg-5"&gt; {{-- gx-lg-5 增加列间距 --}}
+        &lt;!-- 商品图片区域 --&gt;
+        &lt;div class="col-lg-6 mb-4 mb-lg-0"&gt;
+            &lt;div class="position-sticky" style="top: 20px;"&gt; {{-- 图片随页面滚动 --}}
+                @if($product->image)
+                    &lt;img src="{{ Storage::disk('public')->url($product->image) }}" class="img-fluid rounded shadow-sm w-100" alt="{{ $product->name }}"&gt;
+                @else
+                    &lt;img src="https://via.placeholder.com/800x600.png/CCCCCC?text=No+Image" class="img-fluid rounded shadow-sm w-100" alt="No Image Available"&gt;
+                @endif
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- 商品信息与操作区域 --&gt;
+        &lt;div class="col-lg-6"&gt;
+            &lt;!-- 商品名称 --&gt;
+            &lt;h1 class="fw-bold mb-3"&gt;{{ $product->name }}&lt;/h1&gt;
+
+            &lt;!-- 商品分类 --&gt;
+            &lt;p class="text-muted small mb-3"&gt;
+                分类:
+                @forelse($product->categories as $category)
+                    &lt;a href="{{ route('products.index', ['category' => $category->slug]) }}" class="badge bg-secondary text-decoration-none"&gt;{{ $category->name }}&lt;/a&gt;
+                @empty
+                    &lt;span class="text-muted"&gt;未分类&lt;/span&gt;
+                @endforelse
+            &lt;/p&gt;
+
+            &lt;!-- 商品价格 --&gt;
+            &lt;p class="fs-2 fw-bold text-danger mb-4"&gt;￥{{ number_format($product->price, 2) }}&lt;/p&gt;
+
+            &lt;!-- 加入购物车表单 --&gt;
+            &lt;form action="{{ route('cart.add') }}" method="POST" class="mb-4"&gt;
+                @csrf
+                &lt;input type="hidden" name="product_id" value="{{ $product->id }}"&gt;
+                &lt;div class="row g-2 align-items-center"&gt;
+                    &lt;div class="col-auto"&gt;
+                        &lt;label for="quantity" class="col-form-label"&gt;数量:&lt;/label&gt;
+                    &lt;/div&gt;
+                    &lt;div class="col-auto" style="width: 100px;"&gt;
+                        &lt;input type="number" name="quantity" id="quantity" class="form-control text-center" value="1" min="1"&gt;
+                    &lt;/div&gt;
+                    &lt;div class="col-auto"&gt;
+                        &lt;button type="submit" class="btn btn-warning btn-lg"&gt;
+                            &lt;i class="bi bi-cart-plus-fill"&gt;&lt;/i&gt; 加入购物车
+                        &lt;/button&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/form&gt;
+
+            &lt;hr class="my-4"&gt;
+
+            &lt;!-- 商品描述 --&gt;
+            &lt;div class="product-description"&gt;
+                &lt;h4&gt;商品详情&lt;/h4&gt;
+                &lt;div style="white-space: pre-wrap;"&gt;{{-- 使用 pre-wrap 保留换行和空格 --}}
+                    {{ $product->description ?? '暂无详细介绍。' }}
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+@endsection
+</code></pre>
+    <div class="note">
+        <p><strong>加入购物车功能:</strong> 上述视图中的“加入购物车”表单现在指向我们在 `routes/web.php` 中定义的 `cart.add` 路由。实际的购物车逻辑将在第六章实现。</p>
+    </div>
+</div>
+
+<h2 class="text-3xl font-semibold mt-8 mb-4">第四章总结</h2>
+<p>我们成功地创建了在线商城面向公众的商品展示页面。通过定义路由、实现控制器逻辑（包括分类筛选和路由模型绑定），并使用 Bootstrap 5 构建了商品列表页和商品详情页的前端视图，用户现在可以浏览和查看我们的商品了。</p>
+<p>同时，我们为后续的购物车功能在视图中准备好了“加入购物车”的入口。</p>
+
+<hr class="my-8 border-gray-300">
+
+<p>接下来，我们将进入 **第五章：后台管理基础 - 分类与商品 CRUD**。我们将为管理员角色创建管理商品分类和商品的界面和功能。</p>
+
+</body>
+</html>

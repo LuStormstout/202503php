@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线商城 MVP - 第十六章：实现基础商品搜索与筛选</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Basic code block styling */
+        pre code {
+            display: block;
+            white-space: pre;
+            background-color: #2d3748; /* bg-gray-800 */
+            color: #e2e8f0; /* text-gray-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        /* Basic prose styling */
+        .prose {
+            max-width: 80ch;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; margin-bottom: 0.5em; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose p { margin-bottom: 1em; line-height: 1.6;}
+        .prose ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose li { margin-bottom: 0.5em; }
+        .prose code:not(pre code) { background-color: #edf2f7; /* bg-gray-200 */ color: #1a202c; /* text-gray-900 */ padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.9em; }
+        .prose strong { font-weight: bold; }
+        .prose blockquote { border-left: 4px solid #cbd5e0; padding-left: 1em; color: #4a5568; margin-left: 0; margin-right: 0; font-style: italic;}
+        .prose a { color: #3182ce; text-decoration: none; }
+        .prose a:hover { text-decoration: underline; }
+        .table-container { overflow-x: auto; margin-bottom: 1em; }
+        .prose table { width: 100%; border-collapse: collapse; }
+        .prose th, .prose td { border: 1px solid #e2e8f0; padding: 0.5em 0.75em; text-align: left; }
+        .prose th { background-color: #f7fafc; font-weight: bold; }
+        .note { background-color: #ebf8ff; border-left: 4px solid #63b3ed; padding: 1rem; margin-bottom: 1em; color: #2c5282; }
+        .warning { background-color: #fffaf0; border-left: 4px solid #ecc94b; padding: 1rem; margin-bottom: 1em; color: #744210; }
+        .step { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; background-color: #f9fafb; }
+        .step-title { font-weight: bold; font-size: 1.25rem; margin-bottom: 0.75rem; color: #1f2937; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-8 prose">
+
+<h1 class="text-4xl font-bold mb-6 text-center">第十六章：在线商城 MVP - 实现基础商品搜索与筛选</h1>
+<p class="text-center text-lg text-gray-600 mb-8">在商品列表页添加关键词搜索功能</p>
+
+<div class="note">
+    <p>本章将在第四章实现的商品列表页基础上，添加一个搜索框，允许用户根据输入的关键词（匹配商品名称或描述）来筛选商品列表。</p>
+    <p>我们将使用基础的 Eloquent `WHERE LIKE` 查询来实现。这对于数据量不大的 MVP 是可行的，但我们会讨论其局限性。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 1：更新 `ProductController@index` 方法以处理搜索</h3>
+    <p>我们需要修改商品列表页的控制器方法，使其能够接收 `search` 查询参数，并将其应用到数据库查询中。</p>
+    <p><strong>操作：</strong> 编辑控制器文件。</p>
+    <p><strong>文件：</strong> <code>app/Http/Controllers/ProductController.php</code></p>
+    <p><strong>修改 `index` 方法：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Http/Controllers/ProductController.php
+
+namespace App\Http\Controllers;
+
+use App\Models\Product;
+use App\Models\Category;
+use Illuminate\Http\Request;
+
+class ProductController extends Controller
+{
+    /**
+     * 显示商品列表页 (公开)，支持分类筛选和关键词搜索。
+     */
+    public function index(Request $request)
+    {
+        $categories = Category::orderBy('name')->get();
+        $selectedCategory = null;
+        $searchTerm = $request->query('search'); // 获取搜索关键词
+
+        // 基础查询：上架商品，预加载分类
+        $productQuery = Product::active()->with('categories');
+
+        // --- 处理分类筛选 ---
+        if ($request->query('category')) {
+            $categorySlug = $request->query('category');
+            $selectedCategory = Category::where('slug', $categorySlug)->first();
+            if ($selectedCategory) {
+                $productQuery->whereHas('categories', function ($query) use ($categorySlug) {
+                    $query->where('slug', $categorySlug);
+                });
+            }
+        }
+
+        // --- 处理关键词搜索 ---
+        if ($searchTerm) {
+            // 使用闭包进行分组查询 (WHERE ... AND (name LIKE ... OR description LIKE ...))
+            $productQuery->where(function ($query) use ($searchTerm) {
+                $query->where('name', 'like', '%' . $searchTerm . '%') // 搜索名称
+                      ->orWhere('description', 'like', '%' . $searchTerm . '%'); // 或搜索描述
+            });
+        }
+
+        // 获取商品，排序，分页
+        $products = $productQuery->latest('created_at')->paginate(12)->withQueryString();
+
+        // 返回视图，传递所有需要的数据，包括搜索词
+        return view('products.index', compact('products', 'categories', 'selectedCategory', 'searchTerm'));
+    }
+
+    // ... show() method ...
+}
+</code></pre>
+    <div class="note">
+        <p><strong>主要修改：</strong></p>
+        <ul>
+            <li>获取 URL 中的 `search` 查询参数。</li>
+            <li>如果 `searchTerm` 存在，使用 `where()` 闭包向查询添加条件，使用 `LIKE '%...%'` 模糊匹配 `name` 或 `description` 字段。</li>
+            <li>将 `$searchTerm` 变量传递给视图，以便在搜索框中显示当前的搜索词。</li>
+        </ul>
+    </div>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 2：在商品列表视图中添加搜索表单</h3>
+    <p>我们需要在 `products/index.blade.php` 视图中添加一个搜索表单，允许用户输入关键词并提交搜索请求。</p>
+    <p><strong>操作：</strong> 编辑视图文件。</p>
+    <p><strong>文件：</strong> <code>resources/views/products/index.blade.php</code></p>
+    <p><strong>在商品列表区域 (`col-lg-9`) 的标题下方添加搜索表单：</strong></p>
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+@extends('layouts.app')
+
+@section('title', ($selectedCategory ? $selectedCategory->name . ' - ' : '') . '商品列表')
+
+@section('content')
+&lt;div class="container"&gt;
+    &lt;div class="row"&gt;
+        &lt;!-- 分类筛选侧边栏 -->
+        &lt;div class="col-lg-3 mb-4"&gt;
+            {{-- ... 分类列表代码 ... --}}
+        &lt;/div&gt;
+
+        &lt;!-- 商品列表区域 --&gt;
+        &lt;div class="col-lg-9"&gt;
+            &lt;div class="d-flex justify-content-between align-items-center mb-4"&gt;
+                &lt;h1 class="mb-0"&gt;
+                    {{ $selectedCategory ? $selectedCategory->name : '所有商品' }}
+                    @if($searchTerm) &lt;span class="fs-5 text-muted"&gt;(搜索: "{{ $searchTerm }}")&lt;/span&gt; @endif
+                &lt;/h1&gt;
+                {{-- 清除筛选/搜索按钮 --}}
+                @if($selectedCategory || $searchTerm)
+                    &lt;a href="{{ route('products.index') }}" class="btn btn-sm btn-outline-secondary"&gt;清除筛选/搜索&lt;/a&gt;
+                @endif
+            &lt;/div&gt;
+
+            &lt;!-- 添加搜索表单 --&gt;
+            &lt;div class="mb-4"&gt;
+                &lt;form action="{{ route('products.index') }}" method="GET" class="d-flex"&gt;
+                    {{-- 如果当前有分类筛选，则保留分类参数 --}}
+                    @if($selectedCategory)
+                        &lt;input type="hidden" name="category" value="{{ $selectedCategory->slug }}"&gt;
+                    @endif
+                    &lt;input type="text" name="search" class="form-control me-2" placeholder="搜索商品名称或描述..." value="{{ $searchTerm ?? '' }}" aria-label="搜索商品"&gt;
+                    &lt;button class="btn btn-primary" type="submit"&gt;
+                        &lt;i class="bi bi-search"&gt;&lt;/i&gt; 搜索
+                    &lt;/button&gt;
+                &lt;/form&gt;
+            &lt;/div&gt;
+            &lt;!-- 搜索表单结束 --&gt;
+
+
+            &lt;div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4"&gt;
+                @forelse ($products as $product)
+                    {{-- ... 商品卡片代码 (保持不变) ... --}}
+                     &lt;div class="col"&gt;
+                        &lt;div class="card h-100 shadow-sm border-0"&gt;
+                           {{-- ... 卡片内容 ... --}}
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                @empty
+                    &lt;div class="col-12"&gt;
+                        &lt;div class="alert alert-warning text-center" role="alert"&gt;
+                          @if($searchTerm)
+                              没有找到与 “{{ $searchTerm }}” 相关的商品。
+                          @elseif($selectedCategory)
+                              该分类下暂无商品。
+                          @else
+                              暂无商品信息。
+                          @endif
+                          @if($selectedCategory || $searchTerm)
+                               &lt;a href="{{ route('products.index') }}" class="alert-link"&gt;查看所有商品&lt;/a&gt;
+                          @endif
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                @endforelse
+            &lt;/div&gt;
+
+            &lt;!-- 分页链接 --&gt;
+            &lt;div class="mt-5 d-flex justify-content-center"&gt;
+                {{-- 确保分页链接包含搜索和分类参数 --}}
+                {{ $products->appends(request()->query())->links() }}
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+@endsection
+</code></pre>
+    <div class="note">
+        <p><strong>主要修改：</strong></p>
+        <ul>
+            <li>在标题下方添加了一个简单的搜索 `&lt;form>`，使用 GET 方法提交到 `products.index` 路由。</li>
+            <li>搜索框 `input` 的 `name` 属性设置为 `search`，与控制器中读取的参数名一致。</li>
+            <li>`value="{{ $searchTerm ?? '' }}"` 用于在搜索后保持输入框中的关键词。</li>
+            <li>如果当前有分类筛选，使用隐藏字段 `<input type="hidden" name="category" ...>` 将分类参数一起提交，以便在搜索结果中保持分类筛选。</li>
+            <li>更新了 `@empty` 部分的提示信息，区分是没有商品还是没有搜索结果。</li>
+            <li>在分页链接 `->links()` 之前调用了 `->appends(request()->query())`，这非常重要，它确保分页链接包含了当前的 `category` 和 `search` 参数，否则翻页时筛选和搜索条件会丢失。</li>
+            <li>添加了一个“清除筛选/搜索”按钮。</li>
+        </ul>
+    </div>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 3：理解局限性与更优方案</h3>
+    <p>我们使用 `WHERE name LIKE '%...%' OR description LIKE '%...%'` 实现的搜索功能非常简单直接，但在生产环境中存在一些显著的局限性：</p>
+    <ul>
+        <li><strong>性能问题：</strong> 使用 `LIKE '%...%'` 进行搜索无法有效利用数据库索引（特别是前导通配符 `%`），在数据量大（例如成千上万甚至更多商品）时，查询速度会变得非常缓慢。</li>
+        <li><strong>相关性差：</strong> 它只能进行简单的字符串匹配，无法理解词语变形、同义词，也无法按相关度排序结果（例如，标题中匹配的商品应该比描述中匹配的更靠前）。</li>
+        <li><strong>不支持中文分词：</strong> 对于中文等需要分词的语言，简单的 `LIKE` 匹配效果很差。</li>
+    </ul>
+    <p><strong>更优的解决方案通常包括：</strong></p>
+    <ul>
+        <li><strong>数据库全文索引 (Full-Text Search):</strong> MySQL 和 PostgreSQL 都提供了内置的全文索引功能。你需要创建全文索引，并使用特定的查询语法（如 `MATCH()...AGAINST...` in MySQL）来进行搜索。这比 `LIKE` 性能更好，并提供一些基础的相关度排序。</li>
+        <li><strong>使用 Laravel Scout 和专用搜索引擎:</strong> 这是构建高性能、功能丰富搜索的最佳方案。
+            <ul>
+                <li>**Laravel Scout:** 是 Laravel 官方提供的驱动程序包，用于将 Eloquent 模型数据同步到外部搜索引擎，并提供统一的搜索 API。</li>
+                <li>**搜索引擎驱动:**
+                    <ul>
+                        <li><strong>Algolia:</strong> 功能强大、易于使用的 SaaS 搜索引擎服务（商业收费）。</li>
+                        <li><strong>Meilisearch:</strong> 开源、高性能、易于部署的搜索引擎（可以自托管）。</li>
+                        <li><strong>Elasticsearch:</strong> 功能极其强大、高度可扩展的开源搜索引擎（通常用于大型复杂场景，配置和维护较复杂）。</li>
+                    </ul>
+                </li>
+            </ul>
+            使用 Scout，你需要安装 Scout 包和对应的驱动包，然后在模型中添加 `Searchable` Trait，配置好索引字段。之后就可以使用 `$products = Product::search('keyword')->paginate();` 这样简洁的方式进行高效搜索，并利用搜索引擎的高级功能（如分面搜索/筛选、 typo tolerance、同义词处理、自定义排序等）。
+        </li>
+    </ul>
+    <div class="note">
+        <p>对于我们的 MVP，使用 `LIKE` 查询可以满足基础功能演示。但在真实的、数据量较大的在线商城项目中，强烈建议尽快过渡到数据库全文索引或 Laravel Scout + 专用搜索引擎的方案。</p>
+    </div>
+</div>
+
+<h2 class="text-3xl font-semibold mt-8 mb-4">第十六章总结</h2>
+<p>我们成功地为在线商城的商品列表页添加了基础的关键词搜索功能。通过修改 `ProductController` 以处理 `search` 查询参数，并在视图中添加搜索表单，用户现在可以根据商品名称或描述进行简单的模糊搜索。</p>
+<p>我们也了解了这种基于 `LIKE` 查询的简单实现的性能和功能局限性，并认识到对于生产环境，使用数据库全文索引或 Laravel Scout + 专用搜索引擎是更优的选择。</p>
+
+<hr class="my-8 border-gray-300">
+
+<p>我们已经逐步构建了在线商城 MVP 的许多核心和进阶功能。回顾一下我们还未涉及的主要领域：</p>
+<ol>
+    <li>**完善后台订单状态管理:** 例如添加修改状态、标记发货等操作。</li>
+    <li>**后台用户管理:** 查看用户列表、修改用户角色等。</li>
+    <li>**测试:** 为更多功能（特别是包含复杂逻辑的部分）编写测试。</li>
+    <li>**部署细节:** 更深入地探讨部署策略和工具。</li>
+    <li>**其他高级功能概念/实现:** 如优惠券、促销等。</li>
+</ol>
+
+</body>
+</html>

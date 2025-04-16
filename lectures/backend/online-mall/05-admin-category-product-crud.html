@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线商城 MVP - 第五章：后台管理基础</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Basic code block styling */
+        pre code {
+            display: block;
+            white-space: pre;
+            background-color: #2d3748; /* bg-gray-800 */
+            color: #e2e8f0; /* text-gray-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        /* Basic prose styling */
+        .prose {
+            max-width: 80ch;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; margin-bottom: 0.5em; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose p { margin-bottom: 1em; line-height: 1.6;}
+        .prose ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose li { margin-bottom: 0.5em; }
+        .prose code:not(pre code) { background-color: #edf2f7; /* bg-gray-200 */ color: #1a202c; /* text-gray-900 */ padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.9em; }
+        .prose strong { font-weight: bold; }
+        .prose blockquote { border-left: 4px solid #cbd5e0; padding-left: 1em; color: #4a5568; margin-left: 0; margin-right: 0; font-style: italic;}
+        .prose a { color: #3182ce; text-decoration: none; }
+        .prose a:hover { text-decoration: underline; }
+        .table-container { overflow-x: auto; margin-bottom: 1em; }
+        .prose table { width: 100%; border-collapse: collapse; }
+        .prose th, .prose td { border: 1px solid #e2e8f0; padding: 0.5em 0.75em; text-align: left; }
+        .prose th { background-color: #f7fafc; font-weight: bold; }
+        .note { background-color: #ebf8ff; border-left: 4px solid #63b3ed; padding: 1rem; margin-bottom: 1em; color: #2c5282; }
+        .warning { background-color: #fffaf0; border-left: 4px solid #ecc94b; padding: 1rem; margin-bottom: 1em; color: #744210; }
+        .step { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; background-color: #f9fafb; }
+        .step-title { font-weight: bold; font-size: 1.25rem; margin-bottom: 0.75rem; color: #1f2937; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-8 prose">
+
+<h1 class="text-4xl font-bold mb-6 text-center">第五章：在线商城 MVP - 后台管理基础</h1>
+<p class="text-center text-lg text-gray-600 mb-8">实现分类与商品的基础 CRUD 管理功能</p>
+
+<div class="note">
+    <p>本章假设你已经在数据库中有用户记录，并且至少有一个用户的 `role` 字段被设置为 'admin'（可以通过 Seeder 创建，或手动修改数据库）。我们将创建只有 admin 角色的用户才能访问的管理后台。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 1：创建管理员中间件</h3>
+    <p>用于验证当前登录用户是否为管理员。</p>
+    <p><strong>操作 1：</strong> 生成中间件文件。</p>
+    <pre><code class="language-bash">php artisan make:middleware CheckAdminRole</code></pre>
+    <p><strong>操作 2：</strong> 编辑中间件文件。</p>
+    <p><strong>文件：</strong> <code>app/Http/Middleware/CheckAdminRole.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
+
+class CheckAdminRole
+{
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     */
+    public function handle(Request $request, Closure $next): Response
+    {
+        // 检查用户是否登录 且 角色是否为 'admin'
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403, 'Unauthorized action.'); // 非管理员，返回 403 Forbidden
+        }
+        return $next($request); // 是管理员，继续请求
+    }
+}
+</code></pre>
+    <p><strong>操作 3：</strong> 注册中间件别名。</p>
+    <p><strong>文件：</strong> <code>bootstrap/app.php</code> (适用于 Laravel 11/12)</p>
+    <p><strong>修改 `->withMiddleware()` 部分，添加别名：</strong></p>
+    <pre><code class="language-php"> // bootstrap/app.php (片段)
+ ->withMiddleware(function (Middleware $middleware) {
+        // ... 其他中间件 ...
+
+        $middleware->alias([
+            // ... 其他别名 ...
+            'admin' => \App\Http\Middleware\CheckAdminRole::class, // <-- 添加 admin 别名
+            'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class, // Breeze 可能已添加
+        ]);
+
+        // ...
+    })
+</code></pre>
+    <p class="text-sm text-gray-600">(如果是旧版本 Laravel，在 `app/Http/Kernel.php` 的 `$routeMiddleware` 数组中添加 `'admin' => \App\Http\Middleware\CheckAdminRole::class,`)。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 2：定义后台管理路由</h3>
+    <p>创建 `/admin` 前缀的路由组，并应用 `auth` 和 `admin` 中间件。</p>
+    <p><strong>操作：</strong> 编辑路由文件。</p>
+    <p><strong>文件：</strong> <code>routes/web.php</code></p>
+    <p><strong>添加或修改为以下内容：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\CartController;
+use App\Http\Controllers\Admin\CategoryController as AdminCategoryController; // 使用别名
+use App\Http\Controllers\Admin\ProductController as AdminProductController;   // 使用别名
+// use App\Http\Controllers\Admin\DashboardController; // 稍后可能创建
+
+// ... 前台商品展示路由 (products.index, products.show) ...
+Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('products.show');
+
+// ... 购物车路由 (cart.index, cart.add, cart.update, cart.remove) ...
+Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+Route::post('/cart', [CartController::class, 'add'])->name('cart.add');
+Route::patch('/cart/{cartItem}', [CartController::class, 'update'])->name('cart.update');
+Route::delete('/cart/{cartItem}', [CartController::class, 'remove'])->name('cart.remove');
+
+// ==================================
+// 后台管理路由
+// ==================================
+Route::middleware(['auth', 'admin']) // 先检查登录，再检查管理员角色
+    ->prefix('admin')              // URL 添加 /admin 前缀
+    ->name('admin.')                // 路由名称添加 admin. 前缀
+    ->group(function () {
+
+    // 后台仪表盘 (暂时重定向到分类管理)
+    Route::get('/', function () {
+        return redirect()->route('admin.categories.index');
+    })->name('dashboard');
+
+    // 分类管理 (使用资源路由)
+    // 会自动生成 admin.categories.index, .create, .store, .show, .edit, .update, .destroy 路由
+    Route::resource('categories', AdminCategoryController::class);
+
+    // 商品管理 (使用资源路由)
+    // 会自动生成 admin.products.index, .create, .store, .show, .edit, .update, .destroy 路由
+    Route::resource('products', AdminProductController::class);
+
+});
+
+// ==================================
+// Breeze 认证路由
+// ==================================
+require __DIR__.'/auth.php';
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 3：创建后台布局文件</h3>
+    <p>为后台界面创建独立的布局，包含后台导航。</p>
+    <p><strong>操作：</strong> 创建布局文件。</p>
+    <p><strong>文件：</strong> <code>resources/views/layouts/admin.blade.php</code></p>
+    <p><strong>完整文件内容 (基础 Bootstrap 5 结构)：</strong></p>
+    <pre><code class="language-html">&lt;!doctype html&gt;
+&lt;html lang="{{ str_replace('_', '-', app()->getLocale()) }}"&gt;
+&lt;head&gt;
+    &lt;meta charset="utf-8"&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+    &lt;meta name="csrf-token" content="{{ csrf_token() }}"&gt;
+    &lt;title&gt;@yield('title', '管理后台') - {{ config('app.name', 'Laravel') }}&lt;/title&gt;
+
+    {{-- 使用 @vite 指令引入资源 --}}
+    @vite(['resources/css/app.scss', 'resources/js/app.js']) {{-- 确保加载包含 Bootstrap 的资源 --}}
+    {{-- 引入 Bootstrap Icons (如果需要) --}}
+    &lt;link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"&gt;
+
+    @stack('styles')
+&lt;/head&gt;
+&lt;body class="bg-light"&gt;
+    &lt;div id="admin-app" class="d-flex"&gt;
+        &lt;!-- 左侧导航栏 (Sidebar) -->
+        &lt;div class="d-flex flex-column flex-shrink-0 p-3 text-bg-dark vh-100 position-fixed" style="width: 260px;"&gt; {{-- 使用 text-bg-dark --}}
+            &lt;a href="{{ route('admin.dashboard') }}" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none"&gt;
+                &lt;i class="bi bi-shop-window fs-4 me-2"&gt;&lt;/i&gt; {{-- 商城图标 --}}
+                &lt;span class="fs-4"&gt;商城后台&lt;/span&gt;
+            &lt;/a&gt;
+            &lt;hr&gt;
+            &lt;ul class="nav nav-pills flex-column mb-auto"&gt;
+                &lt;li class="nav-item"&gt;
+                    &lt;a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : 'text-white' }}"&gt;
+                       &lt;i class="bi bi-speedometer2 me-2"&gt;&lt;/i&gt; 仪表盘
+                    &lt;/a&gt;
+                &lt;/li&gt;
+                &lt;li&gt;
+                    &lt;a href="{{ route('admin.categories.index') }}" class="nav-link {{ request()->routeIs('admin.categories.*') ? 'active' : 'text-white' }}"&gt;
+                       &lt;i class="bi bi-tags me-2"&gt;&lt;/i&gt; 分类管理
+                    &lt;/a&gt;
+                &lt;/li&gt;
+                &lt;li&gt;
+                    &lt;a href="{{ route('admin.products.index') }}" class="nav-link {{ request()->routeIs('admin.products.*') ? 'active' : 'text-white' }}"&gt;
+                       &lt;i class="bi bi-box-seam me-2"&gt;&lt;/i&gt; 商品管理
+                    &lt;/a&gt;
+                &lt;/li&gt;
+                 &lt;!-- 后续添加: 订单管理, 用户管理等 -->
+                 &lt;!--
+                 &lt;li&gt;
+                    &lt;a href="#" class="nav-link text-white"&gt;
+                       &lt;i class="bi bi-receipt me-2"&gt;&lt;/i&gt; 订单管理
+                    &lt;/a&gt;
+                &lt;/li&gt;
+                 &lt;li&gt;
+                    &lt;a href="#" class="nav-link text-white"&gt;
+                       &lt;i class="bi bi-people me-2"&gt;&lt;/i&gt; 用户管理
+                    &lt;/a&gt;
+                &lt;/li&gt;
+                 --&gt;
+                 &lt;li class="nav-item mt-auto pt-3 border-top border-secondary"&gt; {{-- 回到前台 --}}
+                     &lt;a href="{{ route('products.index') }}" class="nav-link text-white" target="_blank"&gt;
+                        &lt;i class="bi bi-arrow-left-square me-2"&gt;&lt;/i&gt; 返回前台
+                     &lt;/a&gt;
+                 &lt;/li&gt;
+            &lt;/ul&gt;
+            &lt;hr&gt;
+            &lt;div class="dropdown"&gt;
+                &lt;a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"&gt;
+                    &lt;i class="bi bi-person-circle me-2"&gt;&lt;/i&gt;
+                    &lt;strong&gt;{{ Auth::user()->name }}&lt;/strong&gt;
+                &lt;/a&gt;
+                &lt;ul class="dropdown-menu dropdown-menu-dark text-small shadow"&gt;
+                    &lt;li&gt;&lt;a class="dropdown-item" href="{{ route('profile.edit') }}"&gt;个人资料&lt;/a&gt;&lt;/li&gt;
+                    &lt;li&gt;&lt;hr class="dropdown-divider"&gt;&lt;/li&gt;
+                    &lt;li&gt;
+                        &lt;a class="dropdown-item" href="{{ route('logout') }}"
+                           onclick="event.preventDefault(); document.getElementById('logout-form-admin').submit();"&gt;
+                           退出登录
+                        &lt;/a&gt;
+                        &lt;form id="logout-form-admin" action="{{ route('logout') }}" method="POST" class="d-none"&gt;
+                            @csrf
+                        &lt;/form&gt;
+                    &lt;/li&gt;
+                &lt;/ul&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- 右侧主内容区域 (需要偏移量来避开固定的侧边栏) -->
+        &lt;div class="flex-grow-1 p-4" style="margin-left: 260px;"&gt;
+             &lt;!-- 面包屑导航 (可选) -->
+             &lt;!--
+             &lt;nav aria-label="breadcrumb"&gt;
+               &lt;ol class="breadcrumb"&gt;
+                 &lt;li class="breadcrumb-item"&gt;&lt;a href="{{ route('admin.dashboard') }}"&gt;后台&lt;/a&gt;&lt;/li&gt;
+                 @yield('breadcrumbs')
+               &lt;/ol&gt;
+             &lt;/nav&gt;
+             --&gt;
+
+            &lt;!-- Session 消息提示框 --&gt;
+            @if (session('success'))
+                &lt;div class="alert alert-success alert-dismissible fade show" role="alert"&gt;
+                    {{ session('success') }}
+                    &lt;button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"&gt;&lt;/button&gt;
+                &lt;/div&gt;
+            @endif
+            @if (session('error'))
+                 &lt;div class="alert alert-danger alert-dismissible fade show" role="alert"&gt;
+                    {{ session('error') }}
+                    &lt;button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"&gt;&lt;/button&gt;
+                &lt;/div&gt;
+            @endif
+            {{-- 验证错误消息 (如果需要统一显示) --}}
+            {{-- @if ($errors-&gt;any())
+                &lt;div class="alert alert-danger"&gt;
+                    &lt;ul class="mb-0"&gt;
+                        @foreach ($errors-&gt;all() as $error)
+                            &lt;li&gt;{{ $error }}&lt;/li&gt;
+                        @endforeach
+                    &lt;/ul&gt;
+                &lt;/div&gt;
+            @endif --}}
+
+            {{-- 主要内容区域 --}}
+            @yield('content')
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    @stack('scripts')
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 4：创建后台控制器</h3>
+    <p>为后台的分类和商品管理创建专属的控制器，放在 `app/Http/Controllers/Admin` 命名空间下。</p>
+    <p><strong>操作：</strong> 使用 Artisan 命令生成控制器。</p>
+    <pre><code class="language-bash">php artisan make:controller Admin/CategoryController --resource --model=Category
+php artisan make:controller Admin/ProductController --resource --model=Product
+</code></pre>
+    <p><strong>说明：</strong> 这会在 `app/Http/Controllers/Admin/` 目录下创建 `CategoryController.php` 和 `ProductController.php` 文件。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 5：实现 `Admin\CategoryController`</h3>
+    <p>填充后台分类管理器的 CRUD 方法。</p>
+    <p><strong>操作：</strong> 编辑控制器文件。</p>
+    <p><strong>文件：</strong> <code>app/Http/Controllers/Admin/CategoryController.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+namespace App\Http\Controllers\Admin; // 确保命名空间正确
+
+use App\Http\Controllers\Controller;
+use App\Models\Category;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+
+class CategoryController extends Controller
+{
+    // GET /admin/categories
+    public function index()
+    {
+        $categories = Category::latest()->paginate(15);
+        // 使用后台布局文件
+        return view('admin.categories.index', compact('categories'));
+    }
+
+    // GET /admin/categories/create
+    public function create()
+    {
+        // 使用后台布局文件
+        return view('admin.categories.create');
+    }
+
+    // POST /admin/categories
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'unique:categories,name'],
+            'slug' => ['nullable', 'string', 'max:255', 'alpha_dash', 'unique:categories,slug'], // alpha_dash: 允许字母、数字、下划线、破折号
+        ]);
+
+        if (empty($validated['slug'])) {
+            $validated['slug'] = Str::slug($validated['name']);
+            if (Category::where('slug', $validated['slug'])->exists()) {
+                $validated['slug'] .= '-' . Str::lower(Str::random(4));
+            }
+        }
+
+        Category::create($validated);
+
+        return redirect()->route('admin.categories.index')
+                         ->with('success', '分类创建成功！');
+    }
+
+    // GET /admin/categories/{category} (通常不需要 show)
+    public function show(Category $category)
+    {
+        return redirect()->route('admin.categories.edit', $category);
+    }
+
+    // GET /admin/categories/{category}/edit
+    public function edit(Category $category)
+    {
+        // 使用后台布局文件
+        return view('admin.categories.edit', compact('category'));
+    }
+
+    // PUT/PATCH /admin/categories/{category}
+    public function update(Request $request, Category $category)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255', Rule::unique('categories')->ignore($category->id)],
+            'slug' => ['nullable', 'string', 'max:255', 'alpha_dash', Rule::unique('categories')->ignore($category->id)],
+        ]);
+
+        if (empty($validated['slug'])) {
+            $validated['slug'] = Str::slug($validated['name']);
+            if (Category::where('slug', $validated['slug'])->where('id', '!=', $category->id)->exists()) {
+                 $validated['slug'] .= '-' . $category->id;
+            }
+        } elseif (Category::where('slug', $validated['slug'])->where('id', '!=', $category->id)->exists()) {
+             return back()->withErrors(['slug' => '提供的 Slug 已被占用。'])->withInput();
+        }
+
+        $category->update($validated);
+
+        return redirect()->route('admin.categories.index')
+                         ->with('success', '分类更新成功！');
+    }
+
+    // DELETE /admin/categories/{category}
+    public function destroy(Category $category)
+    {
+        // 关联的 category_product 记录会自动删除 (因为设置了 cascadeOnDelete)
+        $category->delete();
+
+        return redirect()->route('admin.categories.index')
+                         ->with('success', '分类删除成功！');
+    }
+}
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 6：创建分类管理视图</h3>
+    <p>为后台分类管理创建对应的 Blade 视图文件，并确保它们继承后台布局。</p>
+    <p><strong>操作：</strong> 创建以下视图文件。</p>
+    <p><strong>文件 1：</strong> <code>resources/views/admin/categories/index.blade.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+@extends('layouts.admin') {{-- 继承后台布局 --}}
+
+@section('title', '分类管理')
+
+{{-- 可选: 设置面包屑导航 --}}
+{{-- @section('breadcrumbs')
+    &lt;li class="breadcrumb-item active" aria-current="page"&gt;分类管理&lt;/li&gt;
+@endsection --}}
+
+@section('content')
+&lt;div class="card border-0 shadow-sm"&gt;
+    &lt;div class="card-header bg-white d-flex justify-content-between align-items-center"&gt;
+        &lt;h5 class="mb-0"&gt;分类列表&lt;/h5&gt;
+        &lt;a href="{{ route('admin.categories.create') }}" class="btn btn-primary btn-sm"&gt;
+            &lt;i class="bi bi-plus-lg"&gt;&lt;/i&gt; 添加新分类
+        &lt;/a&gt;
+    &lt;/div&gt;
+    &lt;div class="card-body p-0"&gt;
+        &lt;div class="table-responsive"&gt;
+            &lt;table class="table table-hover mb-0"&gt; {{-- table-hover 添加悬停效果 --}}
+                &lt;thead class="table-light"&gt;
+                    &lt;tr&gt;
+                        &lt;th scope="col"&gt;#ID&lt;/th&gt;
+                        &lt;th scope="col"&gt;名称&lt;/th&gt;
+                        &lt;th scope="col"&gt;Slug&lt;/th&gt;
+                        &lt;th scope="col"&gt;创建时间&lt;/th&gt;
+                        &lt;th scope="col" style="width: 150px;"&gt;操作&lt;/th&gt; {{-- 固定操作列宽度 --}}
+                    &lt;/tr&gt;
+                &lt;/thead&gt;
+                &lt;tbody&gt;
+                    @forelse ($categories as $category)
+                        &lt;tr&gt;
+                            &lt;th scope="row"&gt;{{ $category->id }}&lt;/th&gt;
+                            &lt;td&gt;{{ $category->name }}&lt;/td&gt;
+                            &lt;td&gt;&lt;code&gt;{{ $category->slug }}&lt;/code&gt;&lt;/td&gt;
+                            &lt;td&gt;{{ $category->created_at->format('Y-m-d H:i') }}&lt;/td&gt;
+                            &lt;td&gt;
+                                &lt;a href="{{ route('admin.categories.edit', $category) }}" class="btn btn-info btn-sm" title="编辑"&gt;
+                                    &lt;i class="bi bi-pencil-fill"&gt;&lt;/i&gt;
+                                &lt;/a&gt;
+                                &lt;form action="{{ route('admin.categories.destroy', $category) }}" method="POST" class="d-inline" onsubmit="return confirm('确定要删除此分类吗？');"&gt;
+                                    @csrf
+                                    @method('DELETE')
+                                    &lt;button type="submit" class="btn btn-danger btn-sm" title="删除"&gt;
+                                        &lt;i class="bi bi-trash-fill"&gt;&lt;/i&gt;
+                                    &lt;/button&gt;
+                                &lt;/form&gt;
+                            &lt;/td&gt;
+                        &lt;/tr&gt;
+                    @empty
+                        &lt;tr&gt;
+                            &lt;td colspan="5" class="text-center text-muted py-4"&gt;暂无分类数据。&lt;/td&gt;
+                        &lt;/tr&gt;
+                    @endforelse
+                &lt;/tbody&gt;
+            &lt;/table&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+    @if ($categories->hasPages()) {{-- 只有分页数大于1时才显示分页 --}}
+    &lt;div class="card-footer bg-white"&gt;
+        {{ $categories->links() }}
+    &lt;/div&gt;
+    @endif
+&lt;/div&gt;
+@endsection
+
+</code></pre>
+
+    <p><strong>文件 2：</strong> <code>resources/views/admin/categories/create.blade.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+@extends('layouts.admin')
+
+@section('title', '添加新分类')
+
+@section('content')
+&lt;div class="card border-0 shadow-sm"&gt;
+    &lt;div class="card-header bg-white"&gt;
+        &lt;h5 class="mb-0"&gt;添加新分类&lt;/h5&gt;
+    &lt;/div&gt;
+    &lt;div class="card-body"&gt;
+        &lt;form action="{{ route('admin.categories.store') }}" method="POST"&gt;
+            @csrf
+            &lt;div class="mb-3 row"&gt;
+                &lt;label for="name" class="col-sm-3 col-form-label text-sm-end"&gt;分类名称 &lt;span class="text-danger"&gt;*&lt;/span&gt;&lt;/label&gt;
+                &lt;div class="col-sm-8"&gt;
+                    &lt;input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name') }}" required autofocus&gt;
+                    @error('name')
+                        &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt;
+                    @enderror
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="mb-3 row"&gt;
+                &lt;label for="slug" class="col-sm-3 col-form-label text-sm-end"&gt;Slug (可选)&lt;/label&gt;
+                &lt;div class="col-sm-8"&gt;
+                    &lt;input type="text" class="form-control @error('slug') is-invalid @enderror" id="slug" name="slug" value="{{ old('slug') }}" aria-describedby="slugHelp"&gt;
+                    @error('slug')
+                        &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt;
+                    @enderror
+                    &lt;div id="slugHelp" class="form-text"&gt;用于 URL，建议使用小写字母、数字和连字符。留空将根据名称自动生成。&lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="row"&gt;
+                &lt;div class="col-sm-8 offset-sm-3"&gt;
+                    &lt;button type="submit" class="btn btn-primary"&gt;确认添加&lt;/button&gt;
+                    &lt;a href="{{ route('admin.categories.index') }}" class="btn btn-outline-secondary"&gt;取消&lt;/a&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/form&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+@endsection
+</code></pre>
+
+    <p><strong>文件 3：</strong> <code>resources/views/admin/categories/edit.blade.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+@extends('layouts.admin')
+
+@section('title', '编辑分类 - ' . $category->name)
+
+@section('content')
+&lt;div class="card border-0 shadow-sm"&gt;
+    &lt;div class="card-header bg-white"&gt;
+        &lt;h5 class="mb-0"&gt;编辑分类: &lt;span class="text-primary"&gt;{{ $category->name }}&lt;/span&gt;&lt;/h5&gt;
+    &lt;/div&gt;
+    &lt;div class="card-body"&gt;
+        &lt;form action="{{ route('admin.categories.update', $category) }}" method="POST"&gt;
+            @csrf
+            @method('PUT') {{-- 使用 PUT 方法 --}}
+
+            &lt;div class="mb-3 row"&gt;
+                &lt;label for="name" class="col-sm-3 col-form-label text-sm-end"&gt;分类名称 &lt;span class="text-danger"&gt;*&lt;/span&gt;&lt;/label&gt;
+                &lt;div class="col-sm-8"&gt;
+                    &lt;input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name', $category->name) }}" required autofocus&gt;
+                    @error('name')
+                        &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt;
+                    @enderror
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="mb-3 row"&gt;
+                &lt;label for="slug" class="col-sm-3 col-form-label text-sm-end"&gt;Slug (可选)&lt;/label&gt;
+                &lt;div class="col-sm-8"&gt;
+                    &lt;input type="text" class="form-control @error('slug') is-invalid @enderror" id="slug" name="slug" value="{{ old('slug', $category->slug) }}" aria-describedby="slugHelp"&gt;
+                    @error('slug')
+                        &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt;
+                    @enderror
+                    &lt;div id="slugHelp" class="form-text"&gt;用于 URL，建议使用小写字母、数字和连字符。留空将根据名称自动生成。&lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="row"&gt;
+                &lt;div class="col-sm-8 offset-sm-3"&gt;
+                    &lt;button type="submit" class="btn btn-primary"&gt;确认更新&lt;/button&gt;
+                    &lt;a href="{{ route('admin.categories.index') }}" class="btn btn-outline-secondary"&gt;取消&lt;/a&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/form&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+@endsection
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 7：实现 `Admin\ProductController`</h3>
+    <p>填充后台商品管理器的 CRUD 方法，包括处理图片上传和分类关联。</p>
+    <p><strong>操作：</strong> 编辑控制器文件。</p>
+    <p><strong>文件：</strong> <code>app/Http/Controllers/Admin/ProductController.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Product;
+use App\Models\Category;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+
+class ProductController extends Controller
+{
+    // GET /admin/products
+    public function index(Request $request)
+    {
+        $query = Product::with('categories')->latest(); // 预加载分类, 最新优先
+
+        // 搜索功能
+        if ($request->filled('search')) {
+            $searchTerm = $request->input('search');
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
+                  ->orWhere('description', 'like', "%{$searchTerm}%");
+            });
+        }
+
+        $products = $query->paginate(15)->withQueryString();
+
+        return view('admin.products.index', compact('products')); // 使用后台视图
+    }
+
+    // GET /admin/products/create
+    public function create()
+    {
+        $categories = Category::orderBy('name')->get();
+        // 使用后台视图
+        return view('admin.products.create', compact('categories'));
+    }
+
+    // POST /admin/products
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'unique:products,name'],
+            'slug' => ['nullable', 'string', 'max:255', 'alpha_dash', 'unique:products,slug'],
+            'description' => ['nullable', 'string'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'is_active' => ['required', 'boolean'],
+            'categories' => ['nullable', 'array'],
+            'categories.*' => ['integer', 'exists:categories,id'],
+        ]);
+
+        // Slug 处理
+        if (empty($validated['slug'])) {
+            $validated['slug'] = Str::slug($validated['name']);
+            if (Product::where('slug', $validated['slug'])->exists()) {
+                $validated['slug'] .= '-' . Str::lower(Str::random(4));
+            }
+        }
+
+        // 图片上传处理
+        $imagePath = null;
+        if ($request->hasFile('image') && $request->file('image')->isValid()) {
+            // 存储到 public disk 的 products 目录
+            $imagePath = $request->file('image')->store('products', 'public');
+        }
+        $validated['image'] = $imagePath;
+
+        // 创建商品
+        $product = Product::create($validated);
+
+        // 关联分类
+        if (!empty($validated['categories'])) {
+            $product->categories()->sync($validated['categories']);
+        }
+
+        return redirect()->route('admin.products.index')
+                         ->with('success', '商品添加成功！');
+    }
+
+    // GET /admin/products/{product} (后台通常不需要 show)
+    public function show(Product $product)
+    {
+        return redirect()->route('admin.products.edit', $product);
+    }
+
+    // GET /admin/products/{product}/edit
+    public function edit(Product $product)
+    {
+        $categories = Category::orderBy('name')->get();
+        $productCategoryIds = $product->categories->pluck('id')->toArray();
+        // 使用后台视图
+        return view('admin.products.edit', compact('product', 'categories', 'productCategoryIds'));
+    }
+
+    // PUT/PATCH /admin/products/{product}
+    public function update(Request $request, Product $product)
+    {
+         $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255', Rule::unique('products')->ignore($product->id)],
+            'slug' => ['nullable', 'string', 'max:255', 'alpha_dash', Rule::unique('products')->ignore($product->id)],
+            'description' => ['nullable', 'string'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'is_active' => ['required', 'boolean'],
+            'categories' => ['nullable', 'array'],
+            'categories.*' => ['integer', 'exists:categories,id'],
+            'delete_image' => ['nullable', 'boolean'], // 删除图片的标记
+        ]);
+
+        // Slug 处理
+        if (empty($validated['slug'])) {
+            $validated['slug'] = Str::slug($validated['name']);
+             if (Product::where('slug', $validated['slug'])->where('id', '!=', $product->id)->exists()) {
+                $validated['slug'] .= '-' . $product->id;
+            }
+        } elseif (Product::where('slug', $validated['slug'])->where('id', '!=', $product->id)->exists()) {
+             return back()->withErrors(['slug' => '提供的 Slug 已被占用。'])->withInput();
+        }
+
+        $updateData = $validated;
+        unset($updateData['image'], $updateData['categories'], $updateData['delete_image']);
+
+        // 图片更新/删除处理
+        $oldImagePath = $product->image;
+        if ($request->boolean('delete_image') && $oldImagePath) {
+             Storage::disk('public')->delete($oldImagePath);
+             $updateData['image'] = null;
+             $oldImagePath = null;
+        }
+        if ($request->hasFile('image') && $request->file('image')->isValid()) {
+            if ($oldImagePath) {
+                 Storage::disk('public')->delete($oldImagePath);
+            }
+            $updateData['image'] = $request->file('image')->store('products', 'public');
+        }
+
+        // 更新商品
+        $product->update($updateData);
+
+        // 更新分类关联
+        $product->categories()->sync($validated['categories'] ?? []);
+
+        return redirect()->route('admin.products.index')
+                         ->with('success', '商品更新成功！');
+    }
+
+    // DELETE /admin/products/{product}
+    public function destroy(Product $product)
+    {
+        // 删除关联图片
+        if ($product->image) {
+            Storage::disk('public')->delete($product->image);
+        }
+
+        // 删除商品 (关联记录会自动删除)
+        $product->delete();
+
+        return redirect()->route('admin.products.index')
+                         ->with('success', '商品删除成功！');
+    }
+}
+
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 8：创建商品管理视图</h3>
+    <p>为后台商品管理创建对应的 Blade 视图文件。</p>
+    <p><strong>操作：</strong> 创建以下视图文件。</p>
+    <p><strong>文件 1：</strong> <code>resources/views/admin/products/index.blade.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+@extends('layouts.admin')
+
+@section('title', '商品管理')
+
+@section('content')
+&lt;div class="card border-0 shadow-sm"&gt;
+    &lt;div class="card-header bg-white d-flex justify-content-between align-items-center"&gt;
+        &lt;h5 class="mb-0"&gt;商品列表&lt;/h5&gt;
+        &lt;a href="{{ route('admin.products.create') }}" class="btn btn-primary btn-sm"&gt;
+            &lt;i class="bi bi-plus-lg"&gt;&lt;/i&gt; 添加新商品
+        &lt;/a&gt;
+    &lt;/div&gt;
+    &lt;div class="card-body p-0"&gt;
+        &lt;!-- 搜索表单 (可选) -->
+        &lt;div class="p-3"&gt;
+            &lt;form action="{{ route('admin.products.index') }}" method="GET"&gt;
+                &lt;div class="input-group"&gt;
+                    &lt;input type="text" name="search" class="form-control form-control-sm" placeholder="搜索商品名称或描述..." value="{{ request('search') }}"&gt;
+                    &lt;button class="btn btn-outline-secondary btn-sm" type="submit"&gt;
+                        &lt;i class="bi bi-search"&gt;&lt;/i&gt; 搜索
+                    &lt;/button&gt;
+                &lt;/div&gt;
+            &lt;/form&gt;
+        &lt;/div&gt;
+
+        &lt;div class="table-responsive"&gt;
+            &lt;table class="table table-hover mb-0 align-middle"&gt;
+                &lt;thead class="table-light"&gt;
+                    &lt;tr&gt;
+                        &lt;th scope="col"&gt;ID&lt;/th&gt;
+                        &lt;th scope="col" style="width: 80px;"&gt;图片&lt;/th&gt;
+                        &lt;th scope="col"&gt;名称&lt;/th&gt;
+                        &lt;th scope="col"&gt;价格&lt;/th&gt;
+                        &lt;th scope="col"&gt;分类&lt;/th&gt;
+                        &lt;th scope="col"&gt;状态&lt;/th&gt;
+                        &lt;th scope="col" style="width: 150px;"&gt;操作&lt;/th&gt;
+                    &lt;/tr&gt;
+                &lt;/thead&gt;
+                &lt;tbody&gt;
+                    @forelse ($products as $product)
+                        &lt;tr&gt;
+                            &lt;th scope="row"&gt;{{ $product->id }}&lt;/th&gt;
+                            &lt;td&gt;
+                                @if($product->image)
+                                    &lt;img src="{{ Storage::disk('public')->url($product->image) }}" alt="{{ $product->name }}" style="max-width: 60px; height: auto; border-radius: 0.25rem;"&gt;
+                                @else
+                                    &lt;span class="text-muted small"&gt;无图&lt;/span&gt;
+                                @endif
+                            &lt;/td&gt;
+                            &lt;td&gt;{{ $product->name }}&lt;/td&gt;
+                            &lt;td&gt;￥{{ number_format($product->price, 2) }}&lt;/td&gt;
+                            &lt;td class="small"&gt;
+                                @foreach($product->categories as $category)
+                                    &lt;span class="badge bg-secondary me-1"&gt;{{ $category->name }}&lt;/span&gt;
+                                @endforeach
+                            &lt;/td&gt;
+                            &lt;td&gt;
+                                @if($product->is_active)
+                                    &lt;span class="badge bg-success"&gt;上架&lt;/span&gt;
+                                @else
+                                    &lt;span class="badge bg-warning text-dark"&gt;下架&lt;/span&gt;
+                                @endif
+                            &lt;/td&gt;
+                            &lt;td&gt;
+                                &lt;a href="{{ route('admin.products.edit', $product) }}" class="btn btn-info btn-sm" title="编辑"&gt;
+                                    &lt;i class="bi bi-pencil-fill"&gt;&lt;/i&gt;
+                                &lt;/a&gt;
+                                &lt;form action="{{ route('admin.products.destroy', $product) }}" method="POST" class="d-inline" onsubmit="return confirm('确定要删除此商品吗？');"&gt;
+                                    @csrf
+                                    @method('DELETE')
+                                    &lt;button type="submit" class="btn btn-danger btn-sm" title="删除"&gt;
+                                        &lt;i class="bi bi-trash-fill"&gt;&lt;/i&gt;
+                                    &lt;/button&gt;
+                                &lt;/form&gt;
+                            &lt;/td&gt;
+                        &lt;/tr&gt;
+                    @empty
+                        &lt;tr&gt;
+                            &lt;td colspan="7" class="text-center text-muted py-4"&gt;暂无商品数据。&lt;/td&gt;
+                        &lt;/tr&gt;
+                    @endforelse
+                &lt;/tbody&gt;
+            &lt;/table&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+     @if ($products->hasPages())
+    &lt;div class="card-footer bg-white"&gt;
+        {{ $products->appends(request()->query())->links() }} {{-- appends 保留搜索参数 --}}
+    &lt;/div&gt;
+    @endif
+&lt;/div&gt;
+@endsection
+
+</code></pre>
+
+    <p><strong>文件 2：</strong> <code>resources/views/admin/products/create.blade.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+@extends('layouts.admin')
+
+@section('title', '添加新商品')
+
+@section('content')
+&lt;div class="card border-0 shadow-sm"&gt;
+    &lt;div class="card-header bg-white"&gt;
+        &lt;h5 class="mb-0"&gt;添加新商品&lt;/h5&gt;
+    &lt;/div&gt;
+    &lt;div class="card-body"&gt;
+        &lt;form action="{{ route('admin.products.store') }}" method="POST" enctype="multipart/form-data"&gt;
+            @csrf
+            &lt;div class="mb-3 row"&gt;
+                &lt;label for="name" class="col-sm-3 col-form-label text-sm-end"&gt;商品名称 &lt;span class="text-danger"&gt;*&lt;/span&gt;&lt;/label&gt;
+                &lt;div class="col-sm-8"&gt;
+                    &lt;input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name') }}" required autofocus&gt;
+                    @error('name') &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt; @enderror
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class="mb-3 row"&gt;
+                &lt;label for="slug" class="col-sm-3 col-form-label text-sm-end"&gt;Slug (可选)&lt;/label&gt;
+                &lt;div class="col-sm-8"&gt;
+                    &lt;input type="text" class="form-control @error('slug') is-invalid @enderror" id="slug" name="slug" value="{{ old('slug') }}" aria-describedby="slugHelp"&gt;
+                    @error('slug') &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt; @enderror
+                    &lt;div id="slugHelp" class="form-text"&gt;留空将根据名称自动生成。只能包含小写字母、数字和连字符。&lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class="mb-3 row"&gt;
+                &lt;label for="description" class="col-sm-3 col-form-label text-sm-end"&gt;商品描述&lt;/label&gt;
+                &lt;div class="col-sm-8"&gt;
+                    &lt;textarea class="form-control @error('description') is-invalid @enderror" id="description" name="description" rows="5"&gt;{{ old('description') }}&lt;/textarea&gt;
+                    @error('description') &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt; @enderror
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class="mb-3 row"&gt;
+                &lt;label for="price" class="col-sm-3 col-form-label text-sm-end"&gt;价格 (元) &lt;span class="text-danger"&gt;*&lt;/span&gt;&lt;/label&gt;
+                &lt;div class="col-sm-8"&gt;
+                    &lt;input type="number" step="0.01" min="0" class="form-control @error('price') is-invalid @enderror" id="price" name="price" value="{{ old('price', '0.00') }}" required&gt;
+                    @error('price') &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt; @enderror
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+             &lt;div class="mb-3 row"&gt;
+                &lt;label for="image" class="col-sm-3 col-form-label text-sm-end"&gt;商品图片&lt;/label&gt;
+                &lt;div class="col-sm-8"&gt;
+                    &lt;input class="form-control @error('image') is-invalid @enderror" type="file" id="image" name="image" accept="image/*"&gt;
+                     @error('image') &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt; @enderror
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+             &lt;div class="mb-3 row"&gt;
+                &lt;label for="categories" class="col-sm-3 col-form-label text-sm-end"&gt;商品分类&lt;/label&gt;
+                &lt;div class="col-sm-8"&gt;
+                     &lt;select multiple class="form-select @error('categories.*') is-invalid @enderror" id="categories" name="categories[]" size="8"&gt; {{-- size 增加可见项 --}}
+                        @foreach($categories as $category)
+                            &lt;option value="{{ $category->id }}" {{ in_array($category->id, old('categories', [])) ? 'selected' : '' }}&gt;
+                                {{ $category->name }}
+                            &lt;/option&gt;
+                        @endforeach
+                    &lt;/select&gt;
+                    @error('categories.*') &lt;div class="invalid-feedback d-block"&gt;{{ $message }}&lt;/div&gt; @enderror
+                    &lt;div class="form-text"&gt;按住 Ctrl (或 Cmd) 可选择多个。&lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class="mb-3 row"&gt;
+                 &lt;label class="col-sm-3 col-form-label text-sm-end pt-0"&gt;状态 &lt;span class="text-danger"&gt;*&lt;/span&gt;&lt;/label&gt; {{-- pt-0 调整对齐 --}}
+                 &lt;div class="col-sm-8"&gt;
+                     &lt;div class="form-check form-check-inline mt-2"&gt; {{-- mt-2 调整对齐 --}}
+                        &lt;input class="form-check-input" type="radio" name="is_active" id="isActiveYes" value="1" {{ old('is_active', '1') == '1' ? 'checked' : '' }} required&gt;
+                        &lt;label class="form-check-label" for="isActiveYes"&gt;上架&lt;/label&gt;
+                     &lt;/div&gt;
+                     &lt;div class="form-check form-check-inline"&gt;
+                        &lt;input class="form-check-input" type="radio" name="is_active" id="isActiveNo" value="0" {{ old('is_active') == '0' ? 'checked' : '' }} required&gt;
+                        &lt;label class="form-check-label" for="isActiveNo"&gt;下架&lt;/label&gt;
+                     &lt;/div&gt;
+                      @error('is_active') &lt;div class="invalid-feedback d-block"&gt;{{ $message }}&lt;/div&gt; @enderror
+                 &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class="row"&gt;
+                &lt;div class="col-sm-8 offset-sm-3"&gt;
+                    &lt;button type="submit" class="btn btn-primary"&gt;确认添加&lt;/button&gt;
+                    &lt;a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary"&gt;取消&lt;/a&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/form&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+@endsection
+
+</code></pre>
+
+    <p><strong>文件 3：</strong> <code>resources/views/admin/products/edit.blade.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+@extends('layouts.admin')
+
+@section('title', '编辑商品 - ' . $product->name)
+
+@section('content')
+&lt;div class="card border-0 shadow-sm"&gt;
+    &lt;div class="card-header bg-white"&gt;
+        &lt;h5 class="mb-0"&gt;编辑商品: &lt;span class="text-primary"&gt;{{ $product->name }}&lt;/span&gt;&lt;/h5&gt;
+    &lt;/div&gt;
+    &lt;div class="card-body"&gt;
+        &lt;form action="{{ route('admin.products.update', $product) }}" method="POST" enctype="multipart/form-data"&gt;
+            @csrf
+            @method('PUT')
+
+            &lt;div class="mb-3 row"&gt;
+                &lt;label for="name" class="col-sm-3 col-form-label text-sm-end"&gt;商品名称 &lt;span class="text-danger"&gt;*&lt;/span&gt;&lt;/label&gt;
+                &lt;div class="col-sm-8"&gt;
+                    &lt;input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name', $product->name) }}" required autofocus&gt;
+                    @error('name') &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt; @enderror
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class="mb-3 row"&gt;
+                &lt;label for="slug" class="col-sm-3 col-form-label text-sm-end"&gt;Slug (可选)&lt;/label&gt;
+                &lt;div class="col-sm-8"&gt;
+                    &lt;input type="text" class="form-control @error('slug') is-invalid @enderror" id="slug" name="slug" value="{{ old('slug', $product->slug) }}" aria-describedby="slugHelp"&gt;
+                    @error('slug') &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt; @enderror
+                    &lt;div id="slugHelp" class="form-text"&gt;留空将根据名称自动生成。只能包含小写字母、数字和连字符。&lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class="mb-3 row"&gt;
+                &lt;label for="description" class="col-sm-3 col-form-label text-sm-end"&gt;商品描述&lt;/label&gt;
+                &lt;div class="col-sm-8"&gt;
+                    &lt;textarea class="form-control @error('description') is-invalid @enderror" id="description" name="description" rows="5"&gt;{{ old('description', $product->description) }}&lt;/textarea&gt;
+                    @error('description') &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt; @enderror
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class="mb-3 row"&gt;
+                &lt;label for="price" class="col-sm-3 col-form-label text-sm-end"&gt;价格 (元) &lt;span class="text-danger"&gt;*&lt;/span&gt;&lt;/label&gt;
+                &lt;div class="col-sm-8"&gt;
+                    &lt;input type="number" step="0.01" min="0" class="form-control @error('price') is-invalid @enderror" id="price" name="price" value="{{ old('price', $product->price) }}" required&gt;
+                    @error('price') &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt; @enderror
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+             &lt;div class="mb-3 row"&gt;
+                &lt;label for="image" class="col-sm-3 col-form-label text-sm-end"&gt;商品图片&lt;/label&gt;
+                &lt;div class="col-sm-8"&gt;
+                    &lt;input class="form-control @error('image') is-invalid @enderror" type="file" id="image" name="image" accept="image/*"&gt;
+                     @error('image') &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt; @enderror
+                      @if($product->image)
+                         &lt;div class="mt-2"&gt;
+                            &lt;label class="form-label"&gt;当前图片:&lt;/label&gt;&lt;br&gt;
+                            &lt;img src="{{ Storage::disk('public')->url($product->image) }}" alt="Current Image" style="max-height: 100px; border-radius: 0.25rem;"&gt;
+                            &lt;div class="form-check mt-1"&gt;
+                                &lt;input class="form-check-input" type="checkbox" value="1" id="delete_image" name="delete_image"&gt;
+                                &lt;label class="form-check-label" for="delete_image"&gt;删除当前图片 (上传新图片会自动替换)&lt;/label&gt;
+                            &lt;/div&gt;
+                         &lt;/div&gt;
+                     @endif
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+             &lt;div class="mb-3 row"&gt;
+                &lt;label for="categories" class="col-sm-3 col-form-label text-sm-end"&gt;商品分类&lt;/label&gt;
+                &lt;div class="col-sm-8"&gt;
+                     &lt;select multiple class="form-select @error('categories.*') is-invalid @enderror" id="categories" name="categories[]" size="8"&gt;
+                        @foreach($categories as $category)
+                            &lt;option value="{{ $category->id }}" {{ in_array($category->id, old('categories', $productCategoryIds)) ? 'selected' : '' }}&gt;
+                                {{ $category->name }}
+                            &lt;/option&gt;
+                        @endforeach
+                    &lt;/select&gt;
+                    @error('categories.*') &lt;div class="invalid-feedback d-block"&gt;{{ $message }}&lt;/div&gt; @enderror
+                    &lt;div class="form-text"&gt;按住 Ctrl (或 Cmd) 可选择多个。&lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class="mb-3 row"&gt;
+                 &lt;label class="col-sm-3 col-form-label text-sm-end pt-0"&gt;状态 &lt;span class="text-danger"&gt;*&lt;/span&gt;&lt;/label&gt;
+                 &lt;div class="col-sm-8"&gt;
+                     &lt;div class="form-check form-check-inline mt-2"&gt;
+                        &lt;input class="form-check-input" type="radio" name="is_active" id="isActiveYes" value="1" {{ old('is_active', $product->is_active) == '1' ? 'checked' : '' }} required&gt;
+                        &lt;label class="form-check-label" for="isActiveYes"&gt;上架&lt;/label&gt;
+                     &lt;/div&gt;
+                     &lt;div class="form-check form-check-inline"&gt;
+                        &lt;input class="form-check-input" type="radio" name="is_active" id="isActiveNo" value="0" {{ old('is_active', $product->is_active) == '0' ? 'checked' : '' }} required&gt;
+                        &lt;label class="form-check-label" for="isActiveNo"&gt;下架&lt;/label&gt;
+                     &lt;/div&gt;
+                      @error('is_active') &lt;div class="invalid-feedback d-block"&gt;{{ $message }}&lt;/div&gt; @enderror
+                 &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class="row"&gt;
+                &lt;div class="col-sm-8 offset-sm-3"&gt;
+                    &lt;button type="submit" class="btn btn-primary"&gt;确认更新&lt;/button&gt;
+                    &lt;a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary"&gt;取消&lt;/a&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/form&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+@endsection
+
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 9：更新导航栏入口</h3>
+    <p>确保后台布局的侧边栏和（可选的）前台布局的导航栏包含指向后台管理区域的链接，并进行权限检查。</p>
+    <p><strong>操作：</strong> 检查并确认布局文件。</p>
+    <p><strong>文件 1：</strong> <code>resources/views/layouts/admin.blade.php</code> (侧边栏链接已在步骤 3 中添加)</p>
+    <p><strong>文件 2：</strong> <code>resources/views/layouts/app.blade.php</code> (前台顶部导航)</p>
+    <p><strong>确认用户下拉菜单中包含管理员入口（如已添加）：</strong></p>
+    <pre><code class="language-html">&lt;!-- resources/views/layouts/app.blade.php (导航栏下拉菜单片段) --&gt;
+@auth
+    &lt;li class="nav-item dropdown"&gt;
+        &lt;a id="navbarDropdown" ...&gt; {{ Auth::user()->name }} &lt;/a&gt;
+        &lt;div class="dropdown-menu dropdown-menu-end" ...&gt;
+            &lt;a class="dropdown-item" href="{{ route('profile.edit') }}"&gt;个人资料&lt;/a&gt;
+            @if(Auth::user()->role === 'admin')
+                &lt;a class="dropdown-item" href="{{ route('admin.dashboard') }}"&gt;管理后台&lt;/a&gt;
+            @endif
+            &lt;hr class="dropdown-divider"&gt;
+            &lt;!-- Logout Form --&gt;
+        &lt;/div&gt;
+    &lt;/li&gt;
+@endauth
+</code></pre>
+</div>
+
+<h2 class="text-3xl font-semibold mt-8 mb-4">第五章总结</h2>
+<p>我们为在线商城 MVP 构建了基础的后台管理功能。创建了管理员专属的路由、中间件和布局，并完整实现了对商品分类和商品（包括图片上传和分类关联）的 CRUD 操作及其对应的控制器和视图。现在，管理员用户可以登录并管理核心的商品数据了。</p>
+
+<hr class="my-8 border-gray-300">
+
+<p>接下来，我们将进入 **第六章：实现购物车功能 (数据库版)**。我们将实现用户将商品加入购物车、查看、更新和移除购物车的逻辑，这次我们将使用数据库来存储购物车数据。</p>
+
+</body>
+</html>

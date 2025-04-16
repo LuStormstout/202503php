@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线商城 MVP - 第七章：基础下单流程</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Basic code block styling */
+        pre code {
+            display: block;
+            white-space: pre;
+            background-color: #2d3748; /* bg-gray-800 */
+            color: #e2e8f0; /* text-gray-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        /* Basic prose styling */
+        .prose {
+            max-width: 80ch;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; margin-bottom: 0.5em; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose p { margin-bottom: 1em; line-height: 1.6;}
+        .prose ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose li { margin-bottom: 0.5em; }
+        .prose code:not(pre code) { background-color: #edf2f7; /* bg-gray-200 */ color: #1a202c; /* text-gray-900 */ padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.9em; }
+        .prose strong { font-weight: bold; }
+        .prose blockquote { border-left: 4px solid #cbd5e0; padding-left: 1em; color: #4a5568; margin-left: 0; margin-right: 0; font-style: italic;}
+        .prose a { color: #3182ce; text-decoration: none; }
+        .prose a:hover { text-decoration: underline; }
+        .table-container { overflow-x: auto; margin-bottom: 1em; }
+        .prose table { width: 100%; border-collapse: collapse; }
+        .prose th, .prose td { border: 1px solid #e2e8f0; padding: 0.5em 0.75em; text-align: left; }
+        .prose th { background-color: #f7fafc; font-weight: bold; }
+        .note { background-color: #ebf8ff; border-left: 4px solid #63b3ed; padding: 1rem; margin-bottom: 1em; color: #2c5282; }
+        .warning { background-color: #fffaf0; border-left: 4px solid #ecc94b; padding: 1rem; margin-bottom: 1em; color: #744210; }
+        .step { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; background-color: #f9fafb; }
+        .step-title { font-weight: bold; font-size: 1.25rem; margin-bottom: 0.75rem; color: #1f2937; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-8 prose">
+
+<h1 class="text-4xl font-bold mb-6 text-center">第七章：在线商城 MVP - 基础下单流程</h1>
+<p class="text-center text-lg text-gray-600 mb-8">实现结算页面、订单数据表和订单创建逻辑（无支付）</p>
+
+<div class="step">
+    <h3 class="step-title">步骤 1：设计订单相关数据表结构</h3>
+    <p>我们需要两张新表来存储订单信息：</p>
+    <ol>
+        <li><strong>`orders` (订单主表):</strong> 存储每个订单的总体信息。
+            <ul>
+                <li>`id`: 主键</li>
+                <li>`user_id`: 关联用户 (外键)</li>
+                <li>`status`: 订单状态 (字符串, 如 'pending', 'processing', 'completed', 'cancelled', 添加索引)</li>
+                <li>`total_price`: 订单总金额 (DECIMAL)</li>
+                <li>`shipping_name`: 收货人姓名 (字符串)</li>
+                <li>`shipping_address`: 收货地址 (文本)</li>
+                <li>`shipping_phone`: 收货电话 (字符串)</li>
+                <li>`notes`: 订单备注 (文本, 可为空)</li>
+                <li>`created_at`, `updated_at`: 时间戳</li>
+            </ul>
+        </li>
+        <li><strong>`order_items` (订单项目表):</strong> 存储订单中包含的具体商品信息。
+            <ul>
+                <li>`id`: 主键</li>
+                <li>`order_id`: 关联订单 (外键)</li>
+                <li>`product_id`: 关联商品 (外键, **重要：** 考虑设为可为空 `nullable()` 并 `nullOnDelete()`，或存储产品信息快照，防止原商品被删除导致订单信息丢失)</li>
+                <li>`quantity`: 购买数量 (整数)</li>
+                <li>`price`: **购买时的商品单价快照** (DECIMAL, **非常重要**，防止商品价格变动影响历史订单)</li>
+                <li>`product_name`: (可选) 商品名称快照 (字符串)</li>
+                <li>`created_at`, `updated_at`: 时间戳</li>
+            </ul>
+        </li>
+    </ol>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 2：创建订单相关数据库迁移</h3>
+    <p><strong>操作 1：</strong> 生成 `orders` 表迁移文件。</p>
+    <pre><code class="language-bash">php artisan make:migration create_orders_table</code></pre>
+    <p><strong>操作 2：</strong> 编辑迁移文件。</p>
+    <p><strong>文件：</strong> <code>database/migrations/YYYY_MM_DD_HHMMSS_create_orders_table.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('orders', function (Blueprint $table) {
+            $table->id();
+            // 关联用户表，用户删除时订单通常不删除（或设为 null，根据业务决定）
+            // 这里我们假设订单保留，所以不用 cascadeOnDelete
+            $table->foreignId('user_id')->constrained()->restrictOnDelete(); // restrict: 如果用户有订单，不允许删除用户
+            $table->string('status')->default('pending')->index(); // 订单状态，默认为 pending，加索引
+            $table->decimal('total_price', 10, 2); // 订单总金额
+            $table->string('shipping_name'); // 收货人姓名
+            $table->text('shipping_address'); // 收货地址
+            $table->string('shipping_phone'); // 收货电话
+            $table->text('notes')->nullable(); // 订单备注，允许为空
+            $table->timestamps(); // created_at, updated_at
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('orders');
+    }
+};
+
+</code></pre>
+    <p><strong>操作 3：</strong> 生成 `order_items` 表迁移文件。</p>
+    <pre><code class="language-bash">php artisan make:migration create_order_items_table</code></pre>
+    <p><strong>操作 4：</strong> 编辑迁移文件。</p>
+    <p><strong>文件：</strong> <code>database/migrations/YYYY_MM_DD_HHMMSS_create_order_items_table.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('order_items', function (Blueprint $table) {
+            $table->id();
+            // 关联订单主表，订单删除时，订单项也删除
+            $table->foreignId('order_id')->constrained()->cascadeOnDelete();
+            // 关联商品表
+            // 重要：考虑商品被删除的情况。这里使用 nullable() 和 nullOnDelete()
+            // 表示如果商品被删除，此处的 product_id 会被设为 NULL，但订单项记录保留。
+            // 另一种策略是不设置外键，直接存储商品信息快照。
+            // 或者设置 restrictOnDelete() 禁止删除有关联订单项的商品。
+            $table->foreignId('product_id')->nullable()->constrained()->nullOnDelete();
+            $table->unsignedInteger('quantity'); // 购买数量
+            $table->decimal('price', 10, 2); // !!! 存储购买时的单价快照 !!!
+            $table->string('product_name')->nullable(); // (可选) 存储购买时的商品名称快照
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('order_items');
+    }
+};
+</code></pre>
+    <div class="warning">
+        <p><strong>`product_id` 的处理：</strong> 如何处理已下单商品被删除的情况是一个重要的业务决策。上面使用了 `nullable()->constrained()->nullOnDelete()`，允许商品删除但保留订单项（`product_id`变`NULL`）。你也可以选择存储更多商品信息快照（名称、图片等）在 `order_items` 表中，或者禁止删除有关联订单的商品。</p>
+    </div>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 3：创建订单相关模型及关系</h3>
+    <p><strong>操作 1：</strong> 生成 `Order` 模型。</p>
+    <pre><code class="language-bash">php artisan make:model Order</code></pre>
+    <p><strong>操作 2：</strong> 编辑模型文件。</p>
+    <p><strong>文件：</strong> <code>app/Models/Order.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Models/Order.php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Order extends Model
+{
+    use HasFactory;
+
+    // 订单状态常量 (可选)
+    const STATUS_PENDING = 'pending';
+    const STATUS_PROCESSING = 'processing';
+    const STATUS_COMPLETED = 'completed';
+    const STATUS_CANCELLED = 'cancelled';
+
+    protected $fillable = [
+        'user_id',
+        'status',
+        'total_price',
+        'shipping_name',
+        'shipping_address',
+        'shipping_phone',
+        'notes',
+    ];
+
+    protected $casts = [
+        'total_price' => 'decimal:2',
+    ];
+
+    /**
+     * 订单所属的用户
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * 订单包含的商品项
+     */
+    public function items(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+}
+</code></pre>
+    <p><strong>操作 3：</strong> 生成 `OrderItem` 模型。</p>
+    <pre><code class="language-bash">php artisan make:model OrderItem</code></pre>
+    <p><strong>操作 4：</strong> 编辑模型文件。</p>
+    <p><strong>文件：</strong> <code>app/Models/OrderItem.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Models/OrderItem.php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class OrderItem extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'order_id',
+        'product_id',
+        'quantity',
+        'price', // 存储价格快照
+        'product_name', // 存储名称快照 (可选)
+    ];
+
+    protected $casts = [
+        'quantity' => 'integer',
+        'price' => 'decimal:2',
+    ];
+
+    /**
+     * 订单项所属的订单
+     */
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    /**
+     * 订单项对应的商品 (可能为 null)
+     */
+    public function product(): BelongsTo
+    {
+        // 因为 product_id 可能为 null，这里关系可能返回 null
+        return $this->belongsTo(Product::class);
+    }
+}
+</code></pre>
+    <p><strong>操作 5：</strong> 更新 `User` 模型，添加 `orders` 关系。</p>
+    <p><strong>文件：</strong> <code>app/Models/User.php</code></p>
+    <p><strong>添加方法：</strong></p>
+    <pre><code class="language-php">    // app/Models/User.php
+    use Illuminate\Database\Eloquent\Relations\HasMany; // Add this use statement
+
+    // ... existing code ...
+
+    /**
+     * 获取用户的所有订单 (一对多)
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+</code></pre>
+    <p><strong>操作 6：</strong> (可选) 更新 `Product` 模型，添加 `orderItems` 关系。</p>
+    <p><strong>文件：</strong> <code>app/Models/Product.php</code></p>
+    <p><strong>添加方法：</strong></p>
+    <pre><code class="language-php">    // app/Models/Product.php
+    use Illuminate\Database\Eloquent\Relations\HasMany; // Add this use statement
+
+    // ... existing code ...
+
+    /**
+     * 获取包含此商品的订单项 (一对多)
+     */
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 4：运行数据库迁移</h3>
+    <p>将新的 `orders` 和 `order_items` 表应用到数据库。</p>
+    <p><strong>操作：</strong> 运行 migrate 命令。</p>
+    <pre><code class="language-bash">php artisan migrate</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 5：定义结算与订单路由</h3>
+    <p>添加访问结算页面、处理订单创建和查看订单历史的路由。</p>
+    <p><strong>操作：</strong> 编辑路由文件。</p>
+    <p><strong>文件：</strong> <code>routes/web.php</code></p>
+    <p><strong>添加以下路由定义 (建议放在购物车路由之后，后台路由之前，并应用 `auth` 中间件)：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+// ... 其他 use 语句 ...
+use App\Http\Controllers\CheckoutController; // 引入 CheckoutController
+use App\Http\Controllers\OrderController;   // 引入 OrderController
+
+// ... 前台商品和购物车路由 ...
+
+// ==================================
+// 结算与订单路由 (需要登录)
+// ==================================
+Route::middleware(['auth'])->group(function () {
+    // 显示结算页面
+    Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
+    // 存储订单 (处理结算表单提交)
+    Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
+    // 显示用户订单列表
+    Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+    // 显示单个订单详情 (需要授权)
+    Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show'); // ->middleware('can:view,order'); // 稍后添加 Policy
+});
+
+// ... 后台管理路由 ...
+
+// ... Breeze 认证路由 ...
+require __DIR__.'/auth.php';
+
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 6：创建并实现控制器</h3>
+    <p>创建 `CheckoutController` 用于显示结算页，`OrderController` 用于处理订单创建和查看。</p>
+    <p><strong>操作 1：</strong> 生成控制器。</p>
+    <pre><code class="language-bash">php artisan make:controller CheckoutController
+php artisan make:controller OrderController</code></pre>
+    <p><strong>操作 2：</strong> 实现 `CheckoutController`。</p>
+    <p><strong>文件：</strong> <code>app/Http/Controllers/CheckoutController.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Http/Controllers/CheckoutController.php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class CheckoutController extends Controller
+{
+    // 应用 auth 中间件，确保只有登录用户能访问结算页
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
+    /**
+     * 显示结算页面。
+     */
+    public function index()
+    {
+        $user = Auth::user();
+        // 获取用户的购物车，预加载商品信息
+        $cart = $user->cart()->with('items.product')->first();
+
+        // 如果购物车不存在或为空，重定向回购物车页面
+        if (!$cart || $cart->items->isEmpty()) {
+            return redirect()->route('cart.index')->with('warning', '您的购物车是空的，无法结算。');
+        }
+
+        // 计算总价 (使用 Cart 模型的访问器或手动计算)
+        $totalPrice = $cart->total_price; // 假设 Cart 模型有 totalPrice 访问器
+
+        // 返回结算视图，传递购物车项和总价
+        return view('checkout.index', [
+            'cartItems' => $cart->items,
+            'totalPrice' => $totalPrice,
+        ]);
+    }
+}
+
+</code></pre>
+    <p><strong>操作 3：</strong> 实现 `OrderController`。</p>
+    <p><strong>文件：</strong> <code>app/Http/Controllers/OrderController.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Http/Controllers/OrderController.php
+
+namespace App\Http\Controllers;
+
+use App\Models\Order;
+use App\Models\OrderItem; // 引入 OrderItem
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB; // 引入 DB Facade 用于事务
+
+class OrderController extends Controller
+{
+    // 应用 auth 中间件
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
+    /**
+     * 显示当前用户的订单列表。
+     */
+    public function index()
+    {
+        $orders = Auth::user()
+                      ->orders() // 获取当前用户的订单关系
+                      ->withCount('items') // 加载订单项数量
+                      ->latest() // 按最新排序
+                      ->paginate(10); // 分页
+
+        return view('orders.index', compact('orders'));
+    }
+
+    /**
+     * 存储新创建的订单。
+     */
+    public function store(Request $request)
+    {
+        // 1. 验证收货地址等信息
+        $validated = $request->validate([
+            'shipping_name' => ['required', 'string', 'max:255'],
+            'shipping_address' => ['required', 'string', 'max:1000'],
+            'shipping_phone' => ['required', 'string', 'max:20'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $user = Auth::user();
+        // 2. 获取用户的购物车及商品
+        $cart = $user->cart()->with('items.product')->first();
+
+        // 3. 检查购物车是否为空
+        if (!$cart || $cart->items->isEmpty()) {
+            return redirect()->route('cart.index')->with('error', '购物车是空的，无法创建订单。');
+        }
+
+        // 4. 使用数据库事务确保原子性
+        try {
+            DB::beginTransaction();
+
+            // 5. 创建订单主记录
+            $order = $user->orders()->create([
+                'status' => Order::STATUS_PENDING, // 使用模型常量设置初始状态
+                'total_price' => $cart->total_price, // 从购物车获取总价
+                'shipping_name' => $validated['shipping_name'],
+                'shipping_address' => $validated['shipping_address'],
+                'shipping_phone' => $validated['shipping_phone'],
+                'notes' => $validated['notes'],
+            ]);
+
+            // 6. 遍历购物车项目，创建订单项记录
+            foreach ($cart->items as $item) {
+                // 确保关联的 product 存在
+                if ($item->product) {
+                    $order->items()->create([
+                        'product_id' => $item->product_id,
+                        'quantity' => $item->quantity,
+                        'price' => $item->product->price, // !! 存储下单时的价格快照 !!
+                        'product_name' => $item->product->name, // (可选) 存储名称快照
+                    ]);
+                    // --- 此处是未来处理库存扣减的地方 ---
+                    // $item->product->decrement('stock', $item->quantity);
+                }
+            }
+
+            // 7. 清空购物车 (删除所有 CartItem)
+            $cart->items()->delete();
+            // 或者可以选择删除整个 Cart 记录： $cart->delete();
+
+            // 8. 提交事务
+            DB::commit();
+
+            // 9. (可选) 触发订单创建成功事件 (用于发送邮件、通知等)
+            // event(new OrderPlaced($order));
+
+            // 10. 重定向到订单列表页或感谢页面
+            return redirect()->route('orders.index')->with('success', '订单提交成功！');
+
+        } catch (\Exception $e) {
+            // 11. 如果发生异常，回滚事务
+            DB::rollBack();
+            // 记录错误日志
+            \Log::error('创建订单失败: ' . $e->getMessage());
+            // 返回错误信息给用户
+            return back()->with('error', '订单创建失败，请稍后重试。')->withInput();
+        }
+    }
+
+    /**
+     * 显示指定的订单详情。
+     */
+    public function show(Order $order) // 使用路由模型绑定
+    {
+        // 授权检查：确保用户只能查看自己的订单
+        $this->authorize('view', $order); // 需要创建 OrderPolicy
+
+        // 预加载订单项及其关联的商品信息 (即使 product_id 为 null 也要加载)
+        $order->load(['items.product' => function ($query) {
+             $query->select('id', 'slug', 'image'); // 只需加载 slug 和 image 用于链接和显示
+        }]);
+
+        return view('orders.show', compact('order'));
+    }
+}
+
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 7：创建订单授权策略 (`OrderPolicy`)</h3>
+    <p>创建一个简单的 Policy 来确保用户只能查看自己的订单。</p>
+    <p><strong>操作 1：</strong> 生成 Policy 文件。</p>
+    <pre><code class="language-bash">php artisan make:policy OrderPolicy --model=Order</code></pre>
+    <p><strong>操作 2：</strong> 编辑 Policy 文件。</p>
+    <p><strong>文件：</strong> <code>app/Policies/OrderPolicy.php</code></p>
+    <p><strong>修改后完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Policies/OrderPolicy.php
+
+namespace App\Policies;
+
+use App\Models\Order;
+use App\Models\User;
+use Illuminate\Auth\Access\HandlesAuthorization; // 使用 Trait
+
+class OrderPolicy
+{
+    use HandlesAuthorization; // 使用 Trait
+
+    /**
+     * Determine whether the user can view any models.
+     * 是否允许用户查看订单列表 (通常允许登录用户查看自己的列表)
+     */
+    public function viewAny(User $user): bool
+    {
+        return true; // 允许所有登录用户访问订单列表页 (控制器会做筛选)
+    }
+
+    /**
+     * Determine whether the user can view the model.
+     * 是否允许用户查看指定的订单
+     */
+    public function view(User $user, Order $order): bool
+    {
+        // 用户只能查看自己的订单，或者管理员可以查看所有订单
+        return $user->id === $order->user_id || $user->role === 'admin';
+    }
+
+    /**
+     * Determine whether the user can create models.
+     * 是否允许用户创建订单 (通常登录用户都可以尝试创建)
+     */
+    public function create(User $user): bool
+    {
+        // 简单起见，允许所有登录用户创建订单
+        return true;
+    }
+
+    // --- Update, Delete 等策略根据需要添加 ---
+    // 例如，可能只允许在特定状态下取消订单
+    // public function update(User $user, Order $order): bool { ... }
+    // public function delete(User $user, Order $order): bool { ... }
+
+}
+</code></pre>
+    <p><strong>操作 3：</strong> 在 `AuthServiceProvider` 中注册 Policy。</p>
+    <p><strong>文件：</strong> <code>app/Providers/AuthServiceProvider.php</code></p>
+    <p><strong>修改 `$policies` 数组：</strong></p>
+    <pre><code class="language-php">    // app/Providers/AuthServiceProvider.php
+    protected $policies = [
+        \App\Models\Course::class => \App\Policies\CoursePolicy::class,
+        \App\Models\CartItem::class => \App\Policies\CartItemPolicy::class, // 上一章添加的
+        \App\Models\Order::class => \App\Policies\OrderPolicy::class, // <-- 添加这行
+    ];
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 8：创建结算与订单视图</h3>
+    <p>创建结算页面和订单历史页面。</p>
+    <p><strong>操作 1：</strong> 创建结算视图文件。</p>
+    <p><strong>文件：</strong> <code>resources/views/checkout/index.blade.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+@extends('layouts.app')
+
+@section('title', '结算')
+
+@section('content')
+&lt;div class="container"&gt;
+    &lt;h1 class="mb-4"&gt;确认订单信息&lt;/h1&gt;
+
+    &lt;div class="row"&gt;
+        &lt;!-- 左侧：订单商品摘要 --&gt;
+        &lt;div class="col-md-7 col-lg-8 order-md-last"&gt;
+            &lt;h4 class="d-flex justify-content-between align-items-center mb-3"&gt;
+                &lt;span class="text-primary"&gt;您的购物车&lt;/span&gt;
+                &lt;span class="badge bg-primary rounded-pill"&gt;{{ $cartItems->sum('quantity') }} 件商品&lt;/span&gt;
+            &lt;/h4&gt;
+            &lt;ul class="list-group mb-3 shadow-sm"&gt;
+                @foreach($cartItems as $item)
+                    @if($item->product) {{-- 再次确认商品存在 --}}
+                        &lt;li class="list-group-item d-flex justify-content-between lh-sm"&gt;
+                            &lt;div&gt;
+                                &lt;h6 class="my-0"&gt;{{ $item->product->name }}&lt;/h6&gt;
+                                &lt;small class="text-muted"&gt;数量: {{ $item->quantity }}&lt;/small&gt;
+                            &lt;/div&gt;
+                            &lt;span class="text-muted"&gt;￥{{ number_format($item->product->price * $item->quantity, 2) }}&lt;/span&gt;
+                        &lt;/li&gt;
+                    @endif
+                @endforeach
+                &lt;li class="list-group-item d-flex justify-content-between bg-light"&gt;
+                    &lt;strong&gt;总计 (人民币)&lt;/strong&gt;
+                    &lt;strong&gt;￥{{ number_format($totalPrice, 2) }}&lt;/strong&gt;
+                &lt;/li&gt;
+            &lt;/ul&gt;
+            {{-- 支付方式选择 (暂不实现) --}}
+            {{-- &lt;h4 class="mb-3"&gt;支付方式&lt;/h4&gt; --}}
+            {{-- ... --}}
+        &lt;/div&gt;
+
+        &lt;!-- 右侧：收货地址表单 --&gt;
+        &lt;div class="col-md-5 col-lg-4 order-md-first"&gt;
+            &lt;h4 class="mb-3"&gt;收货地址&lt;/h4&gt;
+            &lt;form action="{{ route('orders.store') }}" method="POST" class="needs-validation" novalidate&gt;
+                @csrf
+                &lt;div class="row g-3"&gt;
+                    &lt;div class="col-12"&gt;
+                        &lt;label for="shipping_name" class="form-label"&gt;收货人姓名 &lt;span class="text-danger"&gt;*&lt;/span&gt;&lt;/label&gt;
+                        &lt;input type="text" class="form-control @error('shipping_name') is-invalid @enderror" id="shipping_name" name="shipping_name" value="{{ old('shipping_name', Auth::user()->name) }}" required&gt;
+                        @error('shipping_name') &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt; @enderror
+                    &lt;/div&gt;
+
+                    &lt;div class="col-12"&gt;
+                        &lt;label for="shipping_phone" class="form-label"&gt;手机号码 &lt;span class="text-danger"&gt;*&lt;/span&gt;&lt;/label&gt;
+                        &lt;input type="tel" class="form-control @error('shipping_phone') is-invalid @enderror" id="shipping_phone" name="shipping_phone" value="{{ old('shipping_phone') }}" required placeholder="11位手机号"&gt;
+                         @error('shipping_phone') &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt; @enderror
+                    &lt;/div&gt;
+
+                    &lt;div class="col-12"&gt;
+                        &lt;label for="shipping_address" class="form-label"&gt;详细地址 &lt;span class="text-danger"&gt;*&lt;/span&gt;&lt;/label&gt;
+                        &lt;textarea class="form-control @error('shipping_address') is-invalid @enderror" id="shipping_address" name="shipping_address" rows="3" required placeholder="省市区、街道、门牌号"&gt;{{ old('shipping_address') }}&lt;/textarea&gt;
+                         @error('shipping_address') &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt; @enderror
+                    &lt;/div&gt;
+
+                     &lt;div class="col-12"&gt;
+                        &lt;label for="notes" class="form-label"&gt;订单备注 (可选)&lt;/label&gt;
+                        &lt;textarea class="form-control @error('notes') is-invalid @enderror" id="notes" name="notes" rows="2"&gt;{{ old('notes') }}&lt;/textarea&gt;
+                         @error('notes') &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt; @enderror
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;hr class="my-4"&gt;
+
+                &lt;button class="w-100 btn btn-primary btn-lg" type="submit"&gt;提交订单&lt;/button&gt;
+            &lt;/form&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+@endsection
+
+@push('scripts')
+&lt;script&gt;
+    // Example starter JavaScript for disabling form submissions if there are invalid fields
+    (function () {
+      'use strict'
+      // Fetch all the forms we want to apply custom Bootstrap validation styles to
+      var forms = document.querySelectorAll('.needs-validation')
+      // Loop over them and prevent submission
+      Array.prototype.slice.call(forms)
+        .forEach(function (form) {
+          form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+              event.preventDefault()
+              event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+          }, false)
+        })
+    })()
+&lt;/script&gt;
+@endpush
+
+</code></pre>
+    <p><strong>操作 2：</strong> 创建订单列表视图文件。</p>
+    <p><strong>文件：</strong> <code>resources/views/orders/index.blade.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+@extends('layouts.app')
+
+@section('title', '我的订单')
+
+@section('content')
+&lt;div class="container"&gt;
+    &lt;h1 class="mb-4"&gt;我的订单&lt;/h1&gt;
+
+    @if($orders->count() > 0)
+        &lt;div class="table-responsive shadow-sm"&gt;
+            &lt;table class="table table-hover align-middle mb-0"&gt;
+                &lt;thead class="table-light"&gt;
+                    &lt;tr&gt;
+                        &lt;th scope="col"&gt;订单号&lt;/th&gt;
+                        &lt;th scope="col"&gt;下单时间&lt;/th&gt;
+                        &lt;th scope="col"&gt;商品数量&lt;/th&gt;
+                        &lt;th scope="col" class="text-end"&gt;总金额&lt;/th&gt;
+                        &lt;th scope="col" class="text-center"&gt;状态&lt;/th&gt;
+                        &lt;th scope="col" class="text-center"&gt;操作&lt;/th&gt;
+                    &lt;/tr&gt;
+                &lt;/thead&gt;
+                &lt;tbody&gt;
+                    @foreach($orders as $order)
+                    &lt;tr&gt;
+                        &lt;th scope="row"&gt;#{{ $order->id }}&lt;/th&gt;
+                        &lt;td&gt;{{ $order->created_at->format('Y-m-d H:i') }}&lt;/td&gt;
+                        &lt;td&gt;{{ $order->items_count }} 件&lt;/td&gt; {{-- 使用 withCount 的结果 --}}
+                        &lt;td class="text-end fw-bold"&gt;￥{{ number_format($order->total_price, 2) }}&lt;/td&gt;
+                        &lt;td class="text-center"&gt;
+                            &lt;span class="badge rounded-pill
+                                @switch($order->status)
+                                    @case('pending') bg-warning text-dark @break
+                                    @case('processing') bg-info text-dark @break
+                                    @case('completed') bg-success @break
+                                    @case('cancelled') bg-secondary @break
+                                    @default bg-light text-dark
+                                @endswitch"&gt;
+                                {{-- 可以定义一个辅助函数或在模型中定义方法来显示状态中文名 --}}
+                                {{ ucfirst($order->status) }}
+                            &lt;/span&gt;
+                        &lt;/td&gt;
+                        &lt;td class="text-center"&gt;
+                            &lt;a href="{{ route('orders.show', $order) }}" class="btn btn-outline-primary btn-sm"&gt;查看详情&lt;/a&gt;
+                        &lt;/td&gt;
+                    &lt;/tr&gt;
+                    @endforeach
+                &lt;/tbody&gt;
+            &lt;/table&gt;
+        &lt;/div&gt;
+        &lt;!-- 分页链接 --&gt;
+        &lt;div class="mt-4 d-flex justify-content-center"&gt;
+            {{ $orders->links() }}
+        &lt;/div&gt;
+    @else
+        &lt;div class="alert alert-info text-center" role="alert"&gt;
+            您还没有任何订单。
+        &lt;/div&gt;
+    @endif
+&lt;/div&gt;
+@endsection
+</code></pre>
+    <p><strong>操作 3：</strong> 创建订单详情视图文件。</p>
+    <p><strong>文件：</strong> <code>resources/views/orders/show.blade.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+@extends('layouts.app')
+
+@section('title', '订单详情 #' . $order->id)
+
+@section('content')
+&lt;div class="container"&gt;
+    &lt;div class="d-flex justify-content-between align-items-center mb-4"&gt;
+        &lt;h1&gt;订单详情 &lt;span class="text-muted"&gt;#{{ $order->id }}&lt;/span&gt;&lt;/h1&gt;
+        &lt;a href="{{ route('orders.index') }}" class="btn btn-outline-secondary"&gt;&lt;i class="bi bi-arrow-left"&gt;&lt;/i&gt; 返回订单列表&lt;/a&gt;
+    &lt;/div&gt;
+
+    &lt;div class="row"&gt;
+        &lt;!-- 订单信息 --&gt;
+        &lt;div class="col-md-6 mb-4"&gt;
+            &lt;div class="card shadow-sm border-0"&gt;
+                &lt;div class="card-header bg-light"&gt;
+                    &lt;h5 class="mb-0"&gt;订单信息&lt;/h5&gt;
+                &lt;/div&gt;
+                &lt;div class="card-body"&gt;
+                    &lt;p&gt;&lt;strong&gt;订单号:&lt;/strong&gt; #{{ $order->id }}&lt;/p&gt;
+                    &lt;p&gt;&lt;strong&gt;下单时间:&lt;/strong&gt; {{ $order->created_at->format('Y-m-d H:i:s') }}&lt;/p&gt;
+                    &lt;p&gt;&lt;strong&gt;订单状态:&lt;/strong&gt;
+                        &lt;span class="badge rounded-pill
+                            @switch($order->status)
+                                @case('pending') bg-warning text-dark @break
+                                @case('processing') bg-info text-dark @break
+                                @case('completed') bg-success @break
+                                @case('cancelled') bg-secondary @break
+                                @default bg-light text-dark
+                            @endswitch"&gt;
+                            {{ ucfirst($order->status) }}
+                        &lt;/span&gt;
+                    &lt;/p&gt;
+                    &lt;p&gt;&lt;strong&gt;订单总额:&lt;/strong&gt; &lt;span class="fw-bold text-danger"&gt;￥{{ number_format($order->total_price, 2) }}&lt;/span&gt;&lt;/p&gt;
+                    @if($order->notes)
+                        &lt;p&gt;&lt;strong&gt;订单备注:&lt;/strong&gt; {{ $order->notes }}&lt;/p&gt;
+                    @endif
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- 收货信息 --&gt;
+        &lt;div class="col-md-6 mb-4"&gt;
+            &lt;div class="card shadow-sm border-0"&gt;
+                 &lt;div class="card-header bg-light"&gt;
+                    &lt;h5 class="mb-0"&gt;收货信息&lt;/h5&gt;
+                &lt;/div&gt;
+                &lt;div class="card-body"&gt;
+                    &lt;p&gt;&lt;strong&gt;收货人:&lt;/strong&gt; {{ $order->shipping_name }}&lt;/p&gt;
+                    &lt;p&gt;&lt;strong&gt;联系电话:&lt;/strong&gt; {{ $order->shipping_phone }}&lt;/p&gt;
+                    &lt;p&gt;&lt;strong&gt;收货地址:&lt;/strong&gt; {{ $order->shipping_address }}&lt;/p&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- 订单商品 --&gt;
+    &lt;div class="card shadow-sm border-0"&gt;
+        &lt;div class="card-header bg-light"&gt;
+             &lt;h5 class="mb-0"&gt;商品列表&lt;/h5&gt;
+        &lt;/div&gt;
+        &lt;div class="card-body p-0"&gt; {{-- p-0 移除内边距，让表格填满 --}}
+            &lt;div class="table-responsive"&gt;
+                &lt;table class="table align-middle mb-0"&gt;
+                    &lt;thead&gt;
+                        &lt;tr&gt;
+                            &lt;th scope="col" style="width: 80px;"&gt;图片&lt;/th&gt;
+                            &lt;th scope="col"&gt;商品名称&lt;/th&gt;
+                            &lt;th scope="col" class="text-end"&gt;购买单价&lt;/th&gt;
+                            &lt;th scope="col" class="text-center"&gt;数量&lt;/th&gt;
+                            &lt;th scope="col" class="text-end"&gt;小计&lt;/th&gt;
+                        &lt;/tr&gt;
+                    &lt;/thead&gt;
+                    &lt;tbody&gt;
+                        @foreach($order->items as $item)
+                        &lt;tr&gt;
+                            &lt;td&gt;
+                                {{-- 如果 product 存在则显示图片和链接，否则显示快照信息 --}}
+                                @if($item->product)
+                                    &lt;a href="{{ route('products.show', $item->product->slug) }}"&gt;
+                                    @if($item->product->image)
+                                        &lt;img src="{{ Storage::disk('public')->url($item->product->image) }}" alt="{{ $item->product_name ?? $item->product->name }}" class="img-thumbnail" style="max-height: 60px;"&gt;
+                                    @else
+                                        &lt;img src="https://via.placeholder.com/100x100.png/CCCCCC?text=No+Image" class="img-thumbnail" alt="No Image" style="max-height: 60px;"&gt;
+                                    @endif
+                                    &lt;/a&gt;
+                                @else
+                                     &lt;img src="https://via.placeholder.com/100x100.png/CCCCCC?text=N/A" class="img-thumbnail" alt="Product Not Available" style="max-height: 60px;"&gt;
+                                @endif
+                            &lt;/td&gt;
+                            &lt;td&gt;
+                                @if($item->product)
+                                &lt;a href="{{ route('products.show', $item->product->slug) }}" class="text-decoration-none text-dark"&gt;
+                                    {{ $item->product_name ?? $item->product->name }}
+                                &lt;/a&gt;
+                                @else
+                                    {{ $item->product_name ?? '(商品已删除)' }}
+                                @endif
+                            &lt;/td&gt;
+                            &lt;td class="text-end"&gt;￥{{ number_format($item->price, 2) }}&lt;/td&gt; {{-- 显示购买时的价格快照 --}}
+                            &lt;td class="text-center"&gt;{{ $item->quantity }}&lt;/td&gt;
+                            &lt;td class="text-end fw-medium"&gt;￥{{ number_format($item->price * $item->quantity, 2) }}&lt;/td&gt;
+                        &lt;/tr&gt;
+                        @endforeach
+                    &lt;/tbody&gt;
+                     &lt;tfoot class="table-light"&gt;
+                        &lt;tr&gt;
+                            &lt;td colspan="4" class="text-end fw-bold border-0"&gt;订单总额:&lt;/td&gt;
+                            &lt;td class="text-end fw-bold fs-5 text-danger border-0"&gt;￥{{ number_format($order->total_price, 2) }}&lt;/td&gt;
+                        &lt;/tr&gt;
+                    &lt;/tfoot&gt;
+                &lt;/table&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+&lt;/div&gt;
+@endsection
+
+</code></pre>
+</div>
+
+<h2 class="text-3xl font-semibold mt-8 mb-4">第七章总结</h2>
+<p>我们成功地实现了在线商城 MVP 的基础下单流程。创建了 `orders` 和 `order_items` 数据表及其模型和关联关系，定义了结算和订单相关的路由及控制器。用户现在可以将购物车中的商品提交为订单，并将订单信息（包括商品快照和收货地址）持久化到数据库中。用户也可以查看自己的历史订单列表和订单详情。</p>
+<p>这为后续集成真实的支付流程、处理订单状态流转以及后台订单管理奠定了基础。</p>
+
+<hr class="my-8 border-gray-300">
+
+<p>接下来，我们将进入 **第八章：集成 Stripe 支付 (基础)**。我们将学习如何引入 Stripe PHP 库，创建一个基础的支付意图 (Payment Intent)，并将用户重定向到 Stripe Checkout 或使用 Elements 构建支付表单来完成（模拟）支付。</p>
+
+</body>
+</html>

@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线商城 MVP - 第十二章：实现用户评价系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Basic code block styling */
+        pre code {
+            display: block;
+            white-space: pre;
+            background-color: #2d3748; /* bg-gray-800 */
+            color: #e2e8f0; /* text-gray-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        /* Basic prose styling */
+        .prose {
+            max-width: 80ch;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; margin-bottom: 0.5em; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose p { margin-bottom: 1em; line-height: 1.6;}
+        .prose ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose li { margin-bottom: 0.5em; }
+        .prose code:not(pre code) { background-color: #edf2f7; /* bg-gray-200 */ color: #1a202c; /* text-gray-900 */ padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.9em; }
+        .prose strong { font-weight: bold; }
+        .prose blockquote { border-left: 4px solid #cbd5e0; padding-left: 1em; color: #4a5568; margin-left: 0; margin-right: 0; font-style: italic;}
+        .prose a { color: #3182ce; text-decoration: none; }
+        .prose a:hover { text-decoration: underline; }
+        .table-container { overflow-x: auto; margin-bottom: 1em; }
+        .prose table { width: 100%; border-collapse: collapse; }
+        .prose th, .prose td { border: 1px solid #e2e8f0; padding: 0.5em 0.75em; text-align: left; }
+        .prose th { background-color: #f7fafc; font-weight: bold; }
+        .note { background-color: #ebf8ff; border-left: 4px solid #63b3ed; padding: 1rem; margin-bottom: 1em; color: #2c5282; }
+        .warning { background-color: #fffaf0; border-left: 4px solid #ecc94b; padding: 1rem; margin-bottom: 1em; color: #744210; }
+        .step { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; background-color: #f9fafb; }
+        .step-title { font-weight: bold; font-size: 1.25rem; margin-bottom: 0.75rem; color: #1f2937; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-8 prose">
+
+<h1 class="text-4xl font-bold mb-6 text-center">第十二章：在线商城 MVP - 实现用户评价系统</h1>
+<p class="text-center text-lg text-gray-600 mb-8">允许购买用户评价商品，并在前后台展示</p>
+
+<div class="step">
+    <h3 class="step-title">步骤 1：设计评价表 (`reviews`) 结构</h3>
+    <p>创建新表存储用户对商品的评价信息。</p>
+    <p><strong>数据表结构 (`reviews`):</strong></p>
+    <ul>
+        <li>`id`: 主键</li>
+        <li>`user_id`: 评价用户 ID (外键, 关联 `users`)</li>
+        <li>`product_id`: 被评价商品 ID (外键, 关联 `products`)</li>
+        <li>`order_id`: (可选但推荐) 用户购买此商品的订单 ID (外键, 关联 `orders`, 用于验证购买资格)</li>
+        <li>`rating`: 评分 (TINYINTEGER 或 SMALLINTEGER, 1-5 星, 添加索引)</li>
+        <li>`comment`: 评论内容 (TEXT, 可为空)</li>
+        <li>`is_approved`: 评论是否审核通过 (BOOLEAN, 默认为 true, 添加索引)</li>
+        <li>`created_at`, `updated_at`: 时间戳</li>
+        <li>需要一个组合唯一索引 `unique(['user_id', 'product_id'])` 防止用户重复评价同一商品。</li>
+    </ul>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 2：创建 `reviews` 表迁移文件</h3>
+    <p><strong>操作 1：</strong> 生成迁移文件。</p>
+    <pre><code class="language-bash">php artisan make:migration create_reviews_table</code></pre>
+    <p><strong>操作 2：</strong> 编辑迁移文件。</p>
+    <p><strong>文件：</strong> <code>database/migrations/YYYY_MM_DD_HHMMSS_create_reviews_table.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('reviews', function (Blueprint $table) {
+            $table->id();
+            // 关联用户，用户删除时，其评论也删除
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            // 关联商品，商品删除时，其评论也删除
+            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            // 关联订单 (可选)，订单删除时，将 order_id 设为 NULL
+            $table->foreignId('order_id')->nullable()->constrained()->nullOnDelete();
+            $table->unsignedTinyInteger('rating'); // 评分 (1-5)
+            $table->text('comment')->nullable(); // 评论内容，允许为空
+            $table->boolean('is_approved')->default(true)->index(); // 是否审核通过，默认 true，加索引
+            $table->timestamps();
+
+            // 索引优化查询
+            $table->index('rating');
+            // $table->index(['product_id', 'is_approved']); // 联合索引
+
+            // 确保一个用户对一个商品只能评价一次
+            $table->unique(['user_id', 'product_id']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('reviews');
+    }
+};
+
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 3：创建 `Review` 模型及关联关系</h3>
+    <p><strong>操作 1：</strong> 生成 `Review` 模型文件。</p>
+    <pre><code class="language-bash">php artisan make:model Review</code></pre>
+    <p><strong>操作 2：</strong> 编辑模型文件。</p>
+    <p><strong>文件：</strong> <code>app/Models/Review.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Models/Review.php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Builder; // 引入 Builder
+
+class Review extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'user_id',
+        'product_id',
+        'order_id',
+        'rating',
+        'comment',
+        'is_approved',
+    ];
+
+    protected $casts = [
+        'rating' => 'integer',
+        'is_approved' => 'boolean',
+    ];
+
+    // 预加载用户关系，选择需要的字段
+    protected $with = ['user:id,name,avatar'];
+
+    /**
+     * 评价所属的用户
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * 评价所属的商品
+     */
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * (可选) 评价关联的订单
+     */
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    /**
+     * 本地作用域：只选择已审核通过的评价
+     */
+    public function scopeApproved(Builder $query): Builder
+    {
+        return $query->where('is_approved', true);
+    }
+}
+
+</code></pre>
+    <p><strong>操作 3：</strong> 编辑 `User` 模型，添加 `reviews` 关系。</p>
+    <p><strong>文件：</strong> <code>app/Models/User.php</code></p>
+    <p><strong>添加方法：</strong></p>
+    <pre><code class="language-php">    // app/Models/User.php
+    use Illuminate\Database\Eloquent\Relations\HasMany; // Add this use statement
+
+    // ... existing code ...
+
+    /**
+     * 获取用户发表的所有评价
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+</code></pre>
+    <p><strong>操作 4：</strong> 编辑 `Product` 模型，添加 `reviews` 关系和计算平均分、数量的方法。</p>
+    <p><strong>文件：</strong> <code>app/Models/Product.php</code></p>
+    <p><strong>添加方法：</strong></p>
+    <pre><code class="language-php">    // app/Models/Product.php
+    use Illuminate\Database\Eloquent\Relations\HasMany; // Add this use statement
+    use Illuminate\Support\Facades\Cache; // 用于缓存平均分 (可选)
+
+    // ... existing code ...
+
+    /**
+     * 获取商品的所有评价
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    /**
+     * 获取已审核通过的评价
+     */
+    public function approvedReviews(): HasMany
+    {
+        return $this->hasMany(Review::class)->approved(); // 使用 Review 模型的 scopeApproved
+    }
+
+    /**
+     * 计算并返回商品的平均评分 (只计算已审核的)
+     * @param int $precision 小数点精度
+     * @return float
+     */
+    public function averageRating(int $precision = 1): float
+    {
+        // 可以添加缓存逻辑提高性能
+        // $cacheKey = "product_{$this->id}_avg_rating";
+        // return Cache::remember($cacheKey, now()->addHours(1), function () use ($precision) {
+             return round($this->approvedReviews()->avg('rating') ?? 0, $precision);
+        // });
+    }
+
+    /**
+     * 获取已审核通过的评价数量
+     * @return int
+     */
+    public function reviewCount(): int
+    {
+        // 可以添加缓存逻辑
+        // $cacheKey = "product_{$this->id}_review_count";
+        // return Cache::remember($cacheKey, now()->addHours(1), function () {
+            return $this->approvedReviews()->count();
+        // });
+    }
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 4：运行数据库迁移</h3>
+    <p>将新的 `reviews` 表应用到数据库。</p>
+    <p><strong>操作：</strong> 运行 migrate 命令。</p>
+    <pre><code class="language-bash">php artisan migrate</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 5：定义评价相关路由</h3>
+    <p><strong>操作 1：</strong> 定义用户提交评价的路由。</p>
+    <p><strong>文件：</strong> <code>routes/web.php</code></p>
+    <p><strong>添加路由 (需要登录)：</strong></p>
+    <pre><code class="language-php">&lt;?php
+// ... 其他 use ...
+use App\Http\Controllers\ReviewController; // 引入 ReviewController
+
+// ... 其他路由 ...
+
+Route::middleware(['auth'])->group(function () {
+    // ... checkout, order routes ...
+
+    // 提交商品评价路由 (嵌套在商品下)
+    Route::post('/products/{product}/reviews', [ReviewController::class, 'store'])->name('reviews.store');
+
+    // ... profile routes ...
+});
+
+// ... 后台管理路由 ...
+// ... Breeze 认证路由 ...
+</code></pre>
+    <p><strong>操作 2：</strong> 定义后台管理评价的路由。</p>
+    <p><strong>文件：</strong> <code>routes/web.php</code></p>
+    <p><strong>在 `/admin` 路由组内添加路由：</strong></p>
+    <pre><code class="language-php">&lt;?php
+// ... 其他 use ...
+use App\Http\Controllers\Admin\ReviewController as AdminReviewController; // 引入后台 ReviewController
+
+Route::middleware(['auth', 'admin'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+        // ... dashboard, categories, products routes ...
+
+        // 评价管理路由
+        Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews.index'); // 列表
+        Route::patch('/reviews/{review}/toggle', [AdminReviewController::class, 'toggleApproval'])->name('reviews.toggle'); // 切换审核状态
+        Route::delete('/reviews/{review}', [AdminReviewController::class, 'destroy'])->name('reviews.destroy'); // 删除评价
+});
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 6：创建并实现控制器</h3>
+    <p><strong>操作 1：</strong> 生成前台 `ReviewController`。</p>
+    <pre><code class="language-bash">php artisan make:controller ReviewController</code></pre>
+    <p><strong>操作 2：</strong> 编辑 `ReviewController`，实现 `store` 方法。</p>
+    <p><strong>文件：</strong> <code>app/Http/Controllers/ReviewController.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Http/Controllers/ReviewController.php
+
+namespace App\Http\Controllers;
+
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\Review;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
+
+class ReviewController extends Controller
+{
+    // 应用 auth 中间件，确保只有登录用户能提交评价
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
+    /**
+     * 存储用户提交的评价。
+     */
+    public function store(Request $request, Product $product) // 路由模型绑定 $product
+    {
+        // 1. 验证输入
+        $validated = $request->validate([
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
+            'comment' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $user = Auth::user();
+
+        // 2. 验证用户是否有资格评价此商品
+        // 检查用户是否已完成包含此商品的订单
+        $hasPurchased = Order::where('user_id', $user->id)
+                             ->where('status', Order::STATUS_COMPLETED) // 确保订单已完成
+                             ->whereHas('items', fn($q) => $q->where('product_id', $product->id))
+                             ->exists();
+
+        if (!$hasPurchased) {
+            return back()->with('error', '您需要先购买并完成该商品的订单才能评价。')->withInput();
+        }
+
+        // 3. 检查用户是否已评价过此商品
+        $hasReviewed = Review::where('user_id', $user->id)
+                             ->where('product_id', $product->id)
+                             ->exists();
+
+        if ($hasReviewed) {
+            return back()->with('error', '您已经评价过此商品了。')->withInput();
+        }
+
+        // 4. 创建评价记录
+        Review::create([
+            'user_id' => $user->id,
+            'product_id' => $product->id,
+            // 'order_id' => $order->id, // 如果需要关联具体订单，需要从购买检查中获取 $order
+            'rating' => $validated['rating'],
+            'comment' => $validated['comment'],
+            'is_approved' => true, // 默认直接通过审核 (可根据业务调整)
+        ]);
+
+        // 5. 重定向回商品页并显示成功消息
+        return redirect()->route('products.show', $product->slug)
+                         ->with('success', '感谢您的评价！');
+    }
+}
+
+</code></pre>
+    <p><strong>操作 3：</strong> 生成后台 `Admin\ReviewController`。</p>
+    <pre><code class="language-bash">php artisan make:controller Admin/ReviewController</code></pre>
+    <p><strong>操作 4：</strong> 编辑 `Admin\ReviewController`，实现 `index`, `toggleApproval`, `destroy` 方法。</p>
+    <p><strong>文件：</strong> <code>app/Http/Controllers/Admin/ReviewController.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Http/Controllers/Admin/ReviewController.php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Review;
+use Illuminate\Http\Request;
+
+class ReviewController extends Controller
+{
+    /**
+     * 显示评价列表 (后台)。
+     */
+    public function index(Request $request)
+    {
+        $query = Review::with(['user:id,name', 'product:id,name']) // 预加载用户信息和商品信息
+                     ->latest(); // 按最新排序
+
+        // (可选) 添加筛选
+        if ($request->filled('approved')) {
+            $query->where('is_approved', $request->boolean('approved'));
+        }
+        if ($request->filled('product_id')) {
+            $query->where('product_id', $request->input('product_id'));
+        }
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->input('user_id'));
+        }
+
+        $reviews = $query->paginate(20)->withQueryString();
+
+        return view('admin.reviews.index', compact('reviews'));
+    }
+
+    /**
+     * 切换评价的审核状态。
+     */
+    public function toggleApproval(Review $review)
+    {
+        $review->update(['is_approved' => !$review->is_approved]);
+
+        $message = $review->is_approved ? '评价已审核通过。' : '评价已取消审核。';
+
+        // 清除相关缓存 (例如商品平均分缓存)
+        // Cache::forget("product_{$review->product_id}_avg_rating");
+        // Cache::forget("product_{$review->product_id}_review_count");
+
+        return back()->with('success', $message);
+    }
+
+    /**
+     * 删除评价。
+     */
+    public function destroy(Review $review)
+    {
+        $productId = $review->product_id; // 先获取 product_id 用于缓存清理
+        $review->delete();
+
+        // 清除相关缓存
+        // Cache::forget("product_{$productId}_avg_rating");
+        // Cache::forget("product_{productId}_review_count");
+
+        return back()->with('success', '评价删除成功！');
+    }
+}
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 7：更新商品详情页视图 (`products/show.blade.php`)</h3>
+    <p>在页面上显示平均分、评价列表，并为符合条件的用户显示评价表单。</p>
+    <p><strong>操作 1：</strong> 更新 `ProductController@show` 方法以传递所需数据。</p>
+    <p><strong>文件：</strong> <code>app/Http/Controllers/ProductController.php</code></p>
+    <p><strong>修改 `show` 方法：</strong></p>
+    <pre><code class="language-php">    // app/Http/Controllers/ProductController.php
+    use App\Models\Order; // 引入 Order
+    use App\Models\Review; // 引入 Review
+    use Illuminate\Support\Facades\Auth; // 引入 Auth
+
+    public function show(Product $product)
+    {
+        if (!$product->is_active) { abort(404); }
+
+        // 加载分类 和 已审核通过的评价 (带用户)
+        $product->load([
+            'categories',
+            'reviews' => fn($q) => $q->approved()->with('user:id,name,avatar')->latest()
+        ]);
+
+        // 计算评价数据 (使用模型中的方法)
+        $averageRating = $product->averageRating();
+        $reviewCount = $product->reviewCount();
+
+        // 检查当前用户是否可以评价
+        $canReview = false;
+        if (Auth::check()) {
+            $user = Auth::user();
+            // 1. 检查是否购买过且订单完成
+            $hasPurchased = Order::where('user_id', $user->id)
+                                 ->where('status', Order::STATUS_COMPLETED)
+                                 ->whereHas('items', fn($q) => $q->where('product_id', $product->id))
+                                 ->exists();
+            // 2. 检查是否尚未评价过
+            $hasReviewed = Review::where('user_id', $user->id)
+                                 ->where('product_id', $product->id)
+                                 ->exists();
+            $canReview = $hasPurchased && !$hasReviewed;
+        }
+
+        return view('products.show', compact('product', 'averageRating', 'reviewCount', 'canReview'));
+    }
+</code></pre>
+    <p><strong>操作 2：</strong> 编辑视图文件。</p>
+    <p><strong>文件：</strong> <code>resources/views/products/show.blade.php</code></p>
+    <p><strong>添加评价显示和表单部分 (例如，在商品描述下方)：</strong></p>
+    <pre><code class="language-html">&lt;!-- resources/views/products/show.blade.php (添加部分) --&gt;
+            {{-- ... 商品信息和加入购物车按钮 ... --}}
+
+            &lt;hr class="my-4"&gt;
+
+            &lt;!-- 评价概览 --&gt;
+            &lt;div class="d-flex align-items-center mb-3"&gt;
+                &lt;h4 class="mb-0 me-3"&gt;用户评价&lt;/h4&gt;
+                @if($reviewCount > 0)
+                    &lt;div class="text-warning me-2"&gt;
+                        {{-- 简易星级显示 --}}
+                        @for ($i = 1; $i &lt;= 5; $i++)
+                            &lt;i class="bi {{ $i <= round($averageRating) ? 'bi-star-fill' : ($i - 0.5 <= $averageRating ? 'bi-star-half' : 'bi-star') }}"&gt;&lt;/i&gt;
+                        @endfor
+                    &lt;/div&gt;
+                    &lt;span class="fw-bold me-2"&gt;{{ number_format($averageRating, 1) }}&lt;/span&gt;
+                    &lt;span class="text-muted"&gt;({{ $reviewCount }} 条评价)&lt;/span&gt;
+                @else
+                    &lt;span class="text-muted"&gt;暂无评价&lt;/span&gt;
+                @endif
+            &lt;/div&gt;
+
+            &lt;!-- 评价列表 --&gt;
+            &lt;div class="review-list mb-4"&gt;
+                @forelse($product->reviews as $review)
+                    &lt;div class="card mb-3 shadow-sm border-0"&gt;
+                        &lt;div class="card-body"&gt;
+                            &lt;div class="d-flex justify-content-between align-items-center mb-2"&gt;
+                                &lt;div class="d-flex align-items-center"&gt;
+                                     {{-- 用户头像 (可选) --}}
+                                     {{-- &lt;img src="{{ $review->user->avatar ?? '...' }}" class="rounded-circle me-2" width="30" height="30" alt=""&gt; --}}
+                                     &lt;span class="fw-medium"&gt;{{ $review->user->name ?? '匿名用户' }}&lt;/span&gt;
+                                     &lt;span class="text-warning ms-2"&gt;
+                                         @for ($i = 1; $i &lt;= 5; $i++)
+                                             &lt;i class="bi {{ $i <= $review->rating ? 'bi-star-fill' : 'bi-star' }}"&gt;&lt;/i&gt;
+                                         @endfor
+                                     &lt;/span&gt;
+                                &lt;/div&gt;
+                                &lt;span class="text-muted small"&gt;{{ $review->created_at->diffForHumans() }}&lt;/span&gt;
+                            &lt;/div&gt;
+                            @if($review->comment)
+                                &lt;p class="card-text"&gt;{{ $review->comment }}&lt;/p&gt;
+                            @else
+                                &lt;p class="card-text fst-italic text-muted"&gt;该用户没有填写评论。&lt;/p&gt;
+                            @endif
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                @empty
+                    {{-- 如果 reviewCount > 0 但 $product->reviews 为空 (可能被后台隐藏)，可以不显示这条 --}}
+                    @if($reviewCount == 0)
+                     &lt;p class="text-muted"&gt;成为第一个评价此商品的人吧！&lt;/p&gt;
+                    @endif
+                @endforelse
+            &lt;/div&gt;
+
+            &lt;!-- 评价表单 (仅当用户可评价时显示) --&gt;
+            @auth {{-- 先判断是否登录 --}}
+                @if($canReview)
+                &lt;div class="add-review-form border p-3 rounded bg-light"&gt;
+                    &lt;h5&gt;发表您的评价&lt;/h5&gt;
+                    &lt;form action="{{ route('reviews.store', $product) }}" method="POST"&gt;
+                        @csrf
+                        &lt;div class="mb-3"&gt;
+                            &lt;label for="rating" class="form-label"&gt;评分:&lt;/label&gt;
+                            {{-- 星级评分 (简易版 - 单选按钮) --}}
+                            &lt;div class="star-rating @error('rating') is-invalid @enderror"&gt;
+                                @for ($i = 5; $i >= 1; $i--)
+                                    &lt;input type="radio" id="rating{{ $i }}" name="rating" value="{{ $i }}" {{ old('rating') == $i ? 'checked' : '' }} class="form-check-input d-none" required&gt;
+                                    &lt;label for="rating{{ $i }}" class="bi bi-star text-secondary fs-4" style="cursor:pointer;" title="{{ $i }} 星"&gt;&lt;/label&gt;
+                                @endfor
+                            &lt;/div&gt;
+                            @error('rating') &lt;div class="invalid-feedback d-block"&gt;{{ $message }}&lt;/div&gt; @enderror
+                        &lt;/div&gt;
+                        &lt;div class="mb-3"&gt;
+                            &lt;label for="comment" class="form-label"&gt;评论内容 (可选):&lt;/label&gt;
+                            &lt;textarea name="comment" id="comment" rows="4" class="form-control @error('comment') is-invalid @enderror"&gt;{{ old('comment') }}&lt;/textarea&gt;
+                            @error('comment') &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt; @enderror
+                        &lt;/div&gt;
+                        &lt;button type="submit" class="btn btn-primary"&gt;提交评价&lt;/button&gt;
+                    &lt;/form&gt;
+                &lt;/div&gt;
+                 {{-- 添加 JS/CSS 来美化星级评分 (可选) --}}
+                @push('styles')
+                &lt;style&gt;
+                    .star-rating { display: inline-block; direction: rtl; } /* RTL 让星星从右往左选 */
+                    .star-rating label { cursor: pointer; color: #ccc; transition: color 0.2s; }
+                    .star-rating input[type="radio"]:checked ~ label, /* 选中的星星及其左边的星星 */
+                    .star-rating label:hover,                        /* 鼠标悬停的星星 */
+                    .star-rating label:hover ~ label {               /* 鼠标悬停星星及其左边的星星 */
+                        color: #ffc107; /* Bootstrap 警告色 (黄色) */
+                    }
+                    /* 隐藏原始 radio 按钮 */
+                    .star-rating input[type="radio"] { display: none; }
+                &lt;/style&gt;
+                @endpush
+
+                @elseif(Auth::user()->reviews()->where('product_id', $product->id)->exists())
+                 &lt;div class="alert alert-info" role="alert"&gt;您已经评价过此商品。&lt;/div&gt;
+                @else
+                 &lt;div class="alert alert-warning" role="alert"&gt;您需要购买并完成此商品的订单后才能评价。&lt;/div&gt;
+                @endif
+            @else {{-- 未登录 --}}
+                 &lt;p&gt;请 &lt;a href="{{ route('login', ['redirect' => url()->current()]) }}"&gt;登录&lt;/a&gt; 后发表评价。&lt;/p&gt;
+            @endauth
+
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 8：创建后台评价管理视图</h3>
+    <p>为管理员提供查看、审核（切换状态）和删除评价的界面。</p>
+    <p><strong>操作：</strong> 创建视图文件。</p>
+    <p><strong>文件：</strong> <code>resources/views/admin/reviews/index.blade.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+@extends('layouts.admin')
+
+@section('title', '评价管理')
+
+@section('content')
+&lt;div class="card border-0 shadow-sm"&gt;
+    &lt;div class="card-header bg-white"&gt;
+        &lt;h5 class="mb-0"&gt;评价列表&lt;/h5&gt;
+        {{-- TODO: 添加筛选表单 (按商品、用户、审核状态) --}}
+    &lt;/div&gt;
+    &lt;div class="card-body p-0"&gt;
+        &lt;div class="table-responsive"&gt;
+            &lt;table class="table table-hover mb-0 align-middle"&gt;
+                &lt;thead class="table-light"&gt;
+                    &lt;tr&gt;
+                        &lt;th scope="col"&gt;ID&lt;/th&gt;
+                        &lt;th scope="col"&gt;商品&lt;/th&gt;
+                        &lt;th scope="col"&gt;用户&lt;/th&gt;
+                        &lt;th scope="col" class="text-center"&gt;评分&lt;/th&gt;
+                        &lt;th scope="col"&gt;评论 (摘要)&lt;/th&gt;
+                        &lt;th scope="col" class="text-center"&gt;状态&lt;/th&gt;
+                        &lt;th scope="col"&gt;时间&lt;/th&gt;
+                        &lt;th scope="col" style="width: 180px;"&gt;操作&lt;/th&gt;
+                    &lt;/tr&gt;
+                &lt;/thead&gt;
+                &lt;tbody&gt;
+                    @forelse ($reviews as $review)
+                        &lt;tr&gt;
+                            &lt;th scope="row"&gt;{{ $review->id }}&lt;/th&gt;
+                            &lt;td&gt;
+                                @if($review->product)
+                                &lt;a href="{{ route('products.show', $review->product->slug) }}" target="_blank" title="{{ $review->product->name }}"&gt;
+                                    {{ Str::limit($review->product->name, 25) }} (ID: {{ $review->product_id }})
+                                &lt;/a&gt;
+                                @else
+                                &lt;span class="text-muted"&gt;(商品已删除)&lt;/span&gt;
+                                @endif
+                            &lt;/td&gt;
+                            &lt;td&gt;{{ $review->user->name ?? 'N/A' }} (ID: {{ $review->user_id }})&lt;/td&gt;
+                            &lt;td class="text-center text-warning"&gt;
+                                @for ($i = 1; $i &lt;= 5; $i++)
+                                    &lt;i class="bi {{ $i <= $review->rating ? 'bi-star-fill' : 'bi-star' }}"&gt;&lt;/i&gt;
+                                @endfor
+                            &lt;/td&gt;
+                            &lt;td&gt;
+                                &lt;span title="{{ $review->comment }}"&gt;{{ Str::limit($review->comment, 50, '...') }}&lt;/span&gt;
+                            &lt;/td&gt;
+                            &lt;td class="text-center"&gt;
+                                @if($review->is_approved)
+                                    &lt;span class="badge bg-success"&gt;已审核&lt;/span&gt;
+                                @else
+                                    &lt;span class="badge bg-secondary"&gt;待审核&lt;/span&gt;
+                                @endif
+                            &lt;/td&gt;
+                            &lt;td&gt;&lt;span class="small text-muted"&gt;{{ $review->created_at->format('Y-m-d H:i') }}&lt;/span&gt;&lt;/td&gt;
+                            &lt;td&gt;
+                                {{-- 切换审核状态按钮 --}}
+                                &lt;form action="{{ route('admin.reviews.toggle', $review) }}" method="POST" class="d-inline"&gt;
+                                    @csrf
+                                    @method('PATCH')
+                                    &lt;button type="submit" class="btn btn-sm {{ $review->is_approved ? 'btn-secondary' : 'btn-success' }}" title="{{ $review->is_approved ? '取消审核' : '审核通过' }}"&gt;
+                                        &lt;i class="bi {{ $review->is_approved ? 'bi-x-circle-fill' : 'bi-check-circle-fill' }}"&gt;&lt;/i&gt;
+                                    &lt;/button&gt;
+                                &lt;/form&gt;
+                                {{-- 删除按钮 --}}
+                                &lt;form action="{{ route('admin.reviews.destroy', $review) }}" method="POST" class="d-inline" onsubmit="return confirm('确定要删除这条评价吗？');"&gt;
+                                    @csrf
+                                    @method('DELETE')
+                                    &lt;button type="submit" class="btn btn-danger btn-sm" title="删除"&gt;
+                                        &lt;i class="bi bi-trash-fill"&gt;&lt;/i&gt;
+                                    &lt;/button&gt;
+                                &lt;/form&gt;
+                            &lt;/td&gt;
+                        &lt;/tr&gt;
+                    @empty
+                        &lt;tr&gt;
+                            &lt;td colspan="8" class="text-center text-muted py-4"&gt;暂无评价数据。&lt;/td&gt;
+                        &lt;/tr&gt;
+                    @endforelse
+                &lt;/tbody&gt;
+            &lt;/table&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+     @if ($reviews->hasPages())
+    &lt;div class="card-footer bg-white"&gt;
+        {{ $reviews->links() }}
+    &lt;/div&gt;
+    @endif
+&lt;/div&gt;
+@endsection
+
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 9：添加后台导航链接</h3>
+    <p><strong>操作：</strong> 编辑后台布局文件。</p>
+    <p><strong>文件：</strong> <code>resources/views/layouts/admin.blade.php</code></p>
+    <p><strong>在侧边栏 `ul` 中添加评价管理链接：</strong></p>
+    <pre><code class="language-html">&lt;!-- resources/views/layouts/admin.blade.php (侧边栏片段) --&gt;
+&lt;ul class="nav nav-pills flex-column mb-auto"&gt;
+    {{-- ... dashboard, categories, products ... --}}
+    &lt;li&gt;
+        &lt;a href="{{ route('admin.orders.index') }}" class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : 'text-white' }}"&gt;
+           &lt;i class="bi bi-receipt me-2"&gt;&lt;/i&gt; 订单管理
+        &lt;/a&gt;
+    &lt;/li&gt;
+    &lt;!-- 添加评价管理链接 --&gt;
+    &lt;li&gt;
+        &lt;a href="{{ route('admin.reviews.index') }}" class="nav-link {{ request()->routeIs('admin.reviews.*') ? 'active' : 'text-white' }}"&gt;
+           &lt;i class="bi bi-star-half me-2"&gt;&lt;/i&gt; 评价管理
+        &lt;/a&gt;
+    &lt;/li&gt;
+    {{-- ... 用户管理等 ... --}}
+&lt;/ul&gt;
+</code></pre>
+</div>
+
+<h2 class="text-3xl font-semibold mt-8 mb-4">第十二章总结</h2>
+<p>我们成功地为在线商城 MVP 添加了用户评价系统。创建了 `reviews` 数据表和模型，实现了用户提交评价的逻辑（包含购买资格验证和防重复提交），更新了商品详情页以展示平均分、评价列表和评价表单，并添加了基础的后台评价查看、审核切换和删除功能。</p>
+<p>这使得我们的商城平台更具交互性，并为用户提供了重要的参考信息。</p>
+
+<hr class="my-8 border-gray-300">
+
+<p>目前，我们 MVP 的核心功能已基本实现。剩下的主要方向是：</p>
+<ol>
+    <li>**完善后台订单状态管理:** 让管理员可以修改订单状态。</li>
+    <li>**测试:** 为现有功能编写自动化测试。</li>
+    <li>**部署:** 讨论如何将应用部署到服务器。</li>
+    <li>**其他高级功能:** 例如更复杂的搜索、促销活动等。</li>
+</ol>
+
+</body>
+</html>

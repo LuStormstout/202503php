@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线商城 MVP - 第三章：核心数据表迁移与数据填充</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Basic code block styling */
+        pre code {
+            display: block;
+            white-space: pre;
+            background-color: #2d3748; /* bg-gray-800 */
+            color: #e2e8f0; /* text-gray-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        /* Basic prose styling */
+        .prose {
+            max-width: 80ch;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; margin-bottom: 0.5em; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose p { margin-bottom: 1em; line-height: 1.6;}
+        .prose ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose li { margin-bottom: 0.5em; }
+        .prose code:not(pre code) { background-color: #edf2f7; /* bg-gray-200 */ color: #1a202c; /* text-gray-900 */ padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.9em; }
+        .prose strong { font-weight: bold; }
+        .prose blockquote { border-left: 4px solid #cbd5e0; padding-left: 1em; color: #4a5568; margin-left: 0; margin-right: 0; font-style: italic;}
+        .prose a { color: #3182ce; text-decoration: none; }
+        .prose a:hover { text-decoration: underline; }
+        .table-container { overflow-x: auto; margin-bottom: 1em; }
+        .prose table { width: 100%; border-collapse: collapse; }
+        .prose th, .prose td { border: 1px solid #e2e8f0; padding: 0.5em 0.75em; text-align: left; }
+        .prose th { background-color: #f7fafc; font-weight: bold; }
+        .note { background-color: #ebf8ff; border-left: 4px solid #63b3ed; padding: 1rem; margin-bottom: 1em; color: #2c5282; }
+        .warning { background-color: #fffaf0; border-left: 4px solid #ecc94b; padding: 1rem; margin-bottom: 1em; color: #744210; }
+        .step { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; background-color: #f9fafb; }
+        .step-title { font-weight: bold; font-size: 1.25rem; margin-bottom: 0.75rem; color: #1f2937; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-8 prose">
+
+<h1 class="text-4xl font-bold mb-6 text-center">第三章：在线商城 MVP - 核心数据表迁移与数据填充 </h1>
+<p class="text-center text-lg text-gray-600 mb-8">设计并创建商品、分类、购物车相关表结构，定义关系并填充数据</p>
+
+<div class="note">
+    <p>本章基于第一章（项目初始化）和第二章（认证集成）完成的前提下进行。我们将创建商品、分类以及**数据库购物车**所需的表结构和模型。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 1：创建商品表 (`products`) 迁移与模型</h3>
+    <p><strong>操作 1：</strong> 生成商品表迁移文件。</p>
+    <pre><code class="language-bash">php artisan make:migration create_products_table</code></pre>
+    <p><strong>操作 2：</strong> 编辑迁移文件。</p>
+    <p><strong>文件：</strong> <code>database/migrations/YYYY_MM_DD_HHMMSS_create_products_table.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('products', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('slug')->unique()->index();
+            $table->text('description')->nullable();
+            $table->decimal('price', 10, 2); // 价格，允许负数吗？通常不，可在模型层或请求层加验证
+            $table->string('image')->nullable(); // 商品主图路径
+            $table->boolean('is_active')->default(true)->index(); // 是否上架
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('products');
+    }
+};
+</code></pre>
+    <p><strong>操作 3：</strong> 生成 Product 模型文件。</p>
+    <pre><code class="language-bash">php artisan make:model Product</code></pre>
+    <p><strong>操作 4：</strong> 编辑模型文件，添加 `$fillable`, `$casts` 和关系占位符。</p>
+    <p><strong>文件：</strong> <code>app/Models/Product.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Builder;
+
+class Product extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'name', 'slug', 'description', 'price', 'image', 'is_active',
+    ];
+
+    protected $casts = [
+        'price' => 'decimal:2',
+        'is_active' => 'boolean',
+    ];
+
+    /**
+     * 商品所属的分类 (多对多)
+     */
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(Category::class, 'category_product')->withTimestamps();
+    }
+
+    /**
+     * 查询上架的商品
+     */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true);
+    }
+
+    // CartItem relationship will be added later
+}
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 2：创建分类表 (`categories`) 迁移与模型</h3>
+    <p><strong>操作 1：</strong> 生成分类表迁移文件。</p>
+    <pre><code class="language-bash">php artisan make:migration create_categories_table</code></pre>
+    <p><strong>操作 2：</strong> 编辑迁移文件。</p>
+    <p><strong>文件：</strong> <code>database/migrations/YYYY_MM_DD_HHMMSS_create_categories_table.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('categories', function (Blueprint $table) {
+            $table->id();
+            $table->string('name')->unique();
+            $table->string('slug')->unique()->index();
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('categories');
+    }
+};
+</code></pre>
+    <p><strong>操作 3：</strong> 生成 Category 模型文件。</p>
+    <pre><code class="language-bash">php artisan make:model Category</code></pre>
+    <p><strong>操作 4：</strong> 编辑模型文件，添加 `$fillable` 和关系。</p>
+    <p><strong>文件：</strong> <code>app/Models/Category.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+
+class Category extends Model
+{
+    use HasFactory;
+
+    protected $fillable = ['name', 'slug'];
+
+    /**
+     * 此分类下的所有商品 (多对多)
+     */
+    public function products(): BelongsToMany
+    {
+        return $this->belongsToMany(Product::class, 'category_product')->withTimestamps();
+    }
+}
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 3：创建分类与商品关联表 (`category_product`) 迁移</h3>
+    <p>这是商品和分类多对多关系的中间表。</p>
+    <p><strong>操作 1：</strong> 生成关联表迁移文件。</p>
+    <pre><code class="language-bash">php artisan make:migration create_category_product_table</code></pre>
+    <p><strong>操作 2：</strong> 编辑迁移文件。</p>
+    <p><strong>文件：</strong> <code>database/migrations/YYYY_MM_DD_HHMMSS_create_category_product_table.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('category_product', function (Blueprint $table) {
+            $table->id();
+            // cascadeOnDelete: 当分类或商品被删除时，自动删除此关联记录
+            $table->foreignId('category_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            $table->timestamps(); // 通常也需要时间戳
+
+            $table->unique(['category_id', 'product_id']); // 避免重复关联
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('category_product');
+    }
+};
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 4：创建购物车主表 (`carts`) 迁移与模型</h3>
+    <p>用于存储用户的购物车信息。我们将为每个用户创建一个购物车记录。</p>
+    <p><strong>操作 1：</strong> 生成迁移文件。</p>
+    <pre><code class="language-bash">php artisan make:migration create_carts_table</code></pre>
+    <p><strong>操作 2：</strong> 编辑迁移文件。</p>
+    <p><strong>文件：</strong> <code>database/migrations/YYYY_MM_DD_HHMMSS_create_carts_table.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('carts', function (Blueprint $table) {
+            $table->id();
+            // 关联用户，一个用户一个购物车。用户删除时，购物车也删除。
+            $table->foreignId('user_id')->unique()->constrained()->cascadeOnDelete();
+            // unique() 确保一个用户只有一个购物车记录
+            // 如果要做访客购物车，这里需要更复杂的逻辑，例如允许 user_id 为 null 并添加 session_id
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('carts');
+    }
+};
+</code></pre>
+    <p><strong>操作 3：</strong> 生成 Cart 模型文件。</p>
+    <pre><code class="language-bash">php artisan make:model Cart</code></pre>
+    <p><strong>操作 4：</strong> 编辑模型文件。</p>
+    <p><strong>文件：</strong> <code>app/Models/Cart.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Models/Cart.php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Cart extends Model
+{
+    use HasFactory;
+
+    protected $fillable = ['user_id']; // 只有 user_id 可以批量赋值
+
+    /**
+     * 购物车属于哪个用户 (反向一对一)
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * 购物车包含的商品项 (一对多)
+     */
+    public function items(): HasMany
+    {
+        return $this->hasMany(CartItem::class);
+    }
+
+    /**
+     * 计算购物车总价 (访问器或普通方法)
+     */
+    public function getTotalPriceAttribute(): float
+    {
+        // 预加载 items 和它们关联的 product 以避免 N+1
+        // 注意: 在实际使用中，应确保在访问此属性前已预加载 'items.product'
+        // $this->loadMissing('items.product'); // 可以在需要时加载
+
+        return $this->items->reduce(function ($carry, $item) {
+             // 确保关联的 product 存在且有 price 属性
+             if ($item->product && isset($item->product->price)) {
+                 return $carry + ($item->quantity * $item->product->price);
+             }
+             return $carry; // 如果产品不存在，则不计入总价
+        }, 0); // 初始值为 0
+    }
+}
+</code></pre>
+    <p class="note">我们需要在 `User` 模型中添加 `cart()` 关系。</p>
+    <p><strong>操作 5：</strong> 编辑 `User` 模型。</p>
+    <p><strong>文件：</strong> <code>app/Models/User.php</code></p>
+    <p><strong>添加 `cart` 关系方法：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Models/User.php
+
+namespace App\Models;
+
+// ... 其他 use ...
+use Illuminate\Database\Eloquent\Relations\HasOne; // 引入 HasOne
+
+class User extends Authenticatable
+{
+    // ... use Traits, $fillable, $hidden, $casts ...
+
+    /**
+     * 获取用户的购物车 (一对一)
+     */
+    public function cart(): HasOne
+    {
+        return $this->hasOne(Cart::class);
+    }
+
+    // ... 其他关系 ...
+}
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 5：创建购物车项目表 (`cart_items`) 迁移与模型</h3>
+    <p>存储购物车中的具体商品及其数量。</p>
+    <p><strong>操作 1：</strong> 生成迁移文件。</p>
+    <pre><code class="language-bash">php artisan make:migration create_cart_items_table</code></pre>
+    <p><strong>操作 2：</strong> 编辑迁移文件。</p>
+    <p><strong>文件：</strong> <code>database/migrations/YYYY_MM_DD_HHMMSS_create_cart_items_table.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('cart_items', function (Blueprint $table) {
+            $table->id();
+            // 关联购物车主表，购物车删除时，项目也删除
+            $table->foreignId('cart_id')->constrained()->cascadeOnDelete();
+            // 关联商品表，商品删除时，项目也删除 (或根据业务设为 null)
+            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            $table->unsignedInteger('quantity')->default(1); // 商品数量，至少为 1
+            // 可以考虑存储添加时的价格快照，防止商品价格变动影响已添加购物车的项目
+            // $table->decimal('price', 10, 2);
+            $table->timestamps();
+
+            // 同一个购物车内，同一种商品只能有一条记录
+            $table->unique(['cart_id', 'product_id']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('cart_items');
+    }
+};
+
+</code></pre>
+    <p><strong>操作 3：</strong> 生成 CartItem 模型文件。</p>
+    <pre><code class="language-bash">php artisan make:model CartItem</code></pre>
+    <p><strong>操作 4：</strong> 编辑模型文件。</p>
+    <p><strong>文件：</strong> <code>app/Models/CartItem.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Models/CartItem.php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class CartItem extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'cart_id',
+        'product_id',
+        'quantity',
+        // 'price', // 如果存储价格快照
+    ];
+
+    protected $casts = [
+        'quantity' => 'integer',
+        // 'price' => 'decimal:2',
+    ];
+
+    /**
+     * 购物车项属于哪个购物车
+     */
+    public function cart(): BelongsTo
+    {
+        return $this->belongsTo(Cart::class);
+    }
+
+    /**
+     * 购物车项对应的商品
+     */
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+}
+</code></pre>
+    <p class="note">我们还需要在 `Product` 模型中添加 `cartItems()` 关系。</p>
+    <p><strong>操作 5：</strong> 编辑 `Product` 模型。</p>
+    <p><strong>文件：</strong> <code>app/Models/Product.php</code></p>
+    <p><strong>添加 `cartItems` 关系方法：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Models/Product.php
+
+namespace App\Models;
+
+// ... 其他 use ...
+use Illuminate\Database\Eloquent\Relations\HasMany; // 引入 HasMany
+
+class Product extends Model
+{
+    // ... use, $fillable, $casts, categories(), scopeActive() ...
+
+    /**
+     * 获取包含此商品的购物车项目 (一对多)
+     */
+    public function cartItems(): HasMany
+    {
+        return $this->hasMany(CartItem::class);
+    }
+}
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 6：运行数据库迁移</h3>
+    <p>将所有新的数据库表结构应用到数据库。</p>
+    <p><strong>操作：</strong> 在终端运行 migrate 命令。</p>
+    <pre><code class="language-bash">php artisan migrate</code></pre>
+    <p><strong>说明：</strong> 检查你的数据库，现在应该包含了 `products`, `categories`, `category_product`, `carts`, `cart_items` 这些表。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 7：创建或更新模型工厂</h3>
+    <p>为新模型创建工厂，并确保旧工厂仍有效。</p>
+    <p><strong>操作 1：</strong> 生成 `Cart` 和 `CartItem` 工厂。</p>
+    <pre><code class="language-bash">php artisan make:factory CartFactory --model=Cart
+php artisan make:factory CartItemFactory --model=CartItem</code></pre>
+    <p><strong>操作 2：</strong> 编辑 `CartFactory` (可能很简单，主要依赖 User)。</p>
+    <p><strong>文件：</strong> <code>database/factories/CartFactory.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // database/factories/CartFactory.php
+
+namespace Database\Factories;
+
+use App\Models\User; // 引入 User
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+class CartFactory extends Factory
+{
+    public function definition(): array
+    {
+        return [
+            // user_id 通常在 Seeder 中关联，或者使用 User::factory()
+            'user_id' => User::factory(),
+        ];
+    }
+}
+</code></pre>
+    <p><strong>操作 3：</strong> 编辑 `CartItemFactory`。</p>
+    <p><strong>文件：</strong> <code>database/factories/CartItemFactory.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // database/factories/CartItemFactory.php
+
+namespace Database\Factories;
+
+use App\Models\Cart; // 引入 Cart
+use App\Models\Product; // 引入 Product
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+class CartItemFactory extends Factory
+{
+    public function definition(): array
+    {
+        return [
+            // cart_id 和 product_id 通常在 Seeder 中关联
+            'cart_id' => Cart::factory(),
+            'product_id' => Product::factory(),
+            'quantity' => fake()->numberBetween(1, 5), // 随机数量 1-5
+        ];
+    }
+}
+</code></pre>
+    <p><strong>操作 4：</strong> 确保 `ProductFactory` 和 `CategoryFactory` 如之前步骤所示已存在且正确。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 8：创建或更新数据填充器 (Seeders)</h3>
+    <p>调整 Seeder 以包含用户、分类、商品数据，并可能为某些用户创建购物车（但不一定需要填充购物车项目）。</p>
+    <p><strong>操作 1：</strong> 确保 `CategorySeeder` 和 `ProductSeeder` 已创建且逻辑正确（如上一版本所示，`ProductSeeder` 需关联分类）。</p>
+    <p><strong>操作 2：</strong> 编辑主 Seeder 文件 `DatabaseSeeder`。</p>
+    <p><strong>文件：</strong> <code>database/seeders/DatabaseSeeder.php</code></p>
+    <p><strong>修改后完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // database/seeders/DatabaseSeeder.php
+
+namespace Database\Seeders;
+
+use App\Models\User;
+use Illuminate\Database\Seeder;
+
+class DatabaseSeeder extends Seeder
+{
+    /**
+     * Seed the application's database.
+     */
+    public function run(): void
+    {
+        // 清空或准备 (可选, migrate:fresh --seed 更好)
+        // \App\Models\CartItem::query()->delete();
+        // \App\Models\Cart::query()->delete();
+        // \DB::table('category_product')->delete();
+        // \App\Models\Product::query()->delete();
+        // \App\Models\Category::query()->delete();
+        // User::query()->delete();
+
+
+        // 1. 创建用户 (管理员 + 客户)
+        User::factory()->create([
+            'name' => 'Admin User',
+            'email' => 'admin@example.com',
+            'role' => 'admin',
+        ]);
+
+        // 创建 20 个普通客户，并为每个客户创建一个空的购物车
+        User::factory()->count(20)->create([
+            'role' => 'customer',
+        ])->each(function (User $user) {
+            // 为每个创建的 customer 用户创建一个关联的购物车
+            $user->cart()->create(); // 利用 User 模型中的 cart() 关系创建
+        });
+
+
+        // 2. 填充分类
+        $this->call(CategorySeeder::class);
+
+        // 3. 填充商品并关联分类
+        $this->call(ProductSeeder::class);
+
+
+        $this->command->info('Database seeded successfully!');
+    }
+}
+</code></pre>
+    <p class="note">我们为每个创建的 customer 用户都创建了一个空的购物车记录。暂时不在 Seeder 中填充购物车项目，因为这通常是用户交互的结果。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 9：运行数据填充</h3>
+    <p>执行 Seeder 将数据填充到数据库。</p>
+    <p><strong>操作：</strong> 运行 `db:seed` 命令，或者使用 `migrate:fresh --seed`。</p>
+    <pre><code class="language-bash">php artisan db:seed</code></pre>
+    <p>或者（仅限开发环境）：</p>
+    <pre><code class="language-bash">php artisan migrate:fresh --seed</code></pre>
+</div>
+
+<h2 class="text-3xl font-semibold mt-8 mb-4">第三章总结</h2>
+<p>在这一章，我们成功地为在线商城的核心功能设计并创建了必要的数据库表结构，包括 `products`, `categories`, `category_product`, 以及用于数据库购物车的 `carts` 和 `cart_items` 表。我们定义了相应的 Eloquent 模型和它们之间的关系，并配置了模型工厂和数据填充器来生成初始的用户、分类和商品数据（包括为空每个用户创建购物车）。</p>
+<p>现在，我们的数据库结构和初始数据已经准备就绪，为实现商品展示、后台管理以及基于数据库的购物车功能奠定了坚实的基础。</p>
+
+<hr class="my-8 border-gray-300">
+
+<p>接下来，我们将重新进入 **第四章：实现商品展示功能 (数据库购物车版)**。内容与之前的第四章类似，但现在是基于包含数据库购物车的新结构。</p>
+
+</body>
+</html>

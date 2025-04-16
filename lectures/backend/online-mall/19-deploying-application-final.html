@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线商城 MVP - 第十九章：部署应用程序</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Basic code block styling */
+        pre code {
+            display: block;
+            white-space: pre;
+            background-color: #2d3748; /* bg-gray-800 */
+            color: #e2e8f0; /* text-gray-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        /* Basic prose styling */
+        .prose {
+            max-width: 80ch;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; margin-bottom: 0.5em; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose p { margin-bottom: 1em; line-height: 1.6;}
+        .prose ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose li { margin-bottom: 0.5em; }
+        .prose code:not(pre code) { background-color: #edf2f7; /* bg-gray-200 */ color: #1a202c; /* text-gray-900 */ padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.9em; }
+        .prose strong { font-weight: bold; }
+        .prose blockquote { border-left: 4px solid #cbd5e0; padding-left: 1em; color: #4a5568; margin-left: 0; margin-right: 0; font-style: italic;}
+        .prose a { color: #3182ce; text-decoration: none; }
+        .prose a:hover { text-decoration: underline; }
+        .table-container { overflow-x: auto; margin-bottom: 1em; }
+        .prose table { width: 100%; border-collapse: collapse; }
+        .prose th, .prose td { border: 1px solid #e2e8f0; padding: 0.5em 0.75em; text-align: left; }
+        .prose th { background-color: #f7fafc; font-weight: bold; }
+        .note { background-color: #ebf8ff; border-left: 4px solid #63b3ed; padding: 1rem; margin-bottom: 1em; color: #2c5282; }
+        .warning { background-color: #fffaf0; border-left: 4px solid #ecc94b; padding: 1rem; margin-bottom: 1em; color: #744210; }
+        .step { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; background-color: #f9fafb; }
+        .step-title { font-weight: bold; font-size: 1.25rem; margin-bottom: 0.75rem; color: #1f2937; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-8 prose">
+
+<h1 class="text-4xl font-bold mb-6 text-center">第十九章：在线商城 MVP - 部署应用程序</h1>
+<p class="text-center text-lg text-gray-600 mb-8">将应用部署到生产服务器环境</p>
+
+<div class="step">
+    <h3 class="step-title">步骤 1：理解部署概念</h3>
+    <p>部署是将开发完成的应用代码和相关资源从开发环境迁移到生产服务器，并进行必要配置，使其能够对外提供稳定服务的过程。</p>
+    <p><strong>生产环境关键考量：</strong></p>
+    <ul>
+        <li><strong>环境隔离：</strong> 生产环境配置（`.env`）应与开发环境完全分离，包含真实的数据库、API 密钥等凭据。</li>
+        <li><strong>禁用调试：</strong> 必须设置 `APP_ENV=production` 和 `APP_DEBUG=false`。</li>
+        <li><strong>安全性：</strong> 使用 HTTPS，配置防火墙，确保文件权限最小化，定期更新软件。</li>
+        <li><strong>性能优化：</strong> 启用 Laravel 的配置、路由、视图缓存，优化 Composer 自动加载，构建压缩的前端资源。</li>
+        <li><strong>可靠性：</strong> 使用进程管理器（如 Supervisor）确保队列 Worker 持续运行，设置 Cron Job 执行任务调度。</li>
+        <li><strong>自动化：</strong> 尽可能自动化部署流程以减少人为错误。</li>
+    </ul>
+    <div class="note">
+        <p>本章将演示一个基于 Git 和 SSH 的手动部署流程作为基础。对于频繁部署或需要更高可靠性的项目，强烈建议使用自动化部署工具如 <a href="https://deployer.org/" target="_blank" rel="noopener noreferrer">Deployer</a> 或部署服务如 <a href="https://envoyer.io/" target="_blank" rel="noopener noreferrer">Laravel Envoyer</a>。</p>
+    </div>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 2：生产服务器准备 (Checklist Review)</h3>
+    <p>再次确认你的生产服务器（假设为 Ubuntu/Debian）已安装并运行以下组件：</p>
+    <ul>
+        <li>Nginx</li>
+        <li>PHP (指定版本, e.g., 8.2+) 和 PHP-FPM</li>
+        <li>必需的 PHP 扩展 (mbstring, xml, pdo, mysql, redis, etc.)</li>
+        <li>MySQL (或 MariaDB/PostgreSQL)</li>
+        <li>Redis</li>
+        <li>Composer (全局)</li>
+        <li>Node.js 和 npm</li>
+        <li>Git</li>
+        <li>Supervisor</li>
+        <li>Firewall (UFW)</li>
+    </ul>
+    <p class="text-sm text-gray-600">确保这些服务已正确配置并正在运行。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 3：配置生产环境 Nginx 及 HTTPS</h3>
+    <p>为你的域名创建 Nginx 站点配置，并使用 Certbot 配置免费的 Let's Encrypt SSL 证书以启用 HTTPS。</p>
+    <p><strong>操作 1：</strong> 创建 Nginx 配置文件。</p>
+    <p><strong>文件路径 (示例):</strong> <code>/etc/nginx/sites-available/your-mall-domain.com</code></p>
+    <p><strong>文件完整内容 (请仔细替换域名和路径)：</strong></p>
+    <pre><code class="language-nginx"># /etc/nginx/sites-available/your-mall-domain.com
+# Production Nginx configuration for Online Mall MVP (with HTTPS)
+
+# --- HTTP (Port 80) to HTTPS Redirection ---
+server {
+    listen 80;
+    listen [::]:80;
+    server_name your-mall-domain.com www.your-mall-domain.com; # !!! 替换为你的域名 !!!
+
+    # ACME challenge location for Certbot (Certbot 可能会自动管理)
+    location ~ /.well-known/acme-challenge {
+        allow all;
+        root /var/www/html; # Or a dedicated path for challenges
+    }
+
+    location / {
+        # 301 Permanent Redirect to HTTPS version
+        return 301 https://$host$request_uri;
+    }
+}
+
+# --- HTTPS (Port 443) Server Block ---
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name your-mall-domain.com www.your-mall-domain.com; # !!! 替换为你的域名 !!!
+
+    # !!! 项目 public 目录的绝对路径 !!!
+    root /var/www/online-mall/public; # <--- 修改为你的生产项目路径
+
+    # --- SSL Configuration (Managed by Certbot) ---
+    # !!! 以下路径由 Certbot 自动生成，不要手动修改这些特定行 !!!
+    ssl_certificate /etc/letsencrypt/live/your-mall-domain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/your-mall-domain.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf; # Recommended SSL parameters
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # Diffie-Hellman parameters
+
+    # (强烈推荐) 添加 HSTS Header (在确认 HTTPS 完全工作后)
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+
+    # ... 其他安全头 (X-Frame-Options, X-Content-Type-Options etc. - 同开发配置) ...
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    # ...
+
+    index index.php;
+    charset utf-8;
+    access_log /var/log/nginx/your-mall-domain.com.access.log;
+    error_log /var/log/nginx/your-mall-domain.com.error.log error;
+
+    # Gzip ... (同开发配置)
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    # PHP-FPM 处理
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        try_files $uri =404;
+        # !!! 确保 fastcgi_pass 指向生产环境 PHP-FPM !!!
+        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock; # <--- 检查此路径
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+        # fastcgi_read_timeout 300; # 可选: 增加超时
+    }
+
+    # 静态文件缓存
+    location ~* \.(?:css|js|jpg|jpeg|gif|png|ico|svg|woff|woff2|ttf|eot|webp|avif)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        access_log off; log_not_found off;
+    }
+
+    # 禁止访问隐藏文件
+    location ~ /\. { deny all; }
+}
+</code></pre>
+    <p><strong>操作 2：</strong> 使用 Certbot 获取并安装 SSL 证书。</p>
+    <pre><code class="language-bash"># 确保 Certbot 和 Nginx 插件已安装
+# sudo apt update && sudo apt install certbot python3-certbot-nginx -y
+
+# 运行 Certbot (确保 DNS 已指向服务器)
+sudo certbot --nginx -d your-mall-domain.com -d www.your-mall-domain.com # <-- 替换域名
+</code></pre>
+    <p>按照 Certbot 的提示操作。成功后，它会自动更新你的 Nginx 配置以启用 HTTPS。</p>
+    <p><strong>操作 3：</strong> 启用站点并测试/重载 Nginx。</p>
+    <pre><code class="language-bash">sudo ln -s /etc/nginx/sites-available/your-mall-domain.com /etc/nginx/sites-enabled/ # 如果已存在先删除
+sudo nginx -t
+sudo systemctl reload nginx
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 4：准备应用代码和生产环境 `.env`</h3>
+    <p>在将代码部署到服务器之前和之后，需要进行一些准备工作。</p>
+    <p><strong>操作 1 (本地)：</strong> 检查 `.gitignore` 文件，确保它忽略了 `.env` 文件、`node_modules` 目录、`public/build` 目录、日志文件等。</p>
+    <p><strong>操作 2 (服务器)：</strong> 创建项目目录并设置基本权限。</p>
+    <pre><code class="language-bash"># 在服务器上执行 (假设项目路径为 /var/www/online-mall)
+sudo mkdir -p /var/www/online-mall
+# 设置 SSH 用户为所有者，Web 服务器 (www-data) 为组
+sudo chown -R your_ssh_user:www-data /var/www/online-mall
+# 确保你的 SSH 用户属于 www-data 组，或者调整权限使部署脚本可写
+# sudo usermod -a -G www-data your_ssh_user
+# cd /var/www/online-mall
+</code></pre>
+    <p><strong>操作 3 (服务器)：</strong> 克隆代码仓库。</p>
+    <pre><code class="language-bash">git clone &lt;你的 Git 仓库 URL> . # 克隆到当前目录</code></pre>
+    <p><strong>操作 4 (服务器)：</strong> 创建并配置生产环境的 `.env` 文件。</p>
+    <pre><code class="language-bash">cp .env.example .env
+nano .env # 或使用其他编辑器
+</code></pre>
+    <p><strong>务必在服务器的 `.env` 文件中设置：</strong></p>
+    <ul>
+        <li><code>APP_ENV=production</code></li>
+        <li><code>APP_DEBUG=false</code></li>
+        <li><code>APP_URL=https://your-mall-domain.com</code></li>
+        <li>生产数据库、Redis、邮件服务、Stripe 的真实凭据。</li>
+        <li>**不要**将此文件提交到 Git。</li>
+    </ul>
+    <p><strong>操作 5 (服务器)：</strong> 生成生产环境的 `APP_KEY`。</p>
+    <pre><code class="language-bash">php artisan key:generate --force # 在生产环境通常需要 --force</code></pre>
+    <p><strong>操作 6 (服务器)：</strong> 安装 Composer 生产依赖。</p>
+    <pre><code class="language-bash">composer install --optimize-autoloader --no-dev</code></pre>
+    <p><strong>操作 7 (服务器)：</strong> 安装 npm 生产依赖并构建前端资源。</p>
+    <pre><code class="language-bash">npm ci --production # 使用 lock 文件安装精确版本
+npm run build        # 生成优化后的 CSS/JS 到 public/build
+</code></pre>
+    <p><strong>操作 8 (服务器)：</strong> 设置 `storage` 和 `bootstrap/cache` 目录权限。</p>
+    <pre><code class="language-bash"># 确保 Web 服务器用户 (www-data) 有写入权限
+sudo chown -R www-data:www-data storage bootstrap/cache
+sudo chmod -R 775 storage bootstrap/cache
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 5：执行首次部署的核心 Artisan 命令</h3>
+    <p>在服务器上完成上述准备后，执行以下命令完成部署。</p>
+    <p><strong>操作 1：</strong> 创建存储链接。</p>
+    <pre><code class="language-bash">php artisan storage:link</code></pre>
+    <p><strong>操作 2：</strong> 运行数据库迁移。</p>
+    <pre><code class="language-bash">php artisan migrate --force # 在生产环境使用 --force 跳过确认提示</code></pre>
+    <p><strong>操作 3：</strong> 优化缓存。</p>
+    <pre><code class="language-bash">php artisan config:cache  # 缓存配置
+php artisan route:cache   # 缓存路由
+php artisan view:cache    # 缓存视图
+# php artisan event:cache   # (可选) 缓存事件监听器映射
+</code></pre>
+    <p><strong>(可选) 操作 4：</strong> 如果使用了队列，初始部署后可能需要启动 Worker (见下一步)。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 6：后续代码更新部署流程 (手动 Git)</h3>
+    <p>当你的代码库有更新时，需要执行以下步骤来部署更新：</p>
+    <ol>
+        <li><strong>(服务器) 进入项目目录:</strong> `cd /var/www/online-mall`</li>
+        <li><strong>(服务器) (可选) 开启维护模式:</strong> `php artisan down`</li>
+        <li><strong>(服务器) 拉取最新代码:</strong> `git pull origin main` (或你的生产分支)</li>
+        <li><strong>(服务器) 安装 Composer 依赖:</strong> `composer install --optimize-autoloader --no-dev` (仅当 `composer.lock` 变化时需要)</li>
+        <li><strong>(服务器) 安装/构建前端资源:</strong> `npm ci --production && npm run build` (仅当 `package-lock.json` 或前端代码变化时需要)</li>
+        <li><strong>(服务器) 运行数据库迁移:</strong> `php artisan migrate --force`</li>
+        <li><strong>(服务器) 清除旧缓存:</strong> `php artisan optimize:clear`</li>
+        <li><strong>(服务器) 重新生成缓存:</strong> `php artisan config:cache && php artisan route:cache && php artisan view:cache`</li>
+        <li><strong>(服务器) 重启队列处理器:</strong> `php artisan queue:restart` (非常重要！)</li>
+        <li><strong>(服务器) (可选) 关闭维护模式:</strong> `php artisan up`</li>
+    </ol>
+    <p>手动执行这些步骤容易出错，强烈建议使用 Deployer 或 Envoyer 等工具自动化此流程。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 7：配置 Supervisor 管理队列 Worker</h3>
+    <p>确保队列任务能在后台稳定运行。</p>
+    <p><strong>操作 1：</strong> 创建 Supervisor 配置文件。</p>
+    <p><strong>文件路径 (示例):</strong> <code>/etc/supervisor/conf.d/online-mall-worker.conf</code></p>
+    <p><strong>完整内容 (请替换路径和用户)：</strong></p>
+    <pre><code class="language-ini">[program:online-mall-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/online-mall/artisan queue:work redis --sleep=3 --tries=3 --max-time=3600 ; <-- 检查路径和队列驱动/名称
+directory=/var/www/online-mall ; <-- 添加工作目录
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+user=www-data     ; <-- 运行 worker 的用户
+numprocs=4        ; <-- 根据服务器 CPU 核心数调整进程数
+redirect_stderr=true
+stdout_logfile=/var/www/online-mall/storage/logs/worker.log ; <-- 检查路径
+stopwaitsecs=3600
+</code></pre>
+    <p><strong>操作 2：</strong> 使 Supervisor 读取配置并启动/管理 Worker。</p>
+    <pre><code class="language-bash">sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start online-mall-worker:*
+# 查看状态: sudo supervisorctl status
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 8：设置 Cron Job 执行任务调度</h3>
+    <p>让 Laravel 的定时任务能够自动执行。</p>
+    <p><strong>操作：</strong> 编辑服务器的 Crontab (<code>sudo crontab -e</code>)，添加以下行：</p>
+    <pre><code class="language-cron">* * * * * cd /var/www/online-mall && php artisan schedule:run >> /dev/null 2>&1</code></pre>
+    <p>确保 `/var/www/online-mall` 是你正确的项目路径。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 9：部署后检查与后续维护</h3>
+    <ul>
+        <li><strong>访问网站：</strong> 确保网站可以通过 HTTPS 正常访问，核心功能工作正常。</li>
+        <li><strong>检查日志：</strong> 查看 `storage/logs/laravel.log` 以及 Nginx、PHP-FPM 的错误日志，排查潜在问题。</li>
+        <li><strong>队列监控：</strong> 如果使用了 Horizon，访问 Horizon 仪表盘检查队列状态。</li>
+        <li><strong>错误跟踪：</strong> 集成 Sentry 等服务监控生产环境错误。</li>
+        <li><strong>定期备份：</strong> 制定并执行数据库和文件备份策略。</li>
+        <li><strong>安全更新：</strong> 定期更新服务器操作系统、PHP、Nginx 及所有 Composer/NPM 依赖包。</li>
+    </ul>
+</div>
+
+<h2 class="text-3xl font-semibold mt-8 mb-4">第十九章总结与课程回顾</h2>
+<p>在本章中，我们学习了将 Laravel 应用部署到生产服务器环境的关键步骤，包括服务器准备、Nginx 配置与 HTTPS 设置、代码部署流程、依赖安装、数据库迁移、性能优化、队列处理器管理和任务调度设置。这是一个基础但完整的部署流程，为我们的“在线商城 MVP”上线提供了指导。</p>
+<p>至此，我们已经一起走过了从项目构想、环境搭建、数据库设计、核心功能（商品、分类、SKU、库存、购物车、下单、支付触发、评价、订单管理、状态变更）、测试入门到最终部署的完整流程。虽然我们构建的是一个 MVP，但其中涉及的技术栈和开发流程是构建大型 Laravel 应用的通用实践。</p>
+<p><strong>恭喜您完成了本次“在线商城 MVP”项目的构建学习！</strong></p>
+<p>后续您可以基于现有代码：</p>
+<ul>
+    <li>继续完善和添加更多高级功能（搜索、促销、用户管理、更复杂的后台等）。</li>
+    <li>深入学习和编写更全面的自动化测试。</li>
+    <li>学习和实践更高级的部署技术（如 Deployer, Docker）。</li>
+    <li>进行性能分析和优化。</li>
+</ul>
+
+<hr class="my-8 border-gray-300">
+
+<p class="text-center text-lg font-semibold mt-4"></p>
+
+</body>
+</html>

@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线商城 MVP - 第十一章：调整购物车与下单以支持 SKU 和库存</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Basic code block styling */
+        pre code {
+            display: block;
+            white-space: pre;
+            background-color: #2d3748; /* bg-gray-800 */
+            color: #e2e8f0; /* text-gray-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        /* Basic prose styling */
+        .prose {
+            max-width: 80ch;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; margin-bottom: 0.5em; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose p { margin-bottom: 1em; line-height: 1.6;}
+        .prose ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose li { margin-bottom: 0.5em; }
+        .prose code:not(pre code) { background-color: #edf2f7; /* bg-gray-200 */ color: #1a202c; /* text-gray-900 */ padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.9em; }
+        .prose strong { font-weight: bold; }
+        .prose blockquote { border-left: 4px solid #cbd5e0; padding-left: 1em; color: #4a5568; margin-left: 0; margin-right: 0; font-style: italic;}
+        .prose a { color: #3182ce; text-decoration: none; }
+        .prose a:hover { text-decoration: underline; }
+        .table-container { overflow-x: auto; margin-bottom: 1em; }
+        .prose table { width: 100%; border-collapse: collapse; }
+        .prose th, .prose td { border: 1px solid #e2e8f0; padding: 0.5em 0.75em; text-align: left; }
+        .prose th { background-color: #f7fafc; font-weight: bold; }
+        .note { background-color: #ebf8ff; border-left: 4px solid #63b3ed; padding: 1rem; margin-bottom: 1em; color: #2c5282; }
+        .warning { background-color: #fffaf0; border-left: 4px solid #ecc94b; padding: 1rem; margin-bottom: 1em; color: #744210; }
+        .step { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; background-color: #f9fafb; }
+        .step-title { font-weight: bold; font-size: 1.25rem; margin-bottom: 0.75rem; color: #1f2937; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-8 prose">
+
+<h1 class="text-4xl font-bold mb-6 text-center">第十一章：在线商城 MVP - 调整购物车与下单以支持 SKU 和库存</h1>
+<p class="text-center text-lg text-gray-600 mb-8">实现基于 SKU 的购物车操作、库存检查与扣减</p>
+
+<div class="note">
+    <p>本章基于第十章完成的前提，数据库中已有 `products` 和 `product_skus` 表结构和数据。我们将修改购物车和订单逻辑来处理 SKU。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 1：修改 `cart_items` 表结构</h3>
+    <p>我们需要在 `cart_items` 表中添加 `product_sku_id` 字段来明确用户加入购物车的是哪个具体规格的商品。</p>
+    <p><strong>操作 1：</strong> 生成新的迁移文件。</p>
+    <pre><code class="language-bash">php artisan make:migration add_product_sku_id_to_cart_items_table --table=cart_items</code></pre>
+    <p><strong>操作 2：</strong> 编辑迁移文件。</p>
+    <p><strong>文件：</strong> <code>database/migrations/YYYY_MM_DD_HHMMSS_add_product_sku_id_to_cart_items_table.php</code></p>
+    <p><strong>修改后完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('cart_items', function (Blueprint $table) {
+            // 添加 product_sku_id 字段，允许为空（用于兼容可能直接添加无 SKU 商品的情况，或后续扩展）
+            // 关联 product_skus 表，当 SKU 被删除时，将此字段设为 NULL (或者 cascade)
+            $table->foreignId('product_sku_id')
+                  ->nullable() // 允许为空，表示添加的是无 SKU 的基础商品
+                  ->after('product_id') // 放在 product_id 之后
+                  ->constrained('product_skus') // 外键关联 product_skus 表
+                  ->nullOnDelete(); // 当 SKU 删除时，购物车项中的 SKU ID 设为 NULL
+
+            // (可选) 如果确定购物车项必须对应一个 SKU，可以将 nullable() 去掉，并修改相关逻辑
+
+            // (可选) 修改 product_id 外键的删除行为，例如也设置为 nullOnDelete
+             $table->dropForeign(['product_id']); // 先删除旧外键
+             $table->foreignId('product_id')      // 重新定义
+                   ->change()                   // 修改现有列
+                   ->nullable()                 // 允许为空 (如果 SKU 删除，但想保留产品信息)
+                   ->constrained()
+                   ->nullOnDelete();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('cart_items', function (Blueprint $table) {
+            // 注意回滚顺序，先删除外键约束
+            $table->dropForeign(['product_sku_id']);
+            $table->dropColumn('product_sku_id');
+
+            // 恢复 product_id 的原始约束 (假设原始是 cascade) - 根据你的实际情况调整
+            $table->dropForeign(['product_id']);
+             $table->foreignId('product_id')
+                   ->change()
+                   ->nullable(false) // 恢复不允许为空
+                   ->constrained()
+                   ->cascadeOnDelete();
+        });
+    }
+};
+</code></pre>
+    <p><strong>操作 3：</strong> 运行迁移。</p>
+    <pre><code class="language-bash">php artisan migrate</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 2：更新 `CartItem` 模型</h3>
+    <p>在模型中添加新字段到 `$fillable` 并定义与 `ProductSku` 的关系。</p>
+    <p><strong>操作：</strong> 编辑模型文件。</p>
+    <p><strong>文件：</strong> <code>app/Models/CartItem.php</code></p>
+    <p><strong>修改后完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Models/CartItem.php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class CartItem extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'cart_id',
+        'product_id', // 仍然保留，用于快速访问基础商品信息
+        'product_sku_id', // <-- 新增
+        'quantity',
+    ];
+
+    protected $casts = [
+        'quantity' => 'integer',
+    ];
+
+    /**
+     * 购物车项属于哪个购物车
+     */
+    public function cart(): BelongsTo
+    {
+        return $this->belongsTo(Cart::class);
+    }
+
+    /**
+     * 购物车项对应的基础商品 (始终存在)
+     */
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * 购物车项对应的具体商品 SKU (可能为 null)
+     */
+    public function productSku(): BelongsTo
+    {
+        return $this->belongsTo(ProductSku::class);
+    }
+
+    /**
+     * 获取购物车项的当前价格 (优先取 SKU 价格)
+     */
+    public function getCurrentPriceAttribute(): float
+    {
+        return $this->productSku ? $this->productSku->price : $this->product->price;
+    }
+
+     /**
+     * 获取购物车项的名称 (优先取基础商品名称)
+     */
+    public function getNameAttribute(): string
+    {
+         return $this->product->name ?? '商品不存在';
+    }
+
+     /**
+     * 获取购物车项的图片 (优先取基础商品图片)
+     */
+    public function getImageUrlAttribute(): ?string
+    {
+        return $this->product?->image ? Storage::disk('public')->url($this->product->image) : null;
+    }
+
+     /**
+     * 获取购物车项的规格描述
+     */
+    public function getAttributesDescAttribute(): ?string
+    {
+        return $this->productSku?->formatted_attributes; // 使用 ProductSku 中的访问器
+    }
+
+}
+</code></pre>
+    <div class="note">
+        <p>我们在 `CartItem` 中添加了几个访问器 (`current_price`, `name`, `image_url`, `attributes_desc`) 以方便在视图中统一调用，无论购物车项是关联到 SKU 还是基础商品。</p>
+    </div>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 3：更新 `CartController@add` 逻辑</h3>
+    <p>修改添加商品到购物车的逻辑，使其能够处理 SKU，并进行库存检查。</p>
+    <p><strong>操作：</strong> 编辑控制器文件。</p>
+    <p><strong>文件：</strong> <code>app/Http/Controllers/CartController.php</code></p>
+    <p><strong>修改 `add` 方法：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Http/Controllers/CartController.php
+
+namespace App\Http\Controllers;
+
+use App\Models\Cart;
+use App\Models\CartItem;
+use App\Models\Product;
+use App\Models\ProductSku; // 引入 ProductSku
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule; // 引入 Rule
+
+class CartController extends Controller
+{
+    // ... __construct(), index() ...
+
+    /**
+     * 添加商品到购物车。
+     */
+    public function add(Request $request)
+    {
+        // 验证输入
+        $validated = $request->validate([
+            'product_id' => ['required', 'integer', 'exists:products,id'],
+            // 如果提交了 product_sku_id，则它必须存在于 product_skus 表，且必须属于指定的 product_id
+            'product_sku_id' => [
+                'nullable', // 可以不传（如果商品无 SKU）
+                'integer',
+                Rule::exists('product_skus', 'id')->where(function ($query) use ($request) {
+                    // 确保 SKU 属于正确的产品
+                    return $query->where('product_id', $request->input('product_id'));
+                }),
+            ],
+            'quantity' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $productId = $validated['product_id'];
+        $skuId = $validated['product_sku_id'] ?? null; // 获取 SKU ID，可能为 null
+        $quantity = $validated['quantity'];
+        $user = Auth::user();
+
+        // 查找基础商品 (确保是上架的)
+        $product = Product::active()->with('skus')->find($productId); // 预加载 SKUs
+        if (!$product) {
+            return back()->with('error', '无法添加商品，商品不存在或已下架。')->withInput();
+        }
+
+        // --- 处理 SKU 和库存检查 ---
+        $productSku = null;
+        $stockToCheck = PHP_INT_MAX; // 默认无限库存 (针对无 SKU 商品)
+        $identifierField = 'product_id'; // 查找购物车项时使用的字段
+        $identifierValue = $productId;   // 查找购物车项时使用的值
+
+        if ($product->skus->isNotEmpty()) {
+            // 如果商品有 SKU
+            if (!$skuId) {
+                // 如果有 SKU 但未选择，则报错或跳转到详情页让用户选择
+                return back()->with('error', '请选择商品规格。')->withInput();
+                // 或者 return redirect()->route('products.show', $product->slug)->with('error', '请选择商品规格。');
+            }
+            // 查找指定的 SKU
+            $productSku = $product->skus->find($skuId);
+            if (!$productSku) {
+                 return back()->with('error', '选择的规格不存在。')->withInput();
+            }
+            $stockToCheck = $productSku->stock; // 获取 SKU 的库存
+            $identifierField = 'product_sku_id'; // 购物车项通过 SKU ID 识别
+            $identifierValue = $skuId;
+            $productName = $product->name . ' (' . $productSku->formatted_attributes . ')'; // 组合名称
+        } else {
+            // 如果商品没有 SKU，则 skuId 必须为 null
+            if ($skuId) {
+                 return back()->with('error', '该商品没有规格可选。')->withInput();
+            }
+            // 对于没有 SKU 的商品，我们在此 MVP 中暂不进行库存检查 (假设无限库存)
+             $productName = $product->name;
+        }
+
+
+        // 获取或创建用户的购物车
+        $cart = $user->cart()->firstOrCreate();
+
+        // 查找购物车中是否已存在该商品/SKU
+        $cartItem = $cart->items()->where($identifierField, $identifierValue)->first();
+
+        $currentQuantityInCart = $cartItem ? $cartItem->quantity : 0;
+        $requestedTotalQuantity = $currentQuantityInCart + $quantity;
+
+        // --- 库存检查 ---
+        if ($requestedTotalQuantity > $stockToCheck) {
+            $availableStock = max(0, $stockToCheck - $currentQuantityInCart); // 还能加多少
+             return back()->with('error', "库存不足！您最多还能添加 {$availableStock} 件“{$productName}”到购物车。")->withInput();
+        }
+
+        // 更新或创建购物车项目
+        if ($cartItem) {
+            $cartItem->increment('quantity', $quantity);
+        } else {
+            $cart->items()->create([
+                'product_id' => $productId,
+                'product_sku_id' => $skuId, // 保存 SKU ID (如果存在)
+                'quantity' => $quantity,
+            ]);
+        }
+
+        return back()->with('success', '"' . $productName . '" 已成功添加到购物车！');
+    }
+
+    // ... index(), update(), remove() ...
+}
+</code></pre>
+    <div class="warning">
+        <p><strong>重要逻辑：</strong></p>
+        <ul>
+            <li>如果商品有 SKU，必须提供 `product_sku_id` 才能添加到购物车。</li>
+            <li>库存检查现在是基于 `product_skus.stock` 进行的（如果选择了 SKU）。</li>
+            <li>查找购物车中现有项目时，需要根据是否存在 SKU 来决定是匹配 `product_id` 还是 `product_sku_id`。</li>
+            <li>创建 `CartItem` 时，需要保存 `product_sku_id`。</li>
+        </ul>
+    </div>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 4：更新 `CartController@update` 逻辑</h3>
+    <p>修改更新购物车项目数量的逻辑，加入库存检查。</p>
+    <p><strong>操作：</strong> 编辑控制器文件。</p>
+    <p><strong>文件：</strong> <code>app/Http/Controllers/CartController.php</code></p>
+    <p><strong>修改 `update` 方法：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Http/Controllers/CartController.php
+
+namespace App\Http\Controllers;
+
+// ... 其他 use ...
+use App\Models\CartItem;
+
+class CartController extends Controller
+{
+    // ... __construct(), index(), add() ...
+
+    /**
+     * 更新购物车中商品的数量。
+     */
+    public function update(Request $request, CartItem $cartItem)
+    {
+        // 1. 授权检查 (确保 cartItem 属于当前用户)
+        $this->authorize('update', $cartItem); // 使用 CartItemPolicy
+
+        // 2. 验证输入
+        $validated = $request->validate([
+            'quantity' => ['required', 'integer', 'min:1'],
+        ]);
+        $newQuantity = $validated['quantity'];
+
+        // 3. 库存检查
+        $stockToCheck = PHP_INT_MAX; // 默认无限
+        $identifierName = $cartItem->product->name; // 基础商品名
+
+        if ($cartItem->productSku) {
+            // 如果是 SKU 商品，检查 SKU 库存
+            $stockToCheck = $cartItem->productSku->stock;
+            $identifierName .= ' (' . $cartItem->productSku->formatted_attributes . ')';
+        } else {
+            // 如果是无 SKU 商品，暂不检查库存 (或根据业务添加 product.stock 检查)
+        }
+
+        if ($newQuantity > $stockToCheck) {
+            return back()->with('error', "库存不足！“{$identifierName}”最多剩余 {$stockToCheck} 件。")->withInput();
+        }
+
+        // 4. 更新数量
+        $cartItem->update(['quantity' => $newQuantity]);
+
+        return back()->with('success', '购物车商品数量已更新！');
+    }
+
+     // ... remove() ... (remove 方法通常不需要修改，直接删除 CartItem 即可)
+     public function remove(CartItem $cartItem)
+     {
+        $this->authorize('delete', $cartItem); // 使用 CartItemPolicy
+        $productName = $cartItem->product->name . ($cartItem->productSku ? ' (' . $cartItem->productSku->formatted_attributes . ')' : '');
+        $cartItem->delete();
+        return back()->with('success', '"' . $productName . '" 已从购物车移除。');
+     }
+}
+
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 5：更新购物车视图 (`cart/index.blade.php`)</h3>
+    <p>调整视图以显示 SKU 属性（如果存在），并确保更新/删除表单传递的是 `cartItem->id`。</p>
+    <p><strong>操作：</strong> 编辑视图文件。</p>
+    <p><strong>文件：</strong> <code>resources/views/cart/index.blade.php</code></p>
+    <p><strong>修改后的 `<tbody>` 循环部分和表单：</strong></p>
+    <pre><code class="language-html">&lt;!-- resources/views/cart/index.blade.php (tbody 部分) --&gt;
+&lt;tbody&gt;
+    @foreach($cartItems as $item)
+        @if($item->product) {{-- 确保基础商品存在 --}}
+        &lt;tr&gt;
+            &lt;td&gt;
+                &lt;a href="{{ route('products.show', $item->product->slug) }}"&gt;
+                    &lt;img src="{{ $item->image_url }}" alt="{{ $item->name }}" class="img-thumbnail" style="max-height: 80px;"&gt; {{-- 使用 CartItem 访问器 --}}
+                &lt;/a&gt;
+            &lt;/td&gt;
+            &lt;td&gt;
+                &lt;a href="{{ route('products.show', $item->product->slug) }}" class="text-decoration-none text-dark fw-medium"&gt;
+                    {{ $item->name }} {{-- 使用 CartItem 访问器 --}}
+                &lt;/a&gt;
+                {{-- 显示 SKU 属性 --}}
+                @if($item->attributes_desc)
+                    &lt;div class="small text-muted"&gt;{{ $item->attributes_desc }}&lt;/div&gt; {{-- 使用 CartItem 访问器 --}}
+                @endif
+            &lt;/td&gt;
+            &lt;td class="text-end"&gt;￥{{ number_format($item->current_price, 2) }}&lt;/td&gt; {{-- 使用 CartItem 访问器 --}}
+            &lt;td&gt;
+                &lt;!-- 更新数量表单 (action 使用 $item->id) -->
+                &lt;form action="{{ route('cart.update', $item->id) }}" method="POST" class="d-flex justify-content-center align-items-center"&gt;
+                    @csrf
+                    @method('PATCH')
+                    &lt;input type="number" name="quantity" class="form-control form-control-sm text-center me-2" value="{{ $item->quantity }}" min="1" style="width: 70px;" aria-label="商品数量"&gt;
+                    &lt;button type="submit" class="btn btn-outline-secondary btn-sm" title="更新数量"&gt;
+                        &lt;i class="bi bi-arrow-repeat"&gt;&lt;/i&gt;
+                    &lt;/button&gt;
+                &lt;/form&gt;
+            &lt;/td&gt;
+            &lt;td class="text-end fw-bold"&gt;￥{{ number_format($item->current_price * $item->quantity, 2) }}&lt;/td&gt;
+            &lt;td class="text-center"&gt;
+                &lt;!-- 移除商品表单 (action 使用 $item->id) -->
+                &lt;form action="{{ route('cart.remove', $item->id) }}" method="POST" onsubmit="return confirm('确定要移除此商品吗？');"&gt;
+                    @csrf
+                    @method('DELETE')
+                    &lt;button type="submit" class="btn btn-danger btn-sm" title="移除商品"&gt;
+                        &lt;i class="bi bi-trash-fill"&gt;&lt;/i&gt;
+                    &lt;/button&gt;
+                &lt;/form&gt;
+            &lt;/td&gt;
+        &lt;/tr&gt;
+        @endif
+    @endforeach
+&lt;/tbody&gt;
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 6：修改 `order_items` 表结构以存储 SKU 信息</h3>
+    <p>我们需要调整 `order_items` 表，使其能够存储 `product_sku_id` 和规格属性快照。</p>
+    <p><strong>操作 1：</strong> 生成新的迁移文件。</p>
+    <pre><code class="language-bash">php artisan make:migration add_sku_details_to_order_items_table --table=order_items</code></pre>
+    <p><strong>操作 2：</strong> 编辑迁移文件。</p>
+    <p><strong>文件：</strong> <code>database/migrations/YYYY_MM_DD_HHMMSS_add_sku_details_to_order_items_table.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('order_items', function (Blueprint $table) {
+            // 添加 product_sku_id 字段
+            $table->foreignId('product_sku_id')
+                  ->nullable() // 允许为空 (对应无 SKU 商品)
+                  ->after('product_id')
+                  ->constrained('product_skus') // 外键关联
+                  ->nullOnDelete(); // SKU 删除时设为 NULL
+
+            // 添加 attributes 字段存储规格快照
+            $table->json('attributes')->nullable()->after('product_name');
+
+            // 确保 product_id 也允许为空并设置 nullOnDelete (如果第三章迁移没做)
+             if (Schema::hasColumn('order_items', 'product_id')) {
+                 // 检查外键是否存在，如果存在则删除重建
+                 $foreignKeys = Schema::getConnection()->getDoctrineSchemaManager()->listTableForeignKeys('order_items');
+                 foreach ($foreignKeys as $foreignKey) {
+                    if ($foreignKey->getForeignTableName() == 'products' && in_array('product_id', $foreignKey->getLocalColumns())) {
+                         $table->dropForeign(['product_id']);
+                         break;
+                     }
+                 }
+                // 修改列为 nullable 并添加 onDelete('set null')
+                $table->foreignId('product_id')
+                      ->nullable() // 确保允许为空
+                      ->change(); // 修改现有列
+
+                // 重新添加外键约束 (如果之前删除了)
+                 $table->foreign('product_id')
+                       ->references('id')
+                       ->on('products')
+                       ->nullOnDelete(); // 设置为 null on delete
+             }
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('order_items', function (Blueprint $table) {
+            // 先删除外键约束再删除列
+            if (Schema::hasColumn('order_items', 'product_sku_id')) {
+                 try { $table->dropForeign(['product_sku_id']); } catch (\Exception $e) {}
+                 $table->dropColumn('product_sku_id');
+            }
+             if (Schema::hasColumn('order_items', 'attributes')) {
+                 $table->dropColumn('attributes');
+             }
+            // 可以选择性恢复 product_id 的原始约束，但这通常不必要且复杂
+        });
+    }
+};
+</code></pre>
+    <p class="text-sm text-gray-600"><strong>注意：</strong> 修改现有列的外键约束可能比较复杂，取决于你的数据库类型和原始定义。如果遇到问题，最简单的（仅限开发环境）是使用 `migrate:fresh`。</p>
+    <p><strong>操作 3：</strong> 运行迁移。</p>
+    <pre><code class="language-bash">php artisan migrate</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 7：更新 `OrderItem` 模型</h3>
+    <p>添加新字段到 `$fillable` 和 `$casts`，并定义 `productSku` 关系。</p>
+    <p><strong>操作：</strong> 编辑模型文件。</p>
+    <p><strong>文件：</strong> <code>app/Models/OrderItem.php</code></p>
+    <p><strong>修改后完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Models/OrderItem.php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class OrderItem extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'order_id',
+        'product_id',
+        'product_sku_id', // <-- 新增
+        'quantity',
+        'price',          // 价格快照
+        'product_name',   // 名称快照 (可选)
+        'attributes',     // <-- 新增: 规格属性快照
+    ];
+
+    protected $casts = [
+        'quantity' => 'integer',
+        'price' => 'decimal:2',
+        'attributes' => 'array', // <-- 新增: JSON 转数组
+    ];
+
+    /**
+     * 订单项所属的订单
+     */
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    /**
+     * 订单项对应的基础商品 (可能为 null)
+     */
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * 订单项对应的具体商品 SKU (可能为 null)
+     */
+    public function productSku(): BelongsTo
+    {
+        return $this->belongsTo(ProductSku::class);
+    }
+
+     /**
+     * (可选) 获取格式化的属性字符串
+     */
+    public function getFormattedAttributesAttribute(): string
+    {
+        if (empty($this->attributes)) {
+            return '';
+        }
+        $parts = [];
+        foreach ($this->attributes as $key => $value) {
+            $parts[] = "{$key}: {$value}";
+        }
+        return implode(', ', $parts);
+    }
+}
+
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 8：更新 `OrderController@store` 逻辑</h3>
+    <p>修改创建订单的逻辑，进行 SKU 库存检查，存储 SKU 信息到 `order_items`，并扣减库存。</p>
+    <p><strong>操作：</strong> 编辑控制器文件。</p>
+    <p><strong>文件：</strong> <code>app/Http/Controllers/OrderController.php</code></p>
+    <p><strong>修改 `store` 方法：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Http/Controllers/OrderController.php
+
+namespace App\Http\Controllers;
+
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\ProductSku; // 引入 ProductSku
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Stripe\Stripe;
+use Stripe\Checkout\Session as StripeCheckoutSession;
+
+
+class OrderController extends Controller
+{
+    // ... __construct(), index(), show() ...
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([ /* ... 收货地址验证 ... */ ]);
+        $user = Auth::user();
+        // 加载购物车项，以及每项关联的 SKU 和 基础 Product
+        $cart = $user->cart()->with(['items.productSku', 'items.product'])->first();
+
+        if (!$cart || $cart->items->isEmpty()) {
+            return redirect()->route('cart.index')->with('error', '购物车是空的，无法创建订单。');
+        }
+
+        $order = null;
+        $lineItems = []; // 用于 Stripe
+        $totalPrice = 0;  // 用于手动计算总价
+
+        // --- 使用数据库事务 ---
+        try {
+            DB::beginTransaction();
+
+            // --- 预检查库存并计算总价 ---
+            foreach ($cart->items as $item) {
+                if ($item->productSku) { // 如果是 SKU 商品
+                    // 锁定 SKU 行以防止并发问题 (悲观锁)
+                    $sku = ProductSku::where('id', $item->product_sku_id)->lockForUpdate()->first();
+                    if (!$sku || $sku->stock < $item->quantity) {
+                        throw new \Exception("商品 “{$item->product->name} ({$sku->formatted_attributes})” 库存不足 (仅剩 {$sku->stock} 件)。");
+                    }
+                    $itemPrice = $sku->price; // 使用 SKU 价格
+                    $itemName = $item->product->name . ' (' . $sku->formatted_attributes . ')'; // 组合名称
+                } elseif ($item->product) { // 如果是无 SKU 商品
+                    // TODO: 添加基础商品的库存检查逻辑（如果需要）
+                    $itemPrice = $item->product->price; // 使用基础商品价格
+                    $itemName = $item->product->name;
+                } else {
+                    throw new \Exception("购物车中的商品 ID {$item->product_id} 无效。");
+                }
+                // 累加总价
+                $totalPrice += $itemPrice * $item->quantity;
+
+                 // 准备 Stripe line item
+                 $lineItems[] = [
+                    'price_data' => [
+                        'currency' => 'cny',
+                        'product_data' => ['name' => $itemName],
+                        'unit_amount' => intval($itemPrice * 100), // 使用计算出的单价
+                    ],
+                    'quantity' => $item->quantity,
+                 ];
+            }
+
+            // 5. 创建订单主记录
+            $order = $user->orders()->create([
+                'status' => Order::STATUS_PENDING,
+                'total_price' => $totalPrice, // 使用计算出的总价
+                'shipping_name' => $validated['shipping_name'],
+                'shipping_address' => $validated['shipping_address'],
+                'shipping_phone' => $validated['shipping_phone'],
+                'notes' => $validated['notes'],
+                'stripe_checkout_session_id' => null,
+            ]);
+
+            // 6. 创建订单项记录并扣减库存
+            foreach ($cart->items as $item) {
+                $orderItemAttributes = null;
+                $itemPriceSnapshot = 0; // 初始化
+                $productNameSnapshot = $item->product?->name ?? '(商品信息丢失)';
+
+                if ($item->productSku) {
+                    // 再次获取锁定的 SKU (事务内)
+                    $sku = ProductSku::find($item->product_sku_id); // 无需再次 lockForUpdate，已在事务锁内
+                    if (!$sku || $sku->stock < $item->quantity) { // 双重检查 (理论上不应发生)
+                        throw new \Exception("商品 “{$productNameSnapshot} ({$sku->formatted_attributes})” 库存不足。");
+                    }
+                    // 扣减 SKU 库存
+                    $sku->decrement('stock', $item->quantity);
+
+                    $itemPriceSnapshot = $sku->price;
+                    $orderItemAttributes = $sku->attributes; // 保存 SKU 属性快照
+                } elseif ($item->product) {
+                    // TODO: 扣减基础商品库存 (如果需要)
+                    $itemPriceSnapshot = $item->product->price;
+                }
+
+                // 创建订单项
+                $order->items()->create([
+                    'product_id' => $item->product_id, // 基础商品 ID
+                    'product_sku_id' => $item->product_sku_id, // SKU ID
+                    'quantity' => $item->quantity,
+                    'price' => $itemPriceSnapshot, // !! 价格快照 !!
+                    'product_name' => $productNameSnapshot, // (可选) 名称快照
+                    'attributes' => $orderItemAttributes, // !! 规格属性快照 !!
+                ]);
+            }
+
+             // 7. 配置 Stripe 并创建 Session (总价已计算好)
+             Stripe::setApiKey(config('services.stripe.secret'));
+             // ...
+
+             $checkoutSession = StripeCheckoutSession::create([
+                 'line_items' => $lineItems, // 使用上面准备好的 lineItems
+                 'mode' => 'payment',
+                 'success_url' => route('checkout.success') . '?session_id={CHECKOUT_SESSION_ID}',
+                 'cancel_url' => route('checkout.cancel'),
+                 'metadata' => [
+                     'order_id' => $order->id,
+                     'user_id' => $user->id,
+                 ],
+                 // 'customer_email' => $user->email, // 可以预填邮箱
+             ]);
+
+            // 8. 更新订单的 Stripe Session ID
+            $order->update(['stripe_checkout_session_id' => $checkoutSession->id]);
+
+            // 9. 清空购物车
+            $cart->items()->delete();
+
+            // 10. 提交事务
+            DB::commit();
+
+            // 11. 重定向到 Stripe
+             return response()->json(['checkout_url' => $checkoutSession->url]);
+            // 或者 return redirect($checkoutSession->url);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('创建订单失败: Order ID ' . ($order->id ?? 'N/A') . ' - ' . $e->getMessage());
+            // 将具体的错误信息返回给用户（例如库存不足）
+            return back()->with('error', '订单创建失败：' . $e->getMessage())->withInput();
+        }
+    }
+}
+</code></pre>
+    <div class="warning">
+        <p><strong>关键变更：</strong></p>
+        <ul>
+            <li>**事务与锁：** 整个订单创建过程（检查库存、创建订单、创建订单项、扣减库存）被包裹在数据库事务中。对需要检查和扣减库存的 `ProductSku` 记录使用了 `lockForUpdate()` 悲观锁，以防止在高并发情况下超卖库存。</li>
+            <li>**库存检查：** 在创建订单项之前和创建过程中都进行了库存检查。</li>
+            <li>**库存扣减：** 使用 `$sku->decrement('stock', $quantity)` 来原子性地扣减库存。</li>
+            <li>**数据快照：** `order_items` 表现在存储了购买时的**价格快照 (`price`)** 和 **规格属性快照 (`attributes`)**，以及可选的商品名称快照。这非常重要，确保即使未来商品价格或属性发生变化，历史订单信息保持不变。</li>
+            <li>**错误处理：** 使用 `try...catch` 捕获异常，并在失败时回滚事务，返回包含具体错误（如库存不足）的信息给用户。</li>
+        </ul>
+    </div>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 9：更新订单视图以显示 SKU 属性</h3>
+    <p>修改订单详情页（前后台都需要），以显示订单项中保存的 SKU 属性快照。</p>
+    <p><strong>操作 1：</strong> 编辑前台订单详情视图。</p>
+    <p><strong>文件：</strong> <code>resources/views/orders/show.blade.php</code></p>
+    <p><strong>修改商品列表部分：</strong></p>
+    <pre><code class="language-html">&lt;!-- resources/views/orders/show.blade.php (商品列表 tbody 部分) --&gt;
+&lt;tbody&gt;
+    @foreach($order->items as $item)
+    &lt;tr&gt;
+        &lt;td&gt;
+            @if($item->product) {{-- 检查基础商品是否存在 --}}
+                &lt;a href="{{ route('products.show', $item->product->slug) }}" target="_blank"&gt;
+                {{-- 显示图片逻辑保持不变 --}}
+                @if($item->product->image) ... @else ... @endif
+                &lt;/a&gt;
+            @else ... @endif
+        &lt;/td&gt;
+        &lt;td&gt;
+            @if($item->product)
+            &lt;a href="{{ route('products.show', $item->product->slug) }}" class="text-decoration-none text-dark" target="_blank"&gt;
+                {{ $item->product_name ?? $item->product->name }} {{-- 显示名称快照或当前名称 --}}
+            &lt;/a&gt;
+            @else
+                &lt;span class="text-muted"&gt;{{ $item->product_name ?? '(商品信息丢失)' }}&lt;/span&gt;
+            @endif
+            {{-- 显示 SKU 属性快照 --}}
+            @if($item->attributes)
+                &lt;div class="small text-muted"&gt;
+                    @foreach($item->attributes as $key => $value)
+                        {{ $key }}: {{ $value }}{{ !$loop->last ? ';' : '' }}
+                    @endforeach
+                &lt;/div&gt;
+            @endif
+        &lt;/td&gt;
+        &lt;td class="text-end"&gt;￥{{ number_format($item->price, 2) }}&lt;/td&gt; {{-- 显示价格快照 --}}
+        &lt;td class="text-center"&gt;{{ $item->quantity }}&lt;/td&gt;
+        &lt;td class="text-end fw-medium"&gt;￥{{ number_format($item->price * $item->quantity, 2) }}&lt;/td&gt;
+    &lt;/tr&gt;
+    @endforeach
+&lt;/tbody&gt;
+</code></pre>
+    <p><strong>操作 2：</strong> （类似地）编辑后台订单详情视图。</p>
+    <p><strong>文件：</strong> <code>resources/views/admin/orders/show.blade.php</code></p>
+    <p><strong>修改商品列表部分以显示 SKU 属性快照（代码类似上面）。</strong></p>
+</div>
+
+
+<h2 class="text-3xl font-semibold mt-8 mb-4">第十一章总结</h2>
+<p>我们成功地将购物车和下单流程与 SKU 及库存管理进行了集成。通过修改数据表结构、模型、控制器和视图，现在：</p>
+<ul>
+    <li>用户向购物车添加商品时，如果是带规格的商品，系统会记录具体的 SKU ID。</li>
+    <li>添加和更新购物车数量时，会检查对应 SKU 的库存。</li>
+    <li>提交订单时，会再次检查库存并使用悲观锁防止超卖，然后扣减 SKU 库存。</li>
+    <li>订单项中保存了购买时的价格和规格属性快照，保证了历史订单数据的准确性。</li>
+    <li>订单详情页可以正确显示购买的商品规格信息。</li>
+</ul>
+<p>这是一个关键的里程碑，让我们的在线商城 MVP 更加接近真实的业务逻辑。库存管理和 SKU 支持是电商系统的核心复杂点之一，我们已经为其打下了基础。</p>
+
+<hr class="my-8 border-gray-300">
+
+<p>接下来，我们可以选择：</p>
+<ol>
+    <li><b>实现用户评价系统：</b> 允许购买过商品的用户进行评价。</li>
+    <li><b>完善后台订单状态管理：</b> 让管理员可以修改订单状态。</li>
+    <li><b>进入测试章节：</b> 为我们已有的功能（特别是包含复杂逻辑的购物车和订单）编写测试。</li>
+    <li><b>讨论部署：</b> 如何将应用部署上线。</li>
+</ol>
+
+</body>
+</html>

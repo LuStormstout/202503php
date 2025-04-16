@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线商城 MVP - 第十章：库存管理与商品规格 (SKU)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Basic code block styling */
+        pre code {
+            display: block;
+            white-space: pre;
+            background-color: #2d3748; /* bg-gray-800 */
+            color: #e2e8f0; /* text-gray-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        /* Basic prose styling */
+        .prose {
+            max-width: 80ch;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; margin-bottom: 0.5em; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose p { margin-bottom: 1em; line-height: 1.6;}
+        .prose ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose li { margin-bottom: 0.5em; }
+        .prose code:not(pre code) { background-color: #edf2f7; /* bg-gray-200 */ color: #1a202c; /* text-gray-900 */ padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.9em; }
+        .prose strong { font-weight: bold; }
+        .prose blockquote { border-left: 4px solid #cbd5e0; padding-left: 1em; color: #4a5568; margin-left: 0; margin-right: 0; font-style: italic;}
+        .prose a { color: #3182ce; text-decoration: none; }
+        .prose a:hover { text-decoration: underline; }
+        .table-container { overflow-x: auto; margin-bottom: 1em; }
+        .prose table { width: 100%; border-collapse: collapse; }
+        .prose th, .prose td { border: 1px solid #e2e8f0; padding: 0.5em 0.75em; text-align: left; }
+        .prose th { background-color: #f7fafc; font-weight: bold; }
+        .note { background-color: #ebf8ff; border-left: 4px solid #63b3ed; padding: 1rem; margin-bottom: 1em; color: #2c5282; }
+        .warning { background-color: #fffaf0; border-left: 4px solid #ecc94b; padding: 1rem; margin-bottom: 1em; color: #744210; }
+        .step { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; background-color: #f9fafb; }
+        .step-title { font-weight: bold; font-size: 1.25rem; margin-bottom: 0.75rem; color: #1f2937; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-8 prose">
+
+<h1 class="text-4xl font-bold mb-6 text-center">第十章：在线商城 MVP - 库存管理与商品规格 (SKU)</h1>
+<p class="text-center text-lg text-gray-600 mb-8">实现基础的库存跟踪和商品多规格支持</p>
+
+<div class="note">
+    <p><strong>本章目标：</strong></p>
+    <ul>
+        <li>为商品引入 SKU (Stock Keeping Unit) 概念，允许一个商品有多个规格（如颜色、尺寸）。</li>
+        <li>每个 SKU 可以有独立的**价格**和**库存**。</li>
+        <li>修改后台商品管理界面以支持 SKU 的基础管理（添加和查看）。</li>
+        <li>修改前台商品页面以展示 SKU 信息（本章暂不实现复杂的 JS 选择交互）。</li>
+        <li>讨论 SKU 对购物车和下单流程的影响（将在后续章节调整）。</li>
+    </ul>
+    <p><strong>设计决策：</strong> 为了简化 MVP，我们将使用 JSON 字段来存储 SKU 的规格属性 (例如 `{"颜色": "红色", "尺码": "L"}`)。更复杂的实现可能需要单独的 `attributes` 和 `attribute_values` 表。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 1：设计并创建 `product_skus` 表</h3>
+    <p>我们需要一张新表来存储每个商品的具体 SKU 信息。</p>
+    <p><strong>数据表结构 (`product_skus`):</strong></p>
+    <ul>
+        <li>`id`: 主键</li>
+        <li>`product_id`: 外键，关联 `products` 表</li>
+        <li>`sku`: SKU 编码 (字符串, 唯一)</li>
+        <li>`price`: SKU 价格 (DECIMAL, 允许与主商品不同)</li>
+        <li>`stock`: 库存数量 (整数, unsigned)</li>
+        <li>`attributes`: 规格属性 (JSON, 例如 `{"颜色": "红色", "尺码": "L"}`)</li>
+        <li>`created_at`, `updated_at`: 时间戳</li>
+    </ul>
+    <p><strong>操作 1：</strong> 生成 `product_skus` 表的迁移文件。</p>
+    <pre><code class="language-bash">php artisan make:migration create_product_skus_table</code></pre>
+    <p><strong>操作 2：</strong> 编辑迁移文件。</p>
+    <p><strong>文件：</strong> <code>database/migrations/YYYY_MM_DD_HHMMSS_create_product_skus_table.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('product_skus', function (Blueprint $table) {
+            $table->id();
+            // 关联商品表，商品删除时，其下的 SKU 也应删除
+            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            $table->string('sku')->unique(); // SKU 编码，必须唯一
+            $table->decimal('price', 10, 2); // SKU 的独立价格
+            $table->unsignedInteger('stock')->default(0); // 库存数量，默认为 0
+            $table->json('attributes')->nullable(); // 存储规格属性，如 {"颜色": "红色", "尺码": "L"}
+            $table->timestamps();
+
+            // 可以为 product_id 添加索引以优化查询
+            $table->index('product_id');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('product_skus');
+    }
+};
+
+</code></pre>
+    <div class="note">
+        <p><strong>关于 `products` 表：</strong> 在引入 SKU 后，`products` 表本身的 `price` 字段可以作为“基础价格”或“展示价格”，实际加入购物车和下单的价格应以 `product_skus` 表中的 `price` 为准。`products` 表不再直接管理库存。</p>
+    </div>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 2：创建 `ProductSku` 模型及关联关系</h3>
+    <p><strong>操作 1：</strong> 生成 `ProductSku` 模型文件。</p>
+    <pre><code class="language-bash">php artisan make:model ProductSku</code></pre>
+    <p><strong>操作 2：</strong> 编辑模型文件。</p>
+    <p><strong>文件：</strong> <code>app/Models/ProductSku.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Models/ProductSku.php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class ProductSku extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'product_id',
+        'sku',
+        'price',
+        'stock',
+        'attributes',
+    ];
+
+    protected $casts = [
+        'price' => 'decimal:2',
+        'stock' => 'integer',
+        'attributes' => 'array', // 自动将 JSON 转换为 PHP 数组，反之亦然
+    ];
+
+    /**
+     * SKU 所属的商品
+     */
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * (可选) 获取格式化的属性字符串
+     * 例如: "颜色: 红色, 尺码: L"
+     */
+    public function getFormattedAttributesAttribute(): string
+    {
+        if (empty($this->attributes)) {
+            return '';
+        }
+        $parts = [];
+        foreach ($this->attributes as $key => $value) {
+            $parts[] = "{$key}: {$value}";
+        }
+        return implode(', ', $parts);
+    }
+}
+</code></pre>
+    <p><strong>操作 3：</strong> 编辑 `Product` 模型，添加 `skus` 关系。</p>
+    <p><strong>文件：</strong> <code>app/Models/Product.php</code></p>
+    <p><strong>添加 `skus` 方法：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Models/Product.php
+
+namespace App\Models;
+
+// ... 其他 use 语句 ...
+use Illuminate\Database\Eloquent\Relations\HasMany; // 引入 HasMany
+
+class Product extends Model
+{
+    // ... use, $fillable, $casts, categories(), scopeActive(), orderItems() ...
+
+    /**
+     * 获取商品的所有 SKU (一对多)
+     */
+    public function skus(): HasMany
+    {
+        return $this->hasMany(ProductSku::class);
+    }
+
+    /**
+     * (可选) 检查商品是否有规格/SKU
+     */
+    public function hasVariations(): bool
+    {
+        // 如果需要频繁检查，可以在加载时使用 withCount('skus')
+        return $this->skus()->exists();
+    }
+
+     /**
+     * (可选) 获取商品的主要价格（优先取第一个 SKU 的价格，否则取自身价格）
+     * 注意：这只是一个简单的展示逻辑，实际购买应基于具体 SKU
+     */
+    public function getDisplayPriceAttribute(): float
+    {
+        // 确保在使用前已加载 skus 关系 (或使用 $this->loadMissing('skus'))
+        $firstSku = $this->skus->first();
+        return $firstSku ? $firstSku->price : $this->price;
+    }
+
+     /**
+     * (可选) 获取商品的总库存（所有 SKU 库存之和）
+     */
+    public function getTotalStockAttribute(): int
+    {
+         // 确保在使用前已加载 skus 关系
+         return $this->skus->sum('stock');
+    }
+}
+
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 3：运行数据库迁移</h3>
+    <p>将新的 `product_skus` 表应用到数据库。</p>
+    <p><strong>操作：</strong> 运行 migrate 命令。</p>
+    <pre><code class="language-bash">php artisan migrate</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 4：创建并更新模型工厂和数据填充器</h3>
+    <p>我们需要为 `ProductSku` 创建工厂，并更新 `ProductSeeder` 来生成带 SKU 的商品数据。</p>
+    <p><strong>操作 1：</strong> 生成 `ProductSku` 工厂。</p>
+    <pre><code class="language-bash">php artisan make:factory ProductSkuFactory --model=ProductSku</code></pre>
+    <p><strong>操作 2：</strong> 编辑 `ProductSkuFactory`。</p>
+    <p><strong>文件：</strong> <code>database/factories/ProductSkuFactory.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // database/factories/ProductSkuFactory.php
+
+namespace Database\Factories;
+
+use App\Models\Product; // 引入 Product
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
+
+class ProductSkuFactory extends Factory
+{
+    /**
+     * Define the model's default state.
+     *
+     * @return array&lt;string, mixed&gt;
+     */
+    public function definition(): array
+    {
+        // 模拟常见的颜色和尺码属性
+        $color = fake()->colorName();
+        $size = fake()->randomElement(['S', 'M', 'L', 'XL']);
+
+        return [
+            // product_id 在 Seeder 中关联
+            // 生成唯一的 SKU 编码 (例如: TSHIRT-RED-L-XYZ123)
+            'sku' => strtoupper(Str::slug(fake()->words(1, true))) . '-' . strtoupper(Str::slug($color)) . '-' . $size . '-' . Str::random(6),
+            'price' => fake()->randomFloat(2, 50, 500), // SKU 的价格
+            'stock' => fake()->numberBetween(0, 100), // 随机库存 0-100
+            'attributes' => [ // 存储为 JSON
+                '颜色' => $color,
+                '尺码' => $size,
+            ],
+        ];
+    }
+}
+
+</code></pre>
+    <p><strong>操作 3：</strong> 编辑 `ProductSeeder`，使其创建商品后，为每个商品创建几个 SKU。</p>
+    <p><strong>文件：</strong> <code>database/seeders/ProductSeeder.php</code></p>
+    <p><strong>修改后完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // database/seeders/ProductSeeder.php
+
+namespace Database\Seeders;
+
+use App\Models\Category;
+use App\Models\Product;
+use App\Models\ProductSku; // 引入 ProductSku
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Seeder;
+
+class ProductSeeder extends Seeder
+{
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        $categoryIds = Category::pluck('id');
+        if ($categoryIds->isEmpty()) {
+            $this->command->warn('No categories found. Running CategorySeeder first.');
+            $this->call(CategorySeeder::class); // 确保分类已存在
+            $categoryIds = Category::pluck('id');
+             if ($categoryIds->isEmpty()) {
+                 $this->command->error('Failed to seed categories. Aborting ProductSeeder.');
+                 return;
+             }
+        }
+
+        // 创建 30 个商品作为示例
+        Product::factory()
+            ->count(30)
+            ->create()
+            ->each(function (Product $product) use ($categoryIds) {
+                // 1. 关联分类 (随机 1-2 个)
+                $randomCategoryIds = $categoryIds->random(rand(1, min(2, $categoryIds->count())));
+                $product->categories()->attach($randomCategoryIds);
+
+                // 2. 为每个商品创建 2 到 5 个 SKU
+                ProductSku::factory()
+                    ->count(rand(2, 5))
+                    ->for($product) // 自动关联 product_id
+                    ->create();
+            });
+
+        // (可选) 创建一些没有 SKU 的商品作为对比
+        Product::factory()
+            ->count(5) // 创建 5 个无 SKU 商品
+            ->create()
+            ->each(function(Product $product) use ($categoryIds){
+                 $randomCategoryIds = $categoryIds->random(rand(1, min(2, $categoryIds->count())));
+                 $product->categories()->attach($randomCategoryIds);
+            });
+
+         $this->command->info('Products and SKUs seeded successfully.');
+    }
+}
+</code></pre>
+    <p><strong>操作 4：</strong> 确认 `DatabaseSeeder` 调用了 `ProductSeeder` (通常在 `CategorySeeder` 之后)。</p>
+    <p><strong>文件：</strong> <code>database/seeders/DatabaseSeeder.php</code></p>
+    <pre><code class="language-php">    // database/seeders/DatabaseSeeder.php
+    public function run(): void
+    {
+        // ... 创建用户 ...
+        $this->call(CategorySeeder::class);
+        $this->call(ProductSeeder::class); // 确保调用了 ProductSeeder
+        // ...
+    }
+</code></pre>
+    <p><strong>操作 5：</strong> 运行数据填充 (推荐使用 fresh)。</p>
+    <pre><code class="language-bash">php artisan migrate:fresh --seed</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 5：更新后台商品管理表单与控制器</h3>
+    <p>我们需要修改后台添加和编辑商品的界面，以允许管理员管理 SKU 信息。为了简化，我们先实现**查看现有 SKU** 和在**创建/编辑商品时添加新的 SKU**。</p>
+    <p><strong>操作 1：</strong> 编辑后台商品表单视图。</p>
+    <p><strong>文件：</strong> <code>resources/views/admin/products/edit.blade.php</code></p>
+    <p><strong>添加 SKU 显示和添加区域 (在表单 `&lt;/form>` 之前)：</strong></p>
+    <pre><code class="language-html">&lt;!-- resources/views/admin/products/edit.blade.php (添加部分) --&gt;
+            {{-- ... 其他表单字段 ... --}}
+
+            &lt;hr class="my-4"&gt;
+            &lt;h5&gt;商品规格 (SKU) 管理&lt;/h5&gt;
+
+            {{-- 显示现有 SKU --}}
+            @if($product->skus->count() > 0)
+            &lt;div class="mb-3"&gt;
+                &lt;label class="form-label"&gt;现有 SKU:&lt;/label&gt;
+                &lt;div class="table-responsive" style="max-height: 300px;"&gt;
+                    &lt;table class="table table-sm table-bordered"&gt;
+                        &lt;thead class="table-light"&gt;
+                            &lt;tr&gt;
+                                &lt;th&gt;SKU 编码&lt;/th&gt;
+                                &lt;th&gt;属性&lt;/th&gt;
+                                &lt;th class="text-end"&gt;价格&lt;/th&gt;
+                                &lt;th class="text-end"&gt;库存&lt;/th&gt;
+                                &lt;th&gt;操作&lt;/th&gt;
+                            &lt;/tr&gt;
+                        &lt;/thead&gt;
+                        &lt;tbody&gt;
+                            @foreach($product->skus as $sku)
+                            &lt;tr&gt;
+                                &lt;td&gt;&lt;code&gt;{{ $sku->sku }}&lt;/code&gt;&lt;/td&gt;
+                                &lt;td&gt;{{ $sku->formatted_attributes }}&lt;/td&gt;
+                                &lt;td class="text-end"&gt;{{ $sku->price }}&lt;/td&gt;
+                                &lt;td class="text-end"&gt;{{ $sku->stock }}&lt;/td&gt;
+                                &lt;td&gt;
+                                    &lt;!-- TODO: 添加编辑和删除 SKU 的按钮和功能 -->
+                                    &lt;a href="#" class="btn btn-outline-secondary btn-sm disabled"&gt;编辑&lt;/a&gt;
+                                &lt;/td&gt;
+                            &lt;/tr&gt;
+                            @endforeach
+                        &lt;/tbody&gt;
+                    &lt;/table&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            @else
+             &lt;p class="text-muted"&gt;暂无 SKU 信息。&lt;/p&gt;
+            @endif
+
+            {{-- 添加新 SKU 的简易表单 (可以考虑用 JS 动态添加更多行) --}}
+            &lt;div class="border p-3 rounded mb-3 bg-light"&gt;
+                &lt;h6 class="mb-3"&gt;添加新 SKU&lt;/h6&gt;
+                 &lt;div class="row g-3"&gt;
+                     &lt;div class="col-md-6"&gt;
+                         &lt;label for="new_sku_code" class="form-label"&gt;SKU 编码 &lt;span class="text-danger"&gt;*&lt;/span&gt;&lt;/label&gt;
+                         &lt;input type="text" class="form-control form-control-sm @error('new_sku.code') is-invalid @enderror" id="new_sku_code" name="new_sku[code]" value="{{ old('new_sku.code') }}"&gt;
+                         @error('new_sku.code') &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt; @enderror
+                     &lt;/div&gt;
+                     &lt;div class="col-md-6"&gt;
+                         &lt;label for="new_sku_price" class="form-label"&gt;SKU 价格 &lt;span class="text-danger"&gt;*&lt;/span&gt;&lt;/label&gt;
+                         &lt;input type="number" step="0.01" min="0" class="form-control form-control-sm @error('new_sku.price') is-invalid @enderror" id="new_sku_price" name="new_sku[price]" value="{{ old('new_sku.price') }}"&gt;
+                         @error('new_sku.price') &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt; @enderror
+                     &lt;/div&gt;
+                     &lt;div class="col-md-6"&gt;
+                         &lt;label for="new_sku_stock" class="form-label"&gt;SKU 库存 &lt;span class="text-danger"&gt;*&lt;/span&gt;&lt;/label&gt;
+                         &lt;input type="number" step="1" min="0" class="form-control form-control-sm @error('new_sku.stock') is-invalid @enderror" id="new_sku_stock" name="new_sku[stock]" value="{{ old('new_sku.stock', 0) }}"&gt;
+                          @error('new_sku.stock') &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt; @enderror
+                     &lt;/div&gt;
+                     &lt;!-- 属性输入 (简化为两个示例属性) --&gt;
+                     &lt;div class="col-md-6"&gt;
+                         &lt;label for="new_sku_attr_color" class="form-label"&gt;属性: 颜色&lt;/label&gt;
+                         &lt;input type="text" class="form-control form-control-sm @error('new_sku.attributes.颜色') is-invalid @enderror" id="new_sku_attr_color" name="new_sku[attributes][颜色]" value="{{ old('new_sku.attributes.颜色') }}"&gt;
+                          @error('new_sku.attributes.颜色') &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt; @enderror
+                     &lt;/div&gt;
+                      &lt;div class="col-md-6"&gt;
+                         &lt;label for="new_sku_attr_size" class="form-label"&gt;属性: 尺码&lt;/label&gt;
+                         &lt;input type="text" class="form-control form-control-sm @error('new_sku.attributes.尺码') is-invalid @enderror" id="new_sku_attr_size" name="new_sku[attributes][尺码]" value="{{ old('new_sku.attributes.尺码') }}"&gt;
+                          @error('new_sku.attributes.尺码') &lt;div class="invalid-feedback"&gt;{{ $message }}&lt;/div&gt; @enderror
+                     &lt;/div&gt;
+                 &lt;/div&gt;
+                 &lt;div class="form-text"&gt;提交表单时，如果填写了“添加新 SKU”的信息，将会为该商品创建一个新的 SKU 记录。&lt;/div&gt;
+            &lt;/div&gt;
+
+
+            &lt;!-- 提交按钮 -->
+            &lt;div class="row mt-4"&gt;
+                &lt;div class="col-sm-8 offset-sm-3"&gt;
+                    &lt;button type="submit" class="btn btn-primary"&gt;确认更新&lt;/button&gt;
+                    &lt;a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary"&gt;取消&lt;/a&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/form&gt; {{-- 表单结束 --}}
+</code></pre>
+    <p class="text-sm text-gray-600"><strong>注意：</strong> 上述添加新 SKU 的表单非常基础。实际项目中通常需要使用 JavaScript 来动态添加/删除多行 SKU 输入，并可能需要更复杂的属性管理。创建 (`create.blade.php`) 页面也需要添加类似的“添加新 SKU”区域。</p>
+
+    <p><strong>操作 2：</strong> 更新 `Admin\ProductController` 的 `store` 和 `update` 方法以处理 SKU 数据。</p>
+    <p><strong>文件：</strong> <code>app/Http/Controllers/Admin/ProductController.php</code></p>
+    <p><strong>修改 `store` 和 `update` 方法（仅展示修改部分和新验证规则）：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Http/Controllers/Admin/ProductController.php
+
+namespace App\Http\Controllers\Admin;
+
+// ... 其他 use ...
+use App\Models\ProductSku; // 引入 ProductSku
+
+class ProductController extends Controller
+{
+    // ... index, create, show, edit ...
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            // ... 商品字段验证规则 ...
+            'name' => ['required', 'string', 'max:255', 'unique:products,name'],
+            'slug' => ['nullable', 'string', 'max:255', 'alpha_dash', 'unique:products,slug'],
+            'description' => ['nullable', 'string'],
+            'price' => ['required', 'numeric', 'min:0'], // 主商品价格
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'is_active' => ['required', 'boolean'],
+            'categories' => ['nullable', 'array'],
+            'categories.*' => ['integer', 'exists:categories,id'],
+            // --- SKU 相关验证 ---
+            'new_sku.code' => ['nullable', 'required_with:new_sku.price,new_sku.stock', 'string', 'max:255', 'unique:product_skus,sku'], // 如果添加SKU，code/price/stock 必填，且 code 唯一
+            'new_sku.price' => ['nullable', 'required_with:new_sku.code', 'numeric', 'min:0'],
+            'new_sku.stock' => ['nullable', 'required_with:new_sku.code', 'integer', 'min:0'],
+            'new_sku.attributes' => ['nullable', 'array'], // attributes 是数组
+            'new_sku.attributes.*' => ['nullable', 'string', 'max:255'], // 数组中的每个属性值是字符串
+        ]);
+
+        // ... Slug 处理 ...
+        // ... 图片上传处理 ...
+        $productData = $validated;
+        unset($productData['image'], $productData['categories'], $productData['new_sku']); // 移除非 Product 字段
+        $productData['image'] = $imagePath ?? null; // 添加处理后的图片路径
+
+        // 创建商品
+        $product = Product::create($productData);
+
+        // 关联分类
+        if (!empty($validated['categories'])) {
+            $product->categories()->sync($validated['categories']);
+        }
+
+        // --- 创建新的 SKU (如果提供了数据) ---
+        if ($request->filled('new_sku.code') && $request->filled('new_sku.price') && $request->filled('new_sku.stock')) {
+            $product->skus()->create([
+                'sku' => $validated['new_sku']['code'],
+                'price' => $validated['new_sku']['price'],
+                'stock' => $validated['new_sku']['stock'],
+                // 清理空的属性值
+                'attributes' => array_filter($validated['new_sku']['attributes'] ?? []),
+            ]);
+        }
+
+        return redirect()->route('admin.products.index')
+                         ->with('success', '商品添加成功！');
+    }
+
+
+    public function update(Request $request, Product $product)
+    {
+         $validated = $request->validate([
+            // ... 商品字段验证规则 (注意 unique 规则要 ignore) ...
+            'name' => ['required', 'string', 'max:255', Rule::unique('products')->ignore($product->id)],
+            'slug' => ['nullable', 'string', 'max:255', 'alpha_dash', Rule::unique('products')->ignore($product->id)],
+             'description' => ['nullable', 'string'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'is_active' => ['required', 'boolean'],
+            'categories' => ['nullable', 'array'],
+            'categories.*' => ['integer', 'exists:categories,id'],
+            'delete_image' => ['nullable', 'boolean'],
+            // --- SKU 相关验证 ---
+            'new_sku.code' => ['nullable', 'required_with:new_sku.price,new_sku.stock', 'string', 'max:255', 'unique:product_skus,sku'], // 新 SKU code 唯一
+            'new_sku.price' => ['nullable', 'required_with:new_sku.code', 'numeric', 'min:0'],
+            'new_sku.stock' => ['nullable', 'required_with:new_sku.code', 'integer', 'min:0'],
+            'new_sku.attributes' => ['nullable', 'array'],
+            'new_sku.attributes.*' => ['nullable', 'string', 'max:255'],
+             // --- TODO: 添加更新现有 SKU 的验证规则 (如果实现的话) ---
+             // 例如 'update_skus.*.price' => ['required', 'numeric', 'min:0']
+        ]);
+
+        // ... Slug 处理 ...
+        // ... 图片更新/删除处理 ...
+        $updateData = $validated;
+        unset($updateData['image'], $updateData['categories'], $updateData['delete_image'], $updateData['new_sku']);
+        // 处理图片更新... (代码同上一版本)
+
+        // 更新商品主信息
+        $product->update($updateData);
+
+        // 更新分类关联
+        $product->categories()->sync($validated['categories'] ?? []);
+
+        // --- 创建新的 SKU (如果提供了数据) ---
+         if ($request->filled('new_sku.code') && $request->filled('new_sku.price') && $request->filled('new_sku.stock')) {
+            $product->skus()->create([
+                'sku' => $validated['new_sku']['code'],
+                'price' => $validated['new_sku']['price'],
+                'stock' => $validated['new_sku']['stock'],
+                'attributes' => array_filter($validated['new_sku']['attributes'] ?? []),
+            ]);
+        }
+
+        // --- TODO: 更新现有 SKU 的逻辑 ---
+        // 需要遍历 $request->input('update_skus') (假设表单有此数组)
+        // 找到对应的 SKU 记录并更新
+
+        // --- TODO: 删除 SKU 的逻辑 ---
+        // 可能通过一个 ID 列表或单独的删除按钮/路由实现
+
+        return redirect()->route('admin.products.index')
+                         ->with('success', '商品更新成功！');
+    }
+
+     // ... destroy ... (destroy 方法中删除 product 时，关联的 SKU 会因 cascadeOnDelete 而自动删除)
+
+}
+
+</code></pre>
+    <p class="warning"><strong>注意：</strong> 上述控制器代码只实现了**添加**新 SKU 的逻辑，并未包含**更新**和**删除**现有 SKU 的逻辑。完整的 SKU 管理会复杂得多，通常需要单独的界面或使用 JavaScript 动态管理表单行。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 6：更新前台商品展示视图</h3>
+    <p>我们需要修改商品详情页，如果商品有 SKU，则显示 SKU 的信息（如属性、价格、库存），并调整“加入购物车”的逻辑（虽然具体实现将在下一章）。</p>
+    <p><strong>操作：</strong> 编辑商品详情视图文件。</p>
+    <p><strong>文件：</strong> <code>resources/views/products/show.blade.php</code></p>
+    <p><strong>修改信息展示和加入购物车部分：</strong></p>
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+@extends('layouts.app')
+
+@section('title', $product->name)
+
+@section('content')
+&lt;div class="container"&gt;
+    &lt;div class="row gx-lg-5"&gt;
+        &lt;!-- 商品图片区域 (保持不变) -->
+        &lt;div class="col-lg-6 mb-4 mb-lg-0"&gt;
+            {{-- ... 图片显示 ... --}}
+        &lt;/div&gt;
+
+        &lt;!-- 商品信息与操作区域 --&gt;
+        &lt;div class="col-lg-6"&gt;
+            &lt;h1 class="fw-bold mb-3"&gt;{{ $product->name }}&lt;/h1&gt;
+            &lt;!-- ... 分类显示 ... --&gt;
+
+            {{-- 检查是否有 SKU --}}
+            @if($product->skus->isNotEmpty())
+                &lt;!-- 如果有 SKU，显示 SKU 选择和信息 -->
+                &lt;div class="mb-4"&gt;
+                    &lt;h5&gt;选择规格&lt;/h5&gt;
+                    {{-- TODO: 实现 SKU 选择交互 (如下拉菜单或按钮组) --}}
+                    {{-- 简单展示 SKU 列表作为示例 --}}
+                    &lt;div class="list-group list-group-flush mb-3 border rounded"&gt;
+                        @foreach($product->skus as $sku)
+                        &lt;div class="list-group-item"&gt;
+                           &lt;div class="fw-medium"&gt;{{ $sku->formatted_attributes }}&lt;/div&gt;
+                           &lt;div class="d-flex justify-content-between align-items-center"&gt;
+                               &lt;span class="text-danger fw-bold fs-5"&gt;￥{{ number_format($sku->price, 2) }}&lt;/span&gt;
+                               &lt;span class="text-muted small"&gt;库存: {{ $sku->stock }} 件&lt;/span&gt;
+                           &lt;/div&gt;
+                           {{-- 添加到购物车的按钮需要包含 sku_id --}}
+                           &lt;form action="{{ route('cart.add') }}" method="POST" class="mt-2"&gt;
+                                @csrf
+                                &lt;input type="hidden" name="product_sku_id" value="{{ $sku->id }}"&gt; {{-- 传递 SKU ID --}}
+                                &lt;input type="hidden" name="quantity" value="1"&gt;
+                                &lt;button type="submit" class="btn btn-sm btn-warning" {{ $sku->stock <= 0 ? 'disabled' : '' }}&gt;
+                                    {{ $sku->stock > 0 ? '加入购物车' : '已售罄' }}
+                                &lt;/button&gt;
+                           &lt;/form&gt;
+                        &lt;/div&gt;
+                        @endforeach
+                    &lt;/div&gt;
+                    &lt;p class="text-muted small"&gt;请选择您要购买的规格。&lt;/p&gt;
+                &lt;/div&gt;
+            @else
+                &lt;!-- 如果没有 SKU，显示主商品价格和加入购物车按钮 -->
+                &lt;p class="fs-2 fw-bold text-danger mb-4"&gt;￥{{ number_format($product->price, 2) }}&lt;/p&gt;
+                &lt;form action="{{ route('cart.add') }}" method="POST" class="mb-4"&gt;
+                    @csrf
+                    &lt;input type="hidden" name="product_id" value="{{ $product->id }}"&gt; {{-- 传递 Product ID --}}
+                    &lt;div class="row g-2 align-items-center"&gt;
+                        &lt;div class="col-auto"&gt;
+                            &lt;label for="quantity" class="col-form-label"&gt;数量:&lt;/label&gt;
+                        &lt;/div&gt;
+                        &lt;div class="col-auto" style="width: 100px;"&gt;
+                            &lt;input type="number" name="quantity" id="quantity" class="form-control text-center" value="1" min="1"&gt;
+                        &lt;/div&gt;
+                        &lt;div class="col-auto"&gt;
+                            {{-- TODO: 需要检查无 SKU 商品的库存（如果需要的话） --}}
+                            &lt;button type="submit" class="btn btn-warning btn-lg"&gt;
+                                &lt;i class="bi bi-cart-plus-fill"&gt;&lt;/i&gt; 加入购物车
+                            &lt;/button&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/form&gt;
+            @endif
+
+            &lt;hr class="my-4"&gt;
+            &lt;!-- 商品描述 -->
+            &lt;div class="product-description"&gt;
+                {{-- ... 描述内容 ... --}}
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+@endsection
+</code></pre>
+    <div class="warning">
+        <p><strong>重要：</strong></p>
+        <ul>
+            <li>上述视图仅**列出**了 SKU 信息。实际应用中需要使用 JavaScript 来实现规格选择的交互（例如，点击颜色、尺码按钮，动态更新价格、库存状态和“加入购物车”按钮的目标 SKU ID）。</li>
+            <li>“加入购物车”表单现在需要传递 `product_sku_id` 而不是 `product_id`（如果商品有 SKU）。这意味着 **`CartController@add` 方法以及 `cart_items` 表和模型都需要相应调整** 来存储 `product_sku_id` 并检查 SKU 库存。我们将在下一章调整购物车逻辑。</li>
+            <li>对于没有 SKU 的商品，我们暂时假设库存无限或不跟踪。</li>
+        </ul>
+    </div>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 7：(预告) 对购物车和下单流程的影响</h3>
+    <p>引入 SKU 和库存后，之前的购物车和下单流程需要进行重大调整：</p>
+    <ul>
+        <li>**购物车 (`CartController`, `cart_items` 表):**
+            <ul>
+                <li>添加商品时，需要传递 `product_sku_id` 而不是 `product_id`。</li>
+                <li>`cart_items` 表需要存储 `product_sku_id`。</li>
+                <li>添加商品到购物车或更新数量时，需要检查对应 SKU 的 `stock` 是否足够。</li>
+            </ul>
+        </li>
+        <li>**结算与订单 (`CheckoutController`, `OrderController`, `order_items` 表):**
+            <ul>
+                <li>`order_items` 表需要存储 `product_sku_id`。</li>
+                <li>创建订单项时，需要记录 SKU 的价格快照。</li>
+                <li>创建订单时，需要对购物车中所有 SKU 的库存进行最终检查，并**扣减库存**（这是关键且复杂的一步，需要考虑并发问题）。</li>
+            </ul>
+        </li>
+    </ul>
+    <p>这些调整将在后续章节中实现。</p>
+</div>
+
+
+<h2 class="text-3xl font-semibold mt-8 mb-4">第十章总结</h2>
+<p>我们成功地为在线商城引入了商品规格 (SKU) 和基础库存管理的概念。我们创建了 `product_skus` 数据表和对应的模型，更新了 `Product` 模型以包含 SKU 关联，并修改了数据填充器来生成带 SKU 的商品。我们还更新了后台商品管理界面，允许管理员查看并（基础地）添加 SKU 信息。前台商品详情页现在也能展示 SKU 列表（虽然交互选择尚未实现）。</p>
+<p>最重要的是，我们认识到 SKU 和库存对购物车、下单流程的深远影响，并明确了后续章节需要进行的调整方向。</p>
+
+<hr class="my-8 border-gray-300">
+
+<p>接下来，我们将进入 **第十一章：调整购物车与下单以支持 SKU 和库存**。我们将修改 `CartController`, `CheckoutController`, `OrderController` 以及相关的数据表/模型，以正确处理带有 SKU 的商品购买和库存检查。</p>
+
+</body>
+</html>

@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线商城 MVP - 第十三章：完善后台管理 - 订单状态管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Basic code block styling */
+        pre code {
+            display: block;
+            white-space: pre;
+            background-color: #2d3748; /* bg-gray-800 */
+            color: #e2e8f0; /* text-gray-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        /* Basic prose styling */
+        .prose {
+            max-width: 80ch;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; margin-bottom: 0.5em; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose p { margin-bottom: 1em; line-height: 1.6;}
+        .prose ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose li { margin-bottom: 0.5em; }
+        .prose code:not(pre code) { background-color: #edf2f7; /* bg-gray-200 */ color: #1a202c; /* text-gray-900 */ padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.9em; }
+        .prose strong { font-weight: bold; }
+        .prose blockquote { border-left: 4px solid #cbd5e0; padding-left: 1em; color: #4a5568; margin-left: 0; margin-right: 0; font-style: italic;}
+        .prose a { color: #3182ce; text-decoration: none; }
+        .prose a:hover { text-decoration: underline; }
+        .table-container { overflow-x: auto; margin-bottom: 1em; }
+        .prose table { width: 100%; border-collapse: collapse; }
+        .prose th, .prose td { border: 1px solid #e2e8f0; padding: 0.5em 0.75em; text-align: left; }
+        .prose th { background-color: #f7fafc; font-weight: bold; }
+        .note { background-color: #ebf8ff; border-left: 4px solid #63b3ed; padding: 1rem; margin-bottom: 1em; color: #2c5282; }
+        .warning { background-color: #fffaf0; border-left: 4px solid #ecc94b; padding: 1rem; margin-bottom: 1em; color: #744210; }
+        .step { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; background-color: #f9fafb; }
+        .step-title { font-weight: bold; font-size: 1.25rem; margin-bottom: 0.75rem; color: #1f2937; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-8 prose">
+
+<h1 class="text-4xl font-bold mb-6 text-center">第十三章：在线商城 MVP - 完善后台管理 - 订单状态管理</h1>
+<p class="text-center text-lg text-gray-600 mb-8">实现管理员修改订单状态及触发相应事件</p>
+
+<div class="step">
+    <h3 class="step-title">步骤 1：定义订单状态常量与转换规则</h3>
+    <p>首先，明确订单可能的状态以及它们之间允许的转换。在 `Order` 模型中定义常量是好的实践。</p>
+    <p><strong>操作：</strong> 编辑 `Order` 模型文件，确认或添加状态常量。</p>
+    <p><strong>文件：</strong> <code>app/Models/Order.php</code></p>
+    <p><strong>添加/确认常量定义：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Models/Order.php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+// ... 其他 use ...
+
+class Order extends Model
+{
+    use HasFactory;
+
+    // --- 订单状态常量 ---
+    const STATUS_PENDING = 'pending';       // 待支付 (或刚下单，根据业务定义)
+    const STATUS_PAID = 'paid';           // 已支付 (如果需要区分支付和处理)
+    const STATUS_PROCESSING = 'processing'; // 处理中/备货中
+    const STATUS_SHIPPED = 'shipped';       // 已发货
+    const STATUS_COMPLETED = 'completed';     // 已完成
+    const STATUS_CANCELLED = 'cancelled';     // 已取消
+    const STATUS_REFUNDED = 'refunded';       // 已退款 (可能需要更复杂的状态)
+
+    protected $fillable = [
+        'user_id',
+        'status', // 确保 status 在 fillable 中
+        'total_price',
+        'shipping_name',
+        'shipping_address',
+        'shipping_phone',
+        'notes',
+        'stripe_checkout_session_id',
+    ];
+
+    protected $casts = [
+        'total_price' => 'decimal:2',
+    ];
+
+    // --- 关系 ---
+    public function user(): BelongsTo { /* ... */ }
+    public function items(): HasMany { /* ... */ }
+
+    /**
+     * (可选) 获取状态的显示名称
+     */
+    public function getStatusTextAttribute(): string
+    {
+        return match ($this->status) {
+            self::STATUS_PENDING => '待处理', // 或 '待支付'
+            self::STATUS_PAID => '已支付',
+            self::STATUS_PROCESSING => '处理中',
+            self::STATUS_SHIPPED => '已发货',
+            self::STATUS_COMPLETED => '已完成',
+            self::STATUS_CANCELLED => '已取消',
+            self::STATUS_REFUNDED => '已退款',
+            default => '未知状态',
+        };
+    }
+
+    /**
+     * (可选) 获取下一个有效的状态选项 (用于后台操作)
+     * @return array
+     */
+    public function getAvailableNextStatuses(): array
+    {
+        return match ($this->status) {
+            self::STATUS_PENDING => [self::STATUS_PROCESSING, self::STATUS_CANCELLED], // 待处理可变为 处理中 或 取消
+            self::STATUS_PAID => [self::STATUS_PROCESSING, self::STATUS_CANCELLED], // 已支付 可变为 处理中 或 取消
+            self::STATUS_PROCESSING => [self::STATUS_SHIPPED, self::STATUS_CANCELLED], // 处理中 可变为 已发货 或 取消
+            self::STATUS_SHIPPED => [self::STATUS_COMPLETED, self::STATUS_REFUNDED], // 已发货 可变为 已完成 或 退款
+            default => [], // 已完成、已取消、已退款状态通常不允许再变更
+        };
+    }
+}
+</code></pre>
+    <p>我们添加了状态常量和一个可选的 `getStatusTextAttribute` 访问器用于显示中文状态，以及一个 `getAvailableNextStatuses` 方法来帮助确定后台操作中允许切换到的状态。</p>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 2：定义订单状态更新路由</h3>
+    <p>在后台管理路由组中添加一个用于更新订单状态的路由，通常使用 PATCH 方法。</p>
+    <p><strong>操作：</strong> 编辑路由文件。</p>
+    <p><strong>文件：</strong> <code>routes/web.php</code></p>
+    <p><strong>在 `/admin` 路由组内添加路由：</strong></p>
+    <pre><code class="language-php">&lt;?php
+// ... 其他 use ...
+use App\Http\Controllers\Admin\OrderController as AdminOrderController;
+
+Route::middleware(['auth', 'admin'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+        // ... dashboard, categories, products routes ...
+
+        // 订单管理路由
+        Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
+        Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
+        // --- 添加状态更新路由 ---
+        Route::patch('/orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('orders.updateStatus');
+
+});
+// ...
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 3：实现 `Admin\OrderController@updateStatus`</h3>
+    <p>在后台订单控制器中添加处理状态更新请求的方法。</p>
+    <p><strong>操作：</strong> 编辑控制器文件。</p>
+    <p><strong>文件：</strong> <code>app/Http/Controllers/Admin/OrderController.php</code></p>
+    <p><strong>添加 `updateStatus` 方法：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Http/Controllers/Admin/OrderController.php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Order;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule; // 引入 Rule
+use App\Events\OrderStatusChanged; // 引入事件 (下一步创建)
+use Illuminate\Support\Facades\Log; // 引入 Log
+
+class OrderController extends Controller
+{
+    // ... index(), show() ...
+
+    /**
+     * 更新订单状态。
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param \App\Models\Order $order
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function updateStatus(Request $request, Order $order)
+    {
+        // 1. 获取当前订单允许变更到的状态
+        $availableStatuses = $order->getAvailableNextStatuses();
+
+        // 2. 验证输入的状态是否有效且允许变更
+        $validated = $request->validate([
+            'status' => ['required', Rule::in($availableStatuses)],
+        ], [
+            'status.in' => '不允许将订单状态从 ' . $order->status . ' 变更为 ' . $request->input('status') . '。',
+        ]);
+
+        $newStatus = $validated['status'];
+        $oldStatus = $order->status; // 保存旧状态用于事件
+
+        try {
+            // 3. 更新订单状态
+            $order->update(['status' => $newStatus]);
+
+            // 4. 触发订单状态变更事件
+            // 将旧状态和新状态都传递给事件，方便监听器处理
+            event(new OrderStatusChanged($order, $oldStatus));
+
+            Log::info("订单 #{$order->id} 状态已由管理员从 {$oldStatus} 更新为 {$newStatus}");
+
+            return redirect()->route('admin.orders.show', $order)
+                             ->with('success', "订单 #{$order->id} 状态已成功更新为 {$newStatus}！");
+
+        } catch (\Exception $e) {
+            Log::error("更新订单 #{$order->id} 状态失败: " . $e->getMessage());
+            return back()->with('error', '更新订单状态时发生错误，请稍后重试。');
+        }
+    }
+}
+
+</code></pre>
+    <div class="note">
+        <p>我们在更新状态后，触发了一个名为 `OrderStatusChanged` 的事件。这是一种良好的实践，它将“更新状态”这个动作和“状态更新后需要做的其他事情”（如发送通知）解耦开来。</p>
+    </div>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 4：创建 `OrderStatusChanged` 事件</h3>
+    <p>创建事件类来封装订单状态变更的信息。</p>
+    <p><strong>操作：</strong> 使用 Artisan 命令生成事件类。</p>
+    <pre><code class="language-bash">php artisan make:event OrderStatusChanged</code></pre>
+    <p><strong>操作：</strong> 编辑事件文件。</p>
+    <p><strong>文件：</strong> <code>app/Events/OrderStatusChanged.php</code></p>
+    <p><strong>修改后完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Events/OrderStatusChanged.php
+
+namespace App\Events;
+
+use App\Models\Order; // 引入 Order 模型
+use Illuminate\Broadcasting\Channel;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PresenceChannel;
+use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast; // 如果需要广播事件
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Queue\SerializesModels; // 使用模型序列化
+
+class OrderStatusChanged
+{
+    use Dispatchable, InteractsWithSockets, SerializesModels; // 使用 Trait
+
+    public Order $order;    // 订单模型实例
+    public string $oldStatus; // 订单变更前的状态
+
+    /**
+     * Create a new event instance.
+     *
+     * @param \App\Models\Order $order 发生状态变更的订单
+     * @param string $oldStatus 变更前的状态
+     */
+    public function __construct(Order $order, string $oldStatus)
+    {
+        $this->order = $order;
+        $this->oldStatus = $oldStatus;
+    }
+
+    /**
+     * Get the channels the event should broadcast on.
+     * 如果需要广播此事件（例如给前端实时更新），在此定义频道。
+     *
+     * @return array&lt;int, \Illuminate\Broadcasting\Channel&gt;
+     */
+    public function broadcastOn(): array
+    {
+        // 例如，广播到与该订单用户相关的私有频道
+        // return [
+        //     new PrivateChannel('orders.'.$this->order->user_id),
+        // ];
+        return []; // 暂时不广播
+    }
+}
+
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 5：创建事件监听器与通知</h3>
+    <p>创建监听器来响应 `OrderStatusChanged` 事件，例如向用户发送订单状态更新通知。</p>
+    <p><strong>操作 1：</strong> 生成监听器。</p>
+    <pre><code class="language-bash">php artisan make:listener SendOrderStatusNotification --event=OrderStatusChanged</code></pre>
+    <p><strong>操作 2：</strong> 编辑监听器文件，并实现 `ShouldQueue` 以异步发送通知。</p>
+    <p><strong>文件：</strong> <code>app/Listeners/SendOrderStatusNotification.php</code></p>
+    <p><strong>修改后完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Listeners/SendOrderStatusNotification.php
+
+namespace App\Listeners;
+
+use App\Events\OrderStatusChanged;
+use App\Notifications\OrderStatusUpdatedNotification; // 引入通知类 (下一步创建)
+use Illuminate\Contracts\Queue\ShouldQueue; // 实现此接口使监听器异步执行
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Support\Facades\Log; // 引入 Log
+use Illuminate\Support\Facades\Notification; // 引入 Notification Facade
+
+class SendOrderStatusNotification implements ShouldQueue // 实现 ShouldQueue
+{
+    use InteractsWithQueue; // 使用队列 Trait
+
+    /**
+     * Create the event listener.
+     */
+    public function __construct()
+    {
+        //
+    }
+
+    /**
+     * Handle the event.
+     * 处理订单状态变更事件
+     */
+    public function handle(OrderStatusChanged $event): void
+    {
+        $order = $event->order;
+        $user = $order->user; // 获取订单关联的用户
+
+        // 检查用户是否存在，以及是否需要发送通知 (例如，可能不想在取消时打扰用户)
+        if (!$user) {
+            Log::warning("尝试为订单 #{$order->id} 发送状态更新通知，但找不到关联用户。");
+            return;
+        }
+
+        // 根据新的订单状态决定是否发送以及发送什么内容的通知
+        // 例如：当状态变为 processing, shipped, completed, cancelled 时发送
+        if (in_array($order->status, [Order::STATUS_PROCESSING, Order::STATUS_SHIPPED, Order::STATUS_COMPLETED, Order::STATUS_CANCELLED])) {
+            try {
+                // 使用 Notification Facade 发送通知给用户
+                Notification::send($user, new OrderStatusUpdatedNotification($order));
+                Log::info("已为订单 #{$order->id} (状态: {$order->status}) 发送状态更新通知给用户 {$user->email}。");
+            } catch (\Exception $e) {
+                 Log::error("为订单 #{$order->id} 发送状态更新通知失败: " . $e->getMessage());
+                 // 可以考虑将此 Job 重新释放回队列
+                 // $this->release(30); // 30秒后重试
+            }
+        } else {
+            Log::info("订单 #{$order->id} 状态变更为 {$order->status}，无需发送通知。");
+        }
+    }
+
+    /**
+     * 处理任务失败。 (可选)
+     */
+    public function failed(OrderStatusChanged $event, \Throwable $exception): void
+    {
+         Log::error("处理 OrderStatusChanged 事件失败 (Listener: SendOrderStatusNotification): " . $exception->getMessage(), ['order_id' => $event->order->id]);
+    }
+}
+
+</code></pre>
+    <p><strong>操作 3：</strong> 生成通知类。</p>
+    <pre><code class="language-bash">php artisan make:notification OrderStatusUpdatedNotification</code></pre>
+    <p><strong>操作 4：</strong> 编辑通知类文件。</p>
+    <p><strong>文件：</strong> <code>app/Notifications/OrderStatusUpdatedNotification.php</code></p>
+    <p><strong>修改后完整内容 (示例：通过邮件发送)：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Notifications/OrderStatusUpdatedNotification.php
+
+namespace App\Notifications;
+
+use App\Models\Order; // 引入 Order
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue; // 通知也可以放入队列发送
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
+
+class OrderStatusUpdatedNotification extends Notification implements ShouldQueue // 实现 ShouldQueue
+{
+    use Queueable; // 使用队列
+
+    public Order $order;
+
+    /**
+     * Create a new notification instance.
+     */
+    public function __construct(Order $order)
+    {
+        $this->order = $order;
+    }
+
+    /**
+     * Get the notification's delivery channels.
+     * 定义通知发送通道 (例如 'mail', 'database', 'broadcast')
+     * @return array&lt;int, string&gt;
+     */
+    public function via(object $notifiable): array
+    {
+        return ['mail']; // 此处仅通过邮件发送
+    }
+
+    /**
+     * Get the mail representation of the notification.
+     * 定义邮件通知的内容
+     */
+    public function toMail(object $notifiable): MailMessage
+    {
+        $statusText = $this->order->status_text; // 使用 Order 模型的访问器获取状态中文名
+        $subject = "您的订单 #{$this->order->id} 状态更新: {$statusText}";
+        $greeting = "您好, {$notifiable->name}!";
+        $line1 = "您的订单 #{$this->order->id} 状态已更新为：**{$statusText}**。";
+        $actionText = '查看订单详情';
+        $actionUrl = route('orders.show', $this->order); // 指向前台订单详情页
+        $line2 = '感谢您的购买！';
+
+        // 根据不同状态可以定制不同的邮件内容
+        switch ($this->order->status) {
+            case Order::STATUS_PROCESSING:
+                $line1 = "您的订单 #{$this->order->id} 已确认，正在处理中。";
+                break;
+            case Order::STATUS_SHIPPED:
+                $line1 = "好消息！您的订单 #{$this->order->id} 已发货。";
+                // $line2 = "物流单号：{$this->order->tracking_number}"; // 如果有物流单号
+                break;
+            case Order::STATUS_COMPLETED:
+                 $line1 = "您的订单 #{$this->order->id} 已完成。";
+                 $line2 = '期待您的再次光临！如有需要，欢迎评价商品。';
+                break;
+            case Order::STATUS_CANCELLED:
+                 $line1 = "很抱歉，您的订单 #{$this->order->id} 已被取消。";
+                 // $line2 = "取消原因：{$this->order->cancel_reason}"; // 如果有取消原因
+                 $actionText = '查看订单列表';
+                 $actionUrl = route('orders.index');
+                break;
+        }
+
+        return (new MailMessage)
+                    ->subject($subject) // 邮件主题
+                    ->greeting($greeting) // 问候语
+                    ->line($line1) // 主要内容行 1
+                    ->action($actionText, $actionUrl) // 按钮文字和链接
+                    ->line($line2); // 结尾内容行
+    }
+
+    /**
+     * Get the array representation of the notification. (用于 database, broadcast 等通道)
+     *
+     * @return array&lt;string, mixed&gt;
+     */
+    public function toArray(object $notifiable): array
+    {
+        return [
+            'order_id' => $this->order->id,
+            'status' => $this->order->status,
+            'message' => "您的订单 #{$this->order->id} 状态已更新为 {$this->order->status_text}。",
+            'url' => route('orders.show', $this->order),
+        ];
+    }
+}
+
+</code></pre>
+    <p><strong>操作 5：</strong> 在 `EventServiceProvider` 中注册监听器。</p>
+    <p><strong>文件：</strong> <code>app/Providers/EventServiceProvider.php</code></p>
+    <p><strong>修改 `$listen` 数组：</strong></p>
+    <pre><code class="language-php">    // app/Providers/EventServiceProvider.php
+    use App\Events\OrderStatusChanged; // 引入事件
+    use App\Listeners\SendOrderStatusNotification; // 引入监听器
+
+    protected $listen = [
+        Registered::class => [ // Breeze 可能已添加
+            SendEmailVerificationNotification::class,
+        ],
+        // 添加订单状态变更事件和监听器的映射
+        OrderStatusChanged::class => [
+            SendOrderStatusNotification::class,
+            // 如果还有其他监听器，继续添加
+            // AnotherListener::class,
+        ],
+    ];
+</code></pre>
+    <div class="note">
+        <p>因为我们的监听器 `SendOrderStatusNotification` 实现了 `ShouldQueue` 接口，所以当 `OrderStatusChanged` 事件被触发时，这个监听器的 `handle` 方法（即发送邮件的逻辑）会被推送到队列中异步执行，不会阻塞管理员更新状态的操作。</p>
+    </div>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 7：更新后台订单视图以支持状态修改</h3>
+    <p>在后台订单详情页或列表页添加修改订单状态的表单控件。</p>
+    <p><strong>操作：</strong> 编辑后台订单详情视图。</p>
+    <p><strong>文件：</strong> <code>resources/views/admin/orders/show.blade.php</code></p>
+    <p><strong>在订单信息卡片中添加状态修改表单：</strong></p>
+    <pre><code class="language-html">&lt;!-- resources/views/admin/orders/show.blade.php (订单信息卡片部分) --&gt;
+&lt;div class="card shadow-sm border-0 h-100"&gt;
+    &lt;div class="card-header bg-light"&gt;
+        &lt;h5 class="mb-0"&gt;&lt;i class="bi bi-receipt me-2"&gt;&lt;/i&gt;订单信息&lt;/h5&gt;
+    &lt;/div&gt;
+    &lt;div class="card-body"&gt;
+        &lt;dl class="row mb-0"&gt;
+            {{-- ... 其他订单信息 dd/dt ... --}}
+            &lt;dt class="col-sm-4"&gt;订单状态:&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;
+                 &lt;span class="badge rounded-pill
+                    @switch($order->status) ... @endswitch"&gt;
+                    {{ $order->status_text }}
+                 &lt;/span&gt;
+
+                 {{-- 添加状态修改表单 (仅当订单状态允许修改时显示) --}}
+                 @php $nextStatuses = $order->getAvailableNextStatuses(); @endphp
+                 @if (!empty($nextStatuses))
+                 &lt;form action="{{ route('admin.orders.updateStatus', $order) }}" method="POST" class="d-inline-block ms-2"&gt;
+                     @csrf
+                     @method('PATCH')
+                     &lt;div class="input-group input-group-sm"&gt;
+                         &lt;select name="status" class="form-select form-select-sm @error('status') is-invalid @enderror" required aria-label="修改订单状态"&gt;
+                             &lt;option value="" disabled selected&gt;修改状态为...&lt;/option&gt;
+                             @foreach($nextStatuses as $status)
+                                 &lt;option value="{{ $status }}"&gt;
+                                     {{-- 显示状态中文名 (假设有访问器或辅助函数) --}}
+                                     {{ match ($status) {
+                                         'pending' => '待处理', 'paid' => '已支付', 'processing' => '处理中',
+                                         'shipped' => '已发货', 'completed' => '已完成', 'cancelled' => '已取消',
+                                         'refunded' => '已退款', default => ucfirst($status)
+                                     } }}
+                                 &lt;/option&gt;
+                             @endforeach
+                         &lt;/select&gt;
+                         &lt;button class="btn btn-outline-primary" type="submit"&gt;更新&lt;/button&gt;
+                     &lt;/div&gt;
+                     @error('status')
+                        &lt;div class="invalid-feedback d-block"&gt;{{ $message }}&lt;/div&gt;
+                     @enderror
+                 &lt;/form&gt;
+                 @endif
+                 {{-- 状态修改表单结束 --}}
+            &lt;/dd&gt;
+            {{-- ... 其他订单信息 dd/dt ... --}}
+        &lt;/dl&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+    <p class="note">这里使用了 `Order` 模型中的 `getAvailableNextStatuses()` 方法（在步骤 1 中添加）来动态决定下拉列表中显示哪些允许变更的状态，增强了业务逻辑的健壮性。</p>
+</div>
+
+<h2 class="text-3xl font-semibold mt-8 mb-4">第十三章总结</h2>
+<p>我们成功地为后台管理添加了订单状态修改的功能。管理员现在可以在订单详情页看到当前状态，并通过下拉菜单选择一个有效的后续状态进行更新。状态更新后会触发一个 `OrderStatusChanged` 事件，我们创建了一个监听器 `SendOrderStatusNotification` 来异步处理此事件（在此示例中是发送邮件通知给用户）。</p>
+<p>通过事件和监听器，我们将订单状态更新的核心逻辑与后续的通知、日志记录等操作进行了解耦，使得代码更清晰、更易于维护和扩展。</p>
+
+<hr class="my-8 border-gray-300">
+
+<p>现在，我们的在线商城 MVP 的核心功能（包括后台管理的关键操作）已经更加完善。接下来的主要方向包括：</p>
+<ol>
+    <li>**测试:** 为我们已经构建的所有功能（特别是包含复杂逻辑的购物车、下单、状态变更、评价）编写自动化测试。</li>
+    <li>**部署:** 讨论如何将应用部署到服务器。</li>
+    <li>**其他高级功能:** 例如更复杂的搜索、促销活动、用户管理等。</li>
+</ol>
+<p>鉴于测试对于保证大型项目质量的重要性，我建议我们下一步进入**测试**章节。</p>
+
+</body>
+</html>

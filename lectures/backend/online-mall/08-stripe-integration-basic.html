@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线商城 MVP - 第八章：集成 Stripe 支付 (基础)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Basic code block styling */
+        pre code {
+            display: block;
+            white-space: pre;
+            background-color: #2d3748; /* bg-gray-800 */
+            color: #e2e8f0; /* text-gray-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        /* Basic prose styling */
+        .prose {
+            max-width: 80ch;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; margin-bottom: 0.5em; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose p { margin-bottom: 1em; line-height: 1.6;}
+        .prose ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose li { margin-bottom: 0.5em; }
+        .prose code:not(pre code) { background-color: #edf2f7; /* bg-gray-200 */ color: #1a202c; /* text-gray-900 */ padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.9em; }
+        .prose strong { font-weight: bold; }
+        .prose blockquote { border-left: 4px solid #cbd5e0; padding-left: 1em; color: #4a5568; margin-left: 0; margin-right: 0; font-style: italic;}
+        .prose a { color: #3182ce; text-decoration: none; }
+        .prose a:hover { text-decoration: underline; }
+        .table-container { overflow-x: auto; margin-bottom: 1em; }
+        .prose table { width: 100%; border-collapse: collapse; }
+        .prose th, .prose td { border: 1px solid #e2e8f0; padding: 0.5em 0.75em; text-align: left; }
+        .prose th { background-color: #f7fafc; font-weight: bold; }
+        .note { background-color: #ebf8ff; border-left: 4px solid #63b3ed; padding: 1rem; margin-bottom: 1em; color: #2c5282; }
+        .warning { background-color: #fffaf0; border-left: 4px solid #ecc94b; padding: 1rem; margin-bottom: 1em; color: #744210; }
+        .step { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; background-color: #f9fafb; }
+        .step-title { font-weight: bold; font-size: 1.25rem; margin-bottom: 0.75rem; color: #1f2937; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-8 prose">
+
+<h1 class="text-4xl font-bold mb-6 text-center">第八章：在线商城 MVP - 集成 Stripe 支付 (基础)</h1>
+<p class="text-center text-lg text-gray-600 mb-8">使用 Stripe Checkout 处理订单支付</p>
+
+<div class="note">
+    <p><strong>前提：</strong></p>
+    <ul>
+        <li>你需要一个 Stripe 账户。可以在 Stripe 官网免费注册，并获取**测试模式**下的 API 密钥。</li>
+        <li>本章使用 Stripe Checkout，这是一个由 Stripe 托管的支付页面，集成相对简单。</li>
+        <li>支付成功与否的最终确认将依赖于 Stripe Webhooks。</li>
+    </ul>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 1：Stripe API 密钥配置</h3>
+    <p>获取你的 Stripe 测试 API 密钥（Publishable Key, Secret Key）和 Webhook Signing Secret。</p>
+    <p><strong>操作 1：</strong> 将密钥添加到 `.env` 文件。</p>
+    <p><strong>文件：</strong> <code>.env</code></p>
+    <p><strong>添加或修改以下行：</strong></p>
+    <pre><code class="language-ini"># .env (添加 Stripe 相关配置)
+# ... 其他配置 ...
+
+STRIPE_KEY=pk_test_YOUR_PUBLISHABLE_KEY       # !!! 替换为你的 Stripe Publishable Key (测试)
+STRIPE_SECRET=sk_test_YOUR_SECRET_KEY         # !!! 替换为你的 Stripe Secret Key (测试)
+STRIPE_WEBHOOK_SECRET=whsec_YOUR_WEBHOOK_SECRET # !!! 替换为你的 Stripe Webhook Signing Secret (测试)
+</code></pre>
+    <p><strong>操作 2：</strong> 在 `config/services.php` 文件中配置 Stripe 服务，以便 Laravel 可以方便地获取密钥。</p>
+    <p><strong>文件：</strong> <code>config/services.php</code></p>
+    <p><strong>添加 'stripe' 配置数组：</strong></p>
+    <pre><code class="language-php">&lt;?php // config/services.php
+
+return [
+    // ... 其他服务 ...
+
+    'stripe' => [
+        'model' => App\Models\User::class, // 如果使用 Cashier，需要指定 User 模型
+        'key' => env('STRIPE_KEY'),         // 读取 .env 中的 Publishable Key
+        'secret' => env('STRIPE_SECRET'),     // 读取 .env 中的 Secret Key
+        'webhook' => [
+            'secret' => env('STRIPE_WEBHOOK_SECRET'), // 读取 Webhook Secret
+            'tolerance' => env('STRIPE_WEBHOOK_TOLERANCE', 300), // Webhook 时间容差
+        ],
+    ],
+
+];
+</code></pre>
+    <p><strong>操作 3：</strong> 清除配置缓存以使 `.env` 更改生效。</p>
+    <pre><code class="language-bash">php artisan config:clear
+# 或 php artisan config:cache # 生产环境推荐缓存配置</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 2：安装 Stripe PHP 客户端库</h3>
+    <p>我们需要 Stripe 官方提供的 PHP 库来与 Stripe API 进行交互。</p>
+    <p><strong>操作：</strong> 使用 Composer 安装。</p>
+    <pre><code class="language-bash">composer require stripe/stripe-php</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 3：添加 Stripe Session ID 到订单表</h3>
+    <p>我们需要在 `orders` 表中添加一个字段来存储对应的 Stripe Checkout Session ID，方便后续通过 Webhook 查找订单。</p>
+    <p><strong>操作 1：</strong> 生成新的迁移文件。</p>
+    <pre><code class="language-bash">php artisan make:migration add_stripe_checkout_session_id_to_orders_table --table=orders</code></pre>
+    <p><strong>操作 2：</strong> 编辑迁移文件。</p>
+    <p><strong>文件：</strong> <code>database/migrations/YYYY_MM_DD_HHMMSS_add_stripe_checkout_session_id_to_orders_table.php</code></p>
+    <p><strong>修改后完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('orders', function (Blueprint $table) {
+            // 在 status 字段之后添加 stripe_checkout_session_id 字段
+            $table->string('stripe_checkout_session_id')
+                  ->nullable() // 允许为空
+                  ->index()    // 添加索引方便查找
+                  ->after('status');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('orders', function (Blueprint $table) {
+            $table->dropColumn('stripe_checkout_session_id'); // 回滚时删除该列
+        });
+    }
+};
+</code></pre>
+    <p><strong>操作 3：</strong> 运行迁移。</p>
+    <pre><code class="language-bash">php artisan migrate</code></pre>
+    <p><strong>操作 4：</strong> 更新 `Order` 模型，将新字段加入 `$fillable`。</p>
+    <p><strong>文件：</strong> <code>app/Models/Order.php</code></p>
+    <p><strong>修改 `$fillable` 数组：</strong></p>
+    <pre><code class="language-php">// app/Models/Order.php
+    protected $fillable = [
+        'user_id',
+        'status',
+        'total_price',
+        'shipping_name',
+        'shipping_address',
+        'shipping_phone',
+        'notes',
+        'stripe_checkout_session_id', // <-- 添加这行
+    ];
+</code></pre>
+</div>
+
+
+<div class="step">
+    <h3 class="step-title">步骤 4：修改订单创建逻辑 (`OrderController@store`)</h3>
+    <p>当用户提交订单后，我们不再直接显示成功消息，而是创建 Stripe Checkout Session 并将用户重定向到 Stripe 的支付页面。</p>
+    <p><strong>操作：</strong> 编辑控制器文件。</p>
+    <p><strong>文件：</strong> <code>app/Http/Controllers/OrderController.php</code></p>
+    <p><strong>修改 `store` 方法：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Http/Controllers/OrderController.php
+
+namespace App\Http\Controllers;
+
+use App\Models\Order;
+// use App\Models\OrderItem; // 已引入
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log; // 引入 Log
+use Stripe\Stripe; // 引入 Stripe SDK 主类
+use Stripe\Checkout\Session as StripeCheckoutSession; // 引入 Checkout Session 类并设置别名
+
+class OrderController extends Controller
+{
+    // ... __construct(), index(), show() ...
+
+    /**
+     * 存储新创建的订单并启动支付流程。
+     */
+    public function store(Request $request)
+    {
+        // 1. 验证收货地址等信息
+        $validated = $request->validate([
+            'shipping_name' => ['required', 'string', 'max:255'],
+            'shipping_address' => ['required', 'string', 'max:1000'],
+            'shipping_phone' => ['required', 'string', 'max:20'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $user = Auth::user();
+        // 2. 获取用户的购物车及商品
+        $cart = $user->cart()->with('items.product')->first();
+
+        // 3. 检查购物车是否为空
+        if (!$cart || $cart->items->isEmpty()) {
+            return redirect()->route('cart.index')->with('error', '购物车是空的，无法创建订单。');
+        }
+
+        $order = null; // 初始化 order 变量
+
+        // 4. 使用数据库事务
+        try {
+            DB::beginTransaction();
+
+            // 5. 创建订单主记录 (状态为 pending)
+            $order = $user->orders()->create([
+                'status' => Order::STATUS_PENDING,
+                'total_price' => $cart->total_price,
+                'shipping_name' => $validated['shipping_name'],
+                'shipping_address' => $validated['shipping_address'],
+                'shipping_phone' => $validated['shipping_phone'],
+                'notes' => $validated['notes'],
+                'stripe_checkout_session_id' => null, // 先设为 null
+            ]);
+
+            // 6. 创建订单项记录，并准备 Stripe line_items
+            $lineItems = [];
+            foreach ($cart->items as $item) {
+                if ($item->product) {
+                    $order->items()->create([
+                        'product_id' => $item->product_id,
+                        'quantity' => $item->quantity,
+                        'price' => $item->product->price, // 价格快照
+                        'product_name' => $item->product->name, // 名称快照
+                    ]);
+
+                    // 准备 Stripe Checkout 的 line_items 数组
+                    // 注意：price 必须是整数，单位是分 (cents)
+                    $lineItems[] = [
+                        'price_data' => [
+                            'currency' => 'cny', // 货币单位 (根据你的 Stripe 账户设置)
+                            'product_data' => [
+                                'name' => $item->product->name,
+                                // 'description' => $item->product->description, // 可选
+                                // 'images' => [$item->product->image ? Storage::disk('public')->url($item->product->image) : null], // 可选
+                            ],
+                            'unit_amount' => intval($item->product->price * 100), // 转换为分
+                        ],
+                        'quantity' => $item->quantity,
+                    ];
+
+                    // --- 库存扣减逻辑 (暂不实现) ---
+                    // $item->product->decrement('stock', $item->quantity);
+                }
+            }
+
+            // 7. 配置 Stripe API Key
+            Stripe::setApiKey(config('services.stripe.secret'));
+            Stripe::setApiVersion('2024-04-10'); // (可选) 指定 API 版本
+
+            // 8. 创建 Stripe Checkout Session
+            $checkoutSession = StripeCheckoutSession::create([
+                'line_items' => $lineItems,
+                'mode' => 'payment', // 一次性支付模式
+                // 支付成功后的跳转 URL，附加 session_id 以便后续查找
+                'success_url' => route('checkout.success') . '?session_id={CHECKOUT_SESSION_ID}',
+                // 用户取消支付后的跳转 URL
+                'cancel_url' => route('checkout.cancel'),
+                // 将订单 ID 附加到 Stripe Session，方便 Webhook 处理
+                 'metadata' => [
+                     'order_id' => $order->id,
+                     'user_id' => $user->id,
+                 ],
+                 // 或者使用 client_reference_id
+                 // 'client_reference_id' => $order->id,
+                 // 如果需要收集地址，也可以在 Stripe Checkout 中完成
+                 // 'shipping_address_collection' => ['allowed_countries' => ['CN', 'US']],
+            ]);
+
+            // 9. 更新订单记录，保存 Stripe Session ID
+            $order->update(['stripe_checkout_session_id' => $checkoutSession->id]);
+
+            // 10. 清空购物车
+            $cart->items()->delete();
+
+            // 11. 提交事务
+            DB::commit();
+
+            // 12. 重定向到 Stripe Checkout 页面
+            // return redirect($checkoutSession->url); // 直接跳转
+            // 使用 Inertia 或前端框架时，可能需要返回 session URL 让前端处理跳转
+            return response()->json(['checkout_url' => $checkoutSession->url]); // 示例: 返回 JSON
+            // 为了在 Blade 中简单跳转，可以使用下面的方式（需要一点 JS）
+            // return view('checkout.redirect', ['checkoutUrl' => $checkoutSession->url]);
+
+        } catch (\Exception $e) {
+            // 13. 发生异常，回滚事务
+            DB::rollBack();
+            Log::error('创建订单或 Stripe Session 失败: Order ID ' . ($order->id ?? 'N/A') . ' - ' . $e->getMessage());
+            return back()->with('error', '订单创建失败，请稍后重试或联系客服。')->withInput();
+        }
+    }
+
+    // ... index(), show() ...
+}
+
+</code></pre>
+    <div class="note">
+        <p><strong>重定向到 Stripe：</strong> 上述代码最后返回了一个 JSON 包含 `checkout_url`。在纯 Blade 项目中，更常见的做法是直接 `return redirect($checkoutSession->url);` 进行 303 重定向。或者你可以创建一个简单的 Blade 视图，在视图中使用 JavaScript 跳转：`window.location.href = '{{ $checkoutUrl }}';`</p>
+        <p><strong>货币和价格：</strong> 请确保 `currency` ('cny') 与你的 Stripe 账户设置一致，并将商品价格乘以 100 转换为分 (`intval($item->product->price * 100)`)。</p>
+    </div>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 5：定义支付结果路由与控制器方法</h3>
+    <p>创建用于处理 Stripe 支付成功和取消后回调的路由和控制器方法。</p>
+    <p><strong>操作 1：</strong> 添加路由。</p>
+    <p><strong>文件：</strong> <code>routes/web.php</code></p>
+    <p><strong>添加以下路由 (通常放在 `auth` 中间件组内)：</strong></p>
+    <pre><code class="language-php">&lt;?php
+// ... 其他 use ...
+use App\Http\Controllers\CheckoutController;
+
+Route::middleware(['auth'])->group(function () {
+    // ... 其他 auth 路由 ...
+    Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
+    Route::get('/checkout/success', [CheckoutController::class, 'success'])->name('checkout.success'); // <-- 成功回调
+    Route::get('/checkout/cancel', [CheckoutController::class, 'cancel'])->name('checkout.cancel');   // <-- 取消回调
+});
+</code></pre>
+    <p><strong>操作 2：</strong> 在 `CheckoutController` 中添加 `success` 和 `cancel` 方法。</p>
+    <p><strong>文件：</strong> <code>app/Http/Controllers/CheckoutController.php</code></p>
+    <p><strong>添加以下方法：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Http/Controllers/CheckoutController.php
+
+namespace App\Http\Controllers;
+
+use App\Models\Order; // 引入 Order
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Stripe\Stripe; // 引入 Stripe
+use Stripe\Checkout\Session as StripeCheckoutSession; // 引入 Session
+use Stripe\Exception\ApiErrorException; // 引入异常类
+use Illuminate\Support\Facades\Log; // 引入 Log
+
+class CheckoutController extends Controller
+{
+    // ... __construct(), index() ...
+
+    /**
+     * 处理 Stripe 支付成功回调。
+     * 注意：最终确认支付成功应依赖 Webhook。此页面仅用于给用户反馈。
+     */
+    public function success(Request $request)
+    {
+        $stripeSessionId = $request->query('session_id'); // 获取 URL 中的 session_id
+
+        if (!$stripeSessionId) {
+            return redirect()->route('orders.index')->with('error', '无效的支付会话。');
+        }
+
+        // 尝试从数据库查找与此 Stripe Session ID 关联的订单
+        // 确保订单属于当前用户
+        $order = Order::where('stripe_checkout_session_id', $stripeSessionId)
+                      ->where('user_id', Auth::id())
+                      ->first();
+
+        if (!$order) {
+             // 理论上不应发生，但以防万一
+             Log::warning("支付成功回调：未找到与 Stripe Session ID [{$stripeSessionId}] 关联的订单，用户 ID: " . Auth::id());
+             return redirect()->route('orders.index')->with('error', '找不到对应的订单信息。');
+        }
+
+        // --- 重要：不建议在此处直接更新订单状态 ---
+        // 因为用户可能支付成功但未返回此页面。订单状态更新应依赖 Webhook。
+        // 此页面主要目的是向用户显示感谢信息。
+
+        // 可以选择性地从 Stripe API 获取 Session 详情以显示更多信息（可选）
+        // try {
+        //     Stripe::setApiKey(config('services.stripe.secret'));
+        //     $session = StripeCheckoutSession::retrieve($stripeSessionId);
+        //     // $paymentStatus = $session->payment_status; // "paid" or "unpaid" etc.
+        // } catch (ApiErrorException $e) {
+        //     Log::error("获取 Stripe Session 失败: " . $e->getMessage());
+        // }
+
+        // 显示支付成功感谢页面，并传递订单信息
+        return view('checkout.success', compact('order'));
+    }
+
+    /**
+     * 处理 Stripe 支付取消回调。
+     */
+    public function cancel()
+    {
+        // 显示支付取消页面，用户可以返回购物车或订单列表
+        return view('checkout.cancel');
+    }
+}
+
+</code></pre>
+    <div class="warning">
+        <p><strong>状态更新关键：</strong> 再次强调，`success` 方法**不应该**是更新订单状态为“已支付”的唯一地方。网络问题或用户提前关闭页面都可能导致此回调未被触发。依赖 Stripe Webhook 是确保支付状态准确更新的**唯一可靠方式**。</p>
+    </div>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 6：创建支付结果视图</h3>
+    <p>创建简单的页面向用户展示支付成功或取消的信息。</p>
+    <p><strong>操作 1：</strong> 创建成功视图文件。</p>
+    <p><strong>文件：</strong> <code>resources/views/checkout/success.blade.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+@extends('layouts.app')
+
+@section('title', '支付成功')
+
+@section('content')
+&lt;div class="container"&gt;
+    &lt;div class="row justify-content-center"&gt;
+        &lt;div class="col-md-8"&gt;
+            &lt;div class="card text-center shadow-sm border-0"&gt;
+                &lt;div class="card-body py-5"&gt;
+                    &lt;i class="bi bi-check-circle-fill text-success display-1 mb-3"&gt;&lt;/i&gt; {{-- 需要 Bootstrap Icons --}}
+                    &lt;h2 class="card-title mb-3"&gt;支付成功！&lt;/h2&gt;
+                    &lt;p class="card-text lead mb-4"&gt;感谢您的订单！我们已收到您的付款，将尽快处理您的订单。&lt;/p&gt;
+                    @if(isset($order))
+                        &lt;p class="text-muted"&gt;您的订单号是: &lt;strong&gt;#{{ $order->id }}&lt;/strong&gt;&lt;/p&gt;
+                        &lt;a href="{{ route('orders.show', $order) }}" class="btn btn-primary mt-3"&gt;查看订单详情&lt;/a&gt;
+                    @else
+                         &lt;a href="{{ route('orders.index') }}" class="btn btn-primary mt-3"&gt;查看我的订单&lt;/a&gt;
+                    @endif
+                    &lt;a href="{{ route('products.index') }}" class="btn btn-outline-secondary mt-3"&gt;继续购物&lt;/a&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+@endsection
+</code></pre>
+    <p><strong>操作 2：</strong> 创建取消视图文件。</p>
+    <p><strong>文件：</strong> <code>resources/views/checkout/cancel.blade.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+@extends('layouts.app')
+
+@section('title', '支付已取消')
+
+@section('content')
+&lt;div class="container"&gt;
+    &lt;div class="row justify-content-center"&gt;
+        &lt;div class="col-md-8"&gt;
+            &lt;div class="card text-center shadow-sm border-0"&gt;
+                &lt;div class="card-body py-5"&gt;
+                     &lt;i class="bi bi-exclamation-circle-fill text-warning display-1 mb-3"&gt;&lt;/i&gt; {{-- 需要 Bootstrap Icons --}}
+                    &lt;h2 class="card-title mb-3"&gt;支付已取消&lt;/h2&gt;
+                    &lt;p class="card-text lead mb-4"&gt;您已取消支付流程。您的订单尚未完成。&lt;/p&gt;
+                    &lt;p class="text-muted"&gt;您可以返回购物车修改订单，或稍后在订单列表中尝试重新支付（如果实现该功能）。&lt;/p&gt;
+                    &lt;a href="{{ route('cart.index') }}" class="btn btn-secondary mt-3"&gt;返回购物车&lt;/a&gt;
+                    &lt;a href="{{ route('orders.index') }}" class="btn btn-outline-primary mt-3"&gt;查看我的订单&lt;/a&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+@endsection
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 7：设置 Stripe Webhooks (关键步骤)</h3>
+    <p>Webhook 是 Stripe 主动通知我们应用支付状态变化的机制，是确保订单状态准确更新的最可靠方式。</p>
+    <p><strong>操作 1：</strong> 定义 Webhook 路由。建议放在 `web` 中间件组之外，并排除 CSRF 保护。</p>
+    <p><strong>文件：</strong> <code>routes/web.php</code> (或 <code>routes/api.php</code>)</p>
+    <p><strong>添加路由：</strong></p>
+    <pre><code class="language-php">&lt;?php
+// ... 其他 use ...
+use App\Http\Controllers\WebhookController; // 引入 WebhookController
+
+// ... 其他路由 ...
+
+// Stripe Webhook 路由 (通常不需要 session 或 CSRF)
+Route::post('/stripe/webhook', [WebhookController::class, 'handleWebhook'])->name('stripe.webhook');
+</code></pre>
+    <p><strong>操作 2：</strong> 创建 Webhook 控制器。</p>
+    <pre><code class="language-bash">php artisan make:controller WebhookController</code></pre>
+    <p><strong>操作 3：</strong> 实现 Webhook 处理逻辑。</p>
+    <p><strong>文件：</strong> <code>app/Http/Controllers/WebhookController.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Http/Controllers/WebhookController.php
+
+namespace App\Http\Controllers;
+
+use App\Models\Order;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Stripe\Stripe;
+use Stripe\Webhook;
+use Stripe\Checkout\Session as StripeCheckoutSession;
+use Stripe\Exception\SignatureVerificationException;
+use UnexpectedValueException;
+
+class WebhookController extends Controller
+{
+    /**
+     * 处理传入的 Stripe Webhook 请求。
+     */
+    public function handleWebhook(Request $request)
+    {
+        // 从请求头获取 Stripe 签名
+        $payload = $request->getContent();
+        $sigHeader = $request->header('Stripe-Signature');
+        $endpointSecret = config('services.stripe.webhook.secret'); // 从配置获取 webhook secret
+
+        if (!$sigHeader || !$endpointSecret) {
+             Log::error('Stripe Webhook Error: Missing signature or secret.');
+             return response('Webhook Error: Missing signature or secret.', 400);
+        }
+
+        $event = null;
+
+        try {
+            // 验证 Webhook 签名，确保请求来自 Stripe
+            $event = Webhook::constructEvent(
+                $payload, $sigHeader, $endpointSecret
+            );
+        } catch (UnexpectedValueException $e) {
+            // 无效 payload
+            Log::error('Stripe Webhook Error: Invalid payload.', ['exception' => $e]);
+            return response('Webhook Error: Invalid payload.', 400);
+        } catch (SignatureVerificationException $e) {
+            // 无效签名
+            Log::error('Stripe Webhook Error: Invalid signature.', ['exception' => $e]);
+            return response('Webhook Error: Invalid signature.', 400);
+        }
+
+        // 根据事件类型处理 Webhook
+        switch ($event->type) {
+            case 'checkout.session.completed':
+                $session = $event->data->object; // 获取 session 对象
+                $this->handleCheckoutSessionCompleted($session);
+                break;
+            case 'payment_intent.succeeded':
+                $paymentIntent = $event->data->object; // 获取 payment intent 对象
+                 // 如果需要，可以处理支付意图成功事件
+                // $this->handlePaymentIntentSucceeded($paymentIntent);
+                 Log::info('Stripe Webhook: PaymentIntent succeeded.', ['id' => $paymentIntent->id]);
+                break;
+             case 'payment_intent.payment_failed':
+                $paymentIntent = $event->data->object;
+                // 处理支付失败事件
+                // $this->handlePaymentIntentFailed($paymentIntent);
+                 Log::warning('Stripe Webhook: PaymentIntent failed.', ['id' => $paymentIntent->id]);
+                 break;
+            // ... 处理其他你关心的事件类型 ...
+            default:
+                Log::info('Stripe Webhook: Received unknown event type ' . $event->type);
+        }
+
+        // 向 Stripe 返回 200 响应，表示已成功接收 Webhook
+        return response('Webhook Handled', 200);
+    }
+
+    /**
+     * 处理 checkout.session.completed 事件。
+     * 这是确认支付成功并更新订单状态的关键。
+     */
+    protected function handleCheckoutSessionCompleted(StripeCheckoutSession $session): void
+    {
+        // 从 Session 的 metadata 或 client_reference_id 获取我们的订单 ID
+        $orderId = $session->metadata->order_id ?? null;
+        // $orderId = $session->client_reference_id; // 如果使用的是 client_reference_id
+
+        if (!$orderId) {
+            Log::error('Stripe Webhook (checkout.session.completed): Missing order_id in metadata.', ['session_id' => $session->id]);
+            return;
+        }
+
+        // 查找对应的订单
+        $order = Order::find($orderId);
+
+        if (!$order) {
+            Log::error('Stripe Webhook (checkout.session.completed): Order not found.', ['order_id' => $orderId, 'session_id' => $session->id]);
+            return;
+        }
+
+        // 检查订单状态，防止重复处理
+        if ($order->status === Order::STATUS_PENDING) {
+            // 检查支付状态是否为 'paid'
+            if ($session->payment_status === 'paid') {
+                // 更新订单状态为 'processing' 或 'completed' (根据业务逻辑)
+                $order->update(['status' => Order::STATUS_PROCESSING]); // 例如更新为处理中
+
+                Log::info('Stripe Webhook: Order status updated to processing.', ['order_id' => $orderId]);
+
+                // --- 在这里触发订单支付成功后的操作 ---
+                // 例如：发送订单确认邮件给用户
+                // Mail::to($order->user->email)->send(new OrderConfirmationMail($order));
+                // 例如：通知管理员
+                // 例如：启动发货流程 (如果适用)
+                // dispatch(new ProcessShippingJob($order));
+                // 例如：记录支付信息 (如果需要)
+                // $order->payments()->create([...]);
+
+            } else {
+                 Log::warning('Stripe Webhook (checkout.session.completed): Payment status is not "paid".', ['order_id' => $orderId, 'status' => $session->payment_status]);
+            }
+        } else {
+             Log::info('Stripe Webhook (checkout.session.completed): Order status already updated.', ['order_id' => $orderId, 'status' => $order->status]);
+        }
+    }
+
+     // --- (可选) 处理其他事件的方法 ---
+    // protected function handlePaymentIntentSucceeded($paymentIntent) { ... }
+    // protected function handlePaymentIntentFailed($paymentIntent) { ... }
+}
+
+</code></pre>
+    <p><strong>操作 4：</strong> 从 CSRF 保护中排除 Webhook 路由。</p>
+    <p><strong>文件：</strong> <code>app/Http/Middleware/VerifyCsrfToken.php</code></p>
+    <p><strong>修改 `$except` 数组：</strong></p>
+    <pre><code class="language-php">&lt;?php // app/Http/Middleware/VerifyCsrfToken.php
+
+namespace App\Http\Middleware;
+
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken as Middleware;
+
+class VerifyCsrfToken extends Middleware
+{
+    /**
+     * The URIs that should be excluded from CSRF verification.
+     *
+     * @var array&lt;int, string&gt;
+     */
+    protected $except = [
+        '/stripe/webhook', // <-- 添加 Stripe Webhook 路由
+        // 其他需要排除的路由...
+    ];
+}
+</code></pre>
+    <p><strong>操作 5：</strong> 在 Stripe Dashboard 中配置 Webhook Endpoint。</p>
+    <ul>
+        <li>登录你的 Stripe Dashboard。</li>
+        <li>导航到 Developers -> Webhooks。</li>
+        <li>点击 "Add endpoint"。</li>
+        <li>**Endpoint URL:** 输入你的应用接收 Webhook 的公开 URL。在本地开发时，这通常需要使用 `ngrok` 或 `expose` 等工具将你的本地端口暴露到公网，例如 `https://your-ngrok-subdomain.ngrok.io/stripe/webhook`。</li>
+        <li>**Events to send:** 选择 "Select events"，至少需要监听 `checkout.session.completed` 事件。根据需要可以监听 `payment_intent.succeeded`, `payment_intent.payment_failed` 等。</li>
+        <li>点击 "Add endpoint"。Stripe 会显示该 Endpoint 的 Signing secret，**确保这个 Secret 与你 `.env` 文件中的 `STRIPE_WEBHOOK_SECRET` 一致**。</li>
+    </ul>
+    <div class="warning">
+        <p><strong>本地测试 Webhook：</strong> 在本地开发环境测试 Webhook 是必要的。推荐使用 <a href="https://ngrok.com/" target="_blank">ngrok</a> 或 Laravel Herd/Expose 等工具将你的本地开发服务器（例如 `http://online-mall.test`）映射到一个临时的公网 URL，然后将这个公网 URL + `/stripe/webhook` 配置到 Stripe Dashboard。</p>
+        <p>也可以使用 Stripe CLI 工具来监听和转发事件到本地：<code>stripe listen --forward-to http://online-mall.test/stripe/webhook</code></p>
+    </div>
+</div>
+
+<h2 class="text-3xl font-semibold mt-8 mb-4">第八章总结</h2>
+<p>我们成功地为在线商城 MVP 集成了 Stripe Checkout 支付流程。用户在提交订单后会被重定向到 Stripe 完成支付。我们设置了支付成功和取消的回调页面，并配置了 Stripe Webhook 来可靠地监听 `checkout.session.completed` 事件，以便在后台确认支付状态并更新订单（这是最关键的一步）。</p>
+<p>虽然我们使用的是 Stripe 的测试模式，但这套流程与生产环境基本一致。现在我们的 MVP 已经具备了从浏览商品到（模拟）支付完成的完整用户流程。</p>
+
+<hr class="my-8 border-gray-300">
+
+<p>接下来，我们将进入 **第九章：完善后台管理 - 订单查看**。我们将为管理员添加查看所有订单列表和订单详情的功能。</p>
+
+</body>
+</html>

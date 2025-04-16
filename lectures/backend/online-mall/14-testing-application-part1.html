@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线商城 MVP - 第十四章：测试应用程序</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Basic code block styling */
+        pre code {
+            display: block;
+            white-space: pre;
+            background-color: #2d3748; /* bg-gray-800 */
+            color: #e2e8f0; /* text-gray-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        /* Basic prose styling */
+        .prose {
+            max-width: 80ch;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .prose h1 { font-size: 2.25rem; line-height: 2.5rem; margin-bottom: 0.5em; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em;}
+        .prose h2 { font-size: 1.875rem; line-height: 2.25rem; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose h3 { font-size: 1.5rem; line-height: 2rem; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: bold;}
+        .prose p { margin-bottom: 1em; line-height: 1.6;}
+        .prose ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em;}
+        .prose li { margin-bottom: 0.5em; }
+        .prose code:not(pre code) { background-color: #edf2f7; /* bg-gray-200 */ color: #1a202c; /* text-gray-900 */ padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.9em; }
+        .prose strong { font-weight: bold; }
+        .prose blockquote { border-left: 4px solid #cbd5e0; padding-left: 1em; color: #4a5568; margin-left: 0; margin-right: 0; font-style: italic;}
+        .prose a { color: #3182ce; text-decoration: none; }
+        .prose a:hover { text-decoration: underline; }
+        .table-container { overflow-x: auto; margin-bottom: 1em; }
+        .prose table { width: 100%; border-collapse: collapse; }
+        .prose th, .prose td { border: 1px solid #e2e8f0; padding: 0.5em 0.75em; text-align: left; }
+        .prose th { background-color: #f7fafc; font-weight: bold; }
+        .note { background-color: #ebf8ff; border-left: 4px solid #63b3ed; padding: 1rem; margin-bottom: 1em; color: #2c5282; }
+        .warning { background-color: #fffaf0; border-left: 4px solid #ecc94b; padding: 1rem; margin-bottom: 1em; color: #744210; }
+        .step { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; background-color: #f9fafb; }
+        .step-title { font-weight: bold; font-size: 1.25rem; margin-bottom: 0.75rem; color: #1f2937; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-8 prose">
+
+<h1 class="text-4xl font-bold mb-6 text-center">第十四章：在线商城 MVP - 测试应用程序</h1>
+<p class="text-center text-lg text-gray-600 mb-8">使用 PHPUnit 编写特性测试和单元测试</p>
+
+<div class="step">
+    <h3 class="step-title">步骤 1：回顾测试环境配置</h3>
+    <p>在开始编写测试之前，确保我们的测试环境已正确配置。</p>
+    <p><strong>关键点：</strong></p>
+    <ul>
+        <li><strong>`phpunit.xml` 文件：</strong> 检查项目根目录下的 `phpunit.xml` 文件，确保 `&lt;php>` 部分设置了测试专用的环境变量，特别是：
+            <ul>
+                <li><code>&lt;env name="APP_ENV" value="testing"/&gt;</code></li>
+                <li><code>&lt;env name="DB_CONNECTION" value="mysql_testing"/&gt;</code> (或 `sqlite`)</li>
+                <li><code>&lt;env name="DB_DATABASE" value="online_mall_test_db"/&gt;</code> (或 `:memory:`)</li>
+                <li><code>&lt;env name="CACHE_DRIVER" value="array"/&gt;</code></li>
+                <li><code>&lt;env name="QUEUE_CONNECTION" value="sync"/&gt;</code></li>
+                <li><code>&lt;env name="MAIL_MAILER" value="array"/&gt;</code></li>
+            </ul>
+            (我们在第一章配置了 `mysql_testing` 和 `online_mall_test_db` 作为推荐方式)。
+        </li>
+        <li><strong>测试数据库：</strong> 确保你已经创建了用于测试的数据库（例如 `online_mall_test_db`）。</li>
+        <li><strong>`RefreshDatabase` Trait：</strong> 在需要与数据库交互的测试类（主要是特性测试）中，使用 `use Illuminate\Foundation\Testing\RefreshDatabase;`。这个 Trait 会在每个测试方法运行前自动执行迁移，并在运行后清理数据库，确保测试隔离。</li>
+    </ul>
+    <p><strong>运行所有测试的命令：</strong></p>
+    <pre><code class="language-bash">php artisan test</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 2：特性测试 - 商品展示</h3>
+    <p>测试公开的商品列表页和详情页是否按预期工作。</p>
+    <p><strong>操作 1：</strong> 创建测试文件。</p>
+    <pre><code class="language-bash">php artisan make:test ProductDisplayTest</code></pre>
+    <p><strong>操作 2：</strong> 编辑测试文件。</p>
+    <p><strong>文件：</strong> <code>tests/Feature/ProductDisplayTest.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // tests/Feature/ProductDisplayTest.php
+
+namespace Tests\Feature;
+
+use App\Models\Category;
+use App\Models\Product;
+use App\Models\ProductSku;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class ProductDisplayTest extends TestCase
+{
+    use RefreshDatabase; // 每个测试方法都会重置数据库
+
+    /** @test */
+    public function product_list_page_loads_and_shows_active_products(): void
+    {
+        // 准备数据: 创建上架和下架的商品
+        $activeProduct = Product::factory()->create(['is_active' => true, 'name' => 'Active Visible Product']);
+        $inactiveProduct = Product::factory()->create(['is_active' => false, 'name' => 'Inactive Hidden Product']);
+
+        // 访问商品列表页
+        $response = $this->get(route('products.index'));
+
+        // 断言
+        $response->assertOk(); // 状态码 200
+        $response->assertViewIs('products.index'); // 视图正确
+        $response->assertViewHas('products'); // 视图包含 'products' 变量
+        $response->assertSee($activeProduct->name); // 能看到上架商品
+        $response->assertDontSee($inactiveProduct->name); // 看不到下架商品
+    }
+
+    /** @test */
+    public function product_detail_page_loads_for_active_product_slug(): void
+    {
+        // 准备数据: 创建一个带 SKU 的上架商品
+        $product = Product::factory()->create(['is_active' => true]);
+        $sku = ProductSku::factory()->for($product)->create(['price' => 199.99, 'attributes' => ['Color' => 'Red']]);
+
+        // 访问商品详情页 (使用 slug)
+        $response = $this->get(route('products.show', $product->slug));
+
+        // 断言
+        $response->assertOk();
+        $response->assertViewIs('products.show');
+        $response->assertViewHas('product', $product); // 视图包含正确的 product 实例
+        $response->assertSee($product->name);
+        $response->assertSee($product->description);
+        // 因为详情页现在显示 SKU 价格，所以断言 SKU 价格
+        $response->assertSee('199.99');
+        $response->assertSee('Color: Red'); // 断言 SKU 属性
+    }
+
+     /** @test */
+    public function product_detail_page_returns_404_for_inactive_product(): void
+    {
+        $inactiveProduct = Product::factory()->create(['is_active' => false]);
+
+        $response = $this->get(route('products.show', $inactiveProduct->slug));
+
+        $response->assertNotFound(); // 断言 404 Not Found
+    }
+
+    /** @test */
+    public function product_list_can_be_filtered_by_category(): void
+    {
+        // 准备数据
+        $category1 = Category::factory()->create(['name' => 'Electronics', 'slug' => 'electronics']);
+        $category2 = Category::factory()->create(['name' => 'Books', 'slug' => 'books']);
+
+        $product1 = Product::factory()->create(['is_active' => true, 'name' => 'Laptop']);
+        $product2 = Product::factory()->create(['is_active' => true, 'name' => 'Novel']);
+        $product3 = Product::factory()->create(['is_active' => true, 'name' => 'Keyboard']);
+
+        // 关联商品与分类
+        $product1->categories()->attach($category1);
+        $product2->categories()->attach($category2);
+        $product3->categories()->attach($category1);
+
+        // 访问分类筛选 URL
+        $response = $this->get(route('products.index', ['category' => 'electronics']));
+
+        // 断言
+        $response->assertOk();
+        $response->assertSee($product1->name); // 应该看到 Laptop
+        $response->assertSee($product3->name); // 应该看到 Keyboard
+        $response->assertDontSee($product2->name); // 不应该看到 Novel
+        $response->assertViewHas('selectedCategory', $category1); // 确认选中的分类传递给了视图
+    }
+}
+
+</code></pre>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 3：特性测试 - 购物车功能 (数据库版)</h3>
+    <p>测试基于数据库的购物车操作是否符合预期，包括添加、更新、删除和库存检查。</p>
+    <p><strong>操作 1：</strong> 创建测试文件。</p>
+    <pre><code class="language-bash">php artisan make:test CartFunctionalityTest</code></pre>
+    <p><strong>操作 2：</strong> 编辑测试文件。</p>
+    <p><strong>文件：</strong> <code>tests/Feature/CartFunctionalityTest.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // tests/Feature/CartFunctionalityTest.php
+
+namespace Tests\Feature;
+
+use App\Models\Cart;
+use App\Models\CartItem;
+use App\Models\Product;
+use App\Models\ProductSku;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class CartFunctionalityTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected User $user;
+    protected Product $product;
+    protected ProductSku $sku1;
+    protected ProductSku $sku2;
+
+    // setUp 方法会在每个测试方法运行前执行，用于准备通用数据
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // 创建一个用户并模拟登录
+        $this->user = User::factory()->create();
+        // 为该用户创建一个购物车
+        $this->user->cart()->create();
+
+        // 创建一个商品和两个 SKU
+        $this->product = Product::factory()->create(['is_active' => true]);
+        $this->sku1 = ProductSku::factory()->for($this->product)->create(['stock' => 10, 'price' => 100.00, 'attributes' => ['Color' => 'Red']]);
+        $this->sku2 = ProductSku::factory()->for($this->product)->create(['stock' => 5, 'price' => 110.00, 'attributes' => ['Color' => 'Blue']]);
+    }
+
+    /** @test */
+    public function guest_cannot_add_to_cart(): void
+    {
+        $response = $this->post(route('cart.add'), [
+            'product_id' => $this->product->id,
+            'product_sku_id' => $this->sku1->id,
+            'quantity' => 1,
+        ]);
+        $response->assertRedirect(route('login')); // 未登录用户应重定向到登录页
+    }
+
+    /** @test */
+    public function logged_in_user_can_add_product_sku_to_cart(): void
+    {
+        $response = $this->actingAs($this->user)->post(route('cart.add'), [
+            'product_id' => $this->product->id,
+            'product_sku_id' => $this->sku1->id,
+            'quantity' => 2,
+        ]);
+
+        $response->assertRedirect(); // 成功后应重定向 (通常是 back())
+        $response->assertSessionHas('success'); // 检查成功消息
+        // 断言数据库中存在对应的 cart_items 记录
+        $this->assertDatabaseHas('cart_items', [
+            'cart_id' => $this->user->cart->id,
+            'product_sku_id' => $this->sku1->id,
+            'quantity' => 2,
+        ]);
+    }
+
+     /** @test */
+    public function adding_same_sku_increments_quantity(): void
+    {
+        // 先添加一次
+        $this->actingAs($this->user)->post(route('cart.add'), [
+            'product_id' => $this->product->id,
+            'product_sku_id' => $this->sku1->id,
+            'quantity' => 1,
+        ]);
+        // 再添加两次
+         $this->actingAs($this->user)->post(route('cart.add'), [
+            'product_id' => $this->product->id,
+            'product_sku_id' => $this->sku1->id,
+            'quantity' => 2,
+        ]);
+
+        // 断言数据库中该 SKU 的数量为 3
+        $this->assertDatabaseHas('cart_items', [
+            'cart_id' => $this->user->cart->id,
+            'product_sku_id' => $this->sku1->id,
+            'quantity' => 3,
+        ]);
+         // 断言购物车中只有一条记录
+        $this->assertDatabaseCount('cart_items', 1);
+    }
+
+     /** @test */
+    public function cannot_add_more_than_stock_to_cart(): void
+    {
+        // sku1 库存为 10
+        // 尝试一次性添加 11 件
+        $response = $this->actingAs($this->user)->post(route('cart.add'), [
+            'product_id' => $this->product->id,
+            'product_sku_id' => $this->sku1->id,
+            'quantity' => 11,
+        ]);
+
+        $response->assertRedirect(); // 重定向回来源页
+        $response->assertSessionHas('error'); // 检查错误消息
+        // 断言数据库中没有该条目
+        $this->assertDatabaseMissing('cart_items', [
+            'cart_id' => $this->user->cart->id,
+            'product_sku_id' => $this->sku1->id,
+        ]);
+
+        // 先添加 5 件
+        $this->actingAs($this->user)->post(route('cart.add'), ['product_id' => $this->product->id, 'product_sku_id' => $this->sku1->id, 'quantity' => 5]);
+        // 再尝试添加 6 件
+        $response = $this->actingAs($this->user)->post(route('cart.add'), [
+            'product_id' => $this->product->id,
+            'product_sku_id' => $this->sku1->id,
+            'quantity' => 6,
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        // 断言数据库中数量仍然是 5
+        $this->assertDatabaseHas('cart_items', [
+            'cart_id' => $this->user->cart->id,
+            'product_sku_id' => $this->sku1->id,
+            'quantity' => 5,
+        ]);
+    }
+
+     /** @test */
+    public function can_view_cart_page_with_items(): void
+    {
+        // 添加两个不同的 SKU 到购物车
+        $this->actingAs($this->user)->post(route('cart.add'), ['product_id' => $this->product->id, 'product_sku_id' => $this->sku1->id, 'quantity' => 2]);
+        $this->actingAs($this->user)->post(route('cart.add'), ['product_id' => $this->product->id, 'product_sku_id' => $this->sku2->id, 'quantity' => 1]);
+
+        // 访问购物车页面
+        $response = $this->actingAs($this->user)->get(route('cart.index'));
+
+        $response->assertOk();
+        $response->assertViewIs('cart.index');
+        $response->assertSee($this->product->name); // 看到商品名称
+        $response->assertSee('Color: Red');        // 看到 SKU1 属性
+        $response->assertSee('Color: Blue');       // 看到 SKU2 属性
+        $response->assertSee('￥'.number_format(100.00 * 2 + 110.00 * 1, 2)); // 验证总价
+    }
+
+    /** @test */
+    public function can_update_cart_item_quantity_if_stock_sufficient(): void
+    {
+        // 先添加 2 件 sku1 (库存 10)
+        $cartItem = CartItem::factory()->for($this->user->cart)->for($this->sku1, 'productSku')->create(['quantity' => 2, 'product_id' => $this->product->id]);
+
+        // 尝试更新数量为 8 (8 <= 10，应该成功)
+        $response = $this->actingAs($this->user)->patch(route('cart.update', $cartItem->id), ['quantity' => 8]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+        $this->assertDatabaseHas('cart_items', ['id' => $cartItem->id, 'quantity' => 8]);
+    }
+
+     /** @test */
+    public function cannot_update_cart_item_quantity_if_stock_insufficient(): void
+    {
+        // 先添加 2 件 sku1 (库存 10)
+        $cartItem = CartItem::factory()->for($this->user->cart)->for($this->sku1, 'productSku')->create(['quantity' => 2, 'product_id' => $this->product->id]);
+
+        // 尝试更新数量为 11 (11 > 10，应该失败)
+        $response = $this->actingAs($this->user)->patch(route('cart.update', $cartItem->id), ['quantity' => 11]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error'); // 检查错误消息
+        // 断言数据库中数量仍为 2
+        $this->assertDatabaseHas('cart_items', ['id' => $cartItem->id, 'quantity' => 2]);
+    }
+
+     /** @test */
+    public function can_remove_item_from_cart(): void
+    {
+        $cartItem = CartItem::factory()->for($this->user->cart)->for($this->sku1, 'productSku')->create(['quantity' => 1, 'product_id' => $this->product->id]);
+
+        $response = $this->actingAs($this->user)->delete(route('cart.remove', $cartItem->id));
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+        $this->assertDatabaseMissing('cart_items', ['id' => $cartItem->id]); // 确认记录已删除
+    }
+
+     /** @test */
+    public function cannot_update_or_remove_others_cart_item(): void
+    {
+        $otherUser = User::factory()->create();
+        $otherUser->cart()->create();
+        $cartItem = CartItem::factory()->for($otherUser->cart)->for($this->sku1, 'productSku')->create(['quantity' => 1, 'product_id' => $this->product->id]);
+
+        // 尝试更新其他用户的购物车项
+        $responseUpdate = $this->actingAs($this->user)->patch(route('cart.update', $cartItem->id), ['quantity' => 5]);
+        $responseUpdate->assertForbidden(); // 应该返回 403 Forbidden (需要 Policy)
+
+        // 尝试删除其他用户的购物车项
+        $responseDelete = $this->actingAs($this->user)->delete(route('cart.remove', $cartItem->id));
+        $responseDelete->assertForbidden(); // 应该返回 403 Forbidden (需要 Policy)
+
+        $this->assertDatabaseHas('cart_items', ['id' => $cartItem->id, 'quantity' => 1]); // 确认数据未被修改
+    }
+}
+</code></pre>
+    <div class="warning">
+        <p><strong>需要 CartItemPolicy：</strong> 上述测试中的 `cannot_update_or_remove_others_cart_item` 方法依赖于 `CartItemPolicy` 来返回 403 错误。你需要创建这个 Policy (`php artisan make:policy CartItemPolicy --model=CartItem`)，实现 `update` 和 `delete` 方法（检查 `$user->id === $cartItem->cart->user_id`），并在 `AuthServiceProvider` 中注册它。</p>
+    </div>
+</div>
+
+<div class="step">
+    <h3 class="step-title">步骤 4：特性测试 - 下单流程 (含 SKU 与库存)</h3>
+    <p>测试用户从购物车到提交订单（不含支付确认）的流程，特别是库存检查和扣减。</p>
+    <p><strong>操作 1：</strong> 创建测试文件。</p>
+    <pre><code class="language-bash">php artisan make:test CheckoutProcessTest</code></pre>
+    <p><strong>操作 2：</strong> 编辑测试文件。</p>
+    <p><strong>文件：</strong> <code>tests/Feature/CheckoutProcessTest.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // tests/Feature/CheckoutProcessTest.php
+
+namespace Tests\Feature;
+
+use App\Models\CartItem;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\ProductSku;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event; // 用于测试事件分发
+use App\Events\OrderStatusChanged; // 引入事件
+use Tests\TestCase;
+
+class CheckoutProcessTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected User $user;
+    protected Product $product;
+    protected ProductSku $sku;
+    protected array $shippingData;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->user = User::factory()->create();
+        $this->user->cart()->create(); // 创建购物车
+        $this->product = Product::factory()->create(['is_active' => true]);
+        $this->sku = ProductSku::factory()->for($this->product)->create(['stock' => 5, 'price' => 150.00]);
+        // 准备有效的收货地址数据
+        $this->shippingData = [
+            'shipping_name' => 'Test User',
+            'shipping_address' => '123 Test St, Test City',
+            'shipping_phone' => '1234567890',
+            'notes' => 'Test notes',
+        ];
+
+        // 模拟 Stripe SDK (避免真实 API 调用)
+        // 在 TestCase 或此 setUp 中 mock
+        // $this->mock(Stripe\Service\Checkout\SessionService::class, function ($mock) {
+        //     $mock->shouldReceive('create')->andReturn((object)['id' => 'cs_test_123', 'url' => 'https://fake.stripe.url']);
+        // });
+        // 注意：更复杂的 Mock 可能需要更细致的设置
+    }
+
+    /** @test */
+    public function guest_cannot_access_checkout_page(): void
+    {
+        $this->get(route('checkout.index'))->assertRedirect(route('login'));
+    }
+
+     /** @test */
+    public function user_with_empty_cart_cannot_access_checkout_page(): void
+    {
+        $this->actingAs($this->user)
+             ->get(route('checkout.index'))
+             ->assertRedirect(route('cart.index'))
+             ->assertSessionHas('warning');
+    }
+
+     /** @test */
+    public function user_with_items_can_view_checkout_page(): void
+    {
+        // 添加商品到购物车
+        CartItem::factory()->for($this->user->cart)->for($this->sku, 'productSku')->create(['quantity' => 1, 'product_id' => $this->product->id]);
+
+        $this->actingAs($this->user)
+             ->get(route('checkout.index'))
+             ->assertOk()
+             ->assertViewIs('checkout.index')
+             ->assertSee($this->product->name)
+             ->assertSee(number_format($this->sku->price, 2));
+    }
+
+    /** @test */
+    public function checkout_requires_valid_shipping_information(): void
+    {
+        CartItem::factory()->for($this->user->cart)->for($this->sku, 'productSku')->create(['quantity' => 1, 'product_id' => $this->product->id]);
+
+        $response = $this->actingAs($this->user)->post(route('orders.store'), [
+            // 缺少 shipping_name
+            'shipping_address' => 'Test Address',
+            'shipping_phone' => '12345', // 可能不够长或格式错误
+        ]);
+
+        $response->assertSessionHasErrors(['shipping_name', 'shipping_phone']); // 确认验证错误
+        $this->assertDatabaseCount('orders', 0); // 确认未创建订单
+    }
+
+     /** @test */
+    public function cannot_place_order_if_stock_is_insufficient(): void
+    {
+        // 添加 6 件到购物车，但 SKU 库存只有 5
+        CartItem::factory()->for($this->user->cart)->for($this->sku, 'productSku')->create(['quantity' => 6, 'product_id' => $this->product->id]);
+
+        $response = $this->actingAs($this->user)->post(route('orders.store'), $this->shippingData);
+
+        // 断言重定向回购物车页 (因为 OrderController 中是 redirect 到 cart.index)
+        $response->assertRedirect(route('cart.index'));
+        $response->assertSessionHasErrors(); // 检查是否有错误 (具体错误 key 取决于控制器抛出方式)
+        // 断言订单未创建
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertDatabaseCount('order_items', 0);
+        // 断言库存未被扣减
+        $this->assertEquals(5, $this->sku->refresh()->stock);
+    }
+
+    /** @test */
+    public function can_place_order_with_sufficient_stock_and_valid_data(): void
+    {
+         // Mock Stripe 交互 (如果 setUp 中没有 mock)
+        $this->mock(\Stripe\Service\Checkout\SessionService::class, function ($mock) {
+            $mock->shouldReceive('create')->andReturn((object)[
+                'id' => 'cs_test_success_123',
+                'url' => 'https://checkout.stripe.com/pay/cs_test_success_123'
+            ]);
+        });
+
+        // 添加 3 件到购物车 (库存 5)
+        $cartItem = CartItem::factory()->for($this->user->cart)->for($this->sku, 'productSku')->create(['quantity' => 3, 'product_id' => $this->product->id]);
+        $initialStock = $this->sku->stock; // 5
+
+        $response = $this->actingAs($this->user)->post(route('orders.store'), $this->shippingData);
+
+        // 断言响应是 JSON 且包含 checkout_url (根据 OrderController 返回修改)
+        $response->assertOk(); // 如果返回 JSON 通常是 200 OK
+        $response->assertJsonStructure(['checkout_url']);
+        // 或者，如果控制器直接重定向: $response->assertRedirect('https://checkout.stripe.com/pay/cs_test_success_123');
+
+        // 断言订单已创建
+        $this->assertDatabaseCount('orders', 1);
+        $order = Order::first();
+        $this->assertEquals($this->user->id, $order->user_id);
+        $this->assertEquals(Order::STATUS_PENDING, $order->status);
+        $this->assertEquals(150.00 * 3, $order->total_price); // 验证总价
+        $this->assertEquals('cs_test_success_123', $order->stripe_checkout_session_id); // 验证 Stripe Session ID
+        $this->assertEquals($this->shippingData['shipping_name'], $order->shipping_name);
+
+        // 断言订单项已创建
+        $this->assertDatabaseCount('order_items', 1);
+        $orderItem = $order->items()->first();
+        $this->assertEquals($this->product->id, $orderItem->product_id);
+        $this->assertEquals($this->sku->id, $orderItem->product_sku_id);
+        $this->assertEquals(3, $orderItem->quantity);
+        $this->assertEquals(150.00, $orderItem->price); // 验证价格快照
+        $this->assertEquals(['Color' => 'Red'], $orderItem->attributes); // 验证属性快照
+
+        // 断言库存已扣减
+        $this->assertEquals($initialStock - 3, $this->sku->refresh()->stock); // 5 - 3 = 2
+
+        // 断言购物车已被清空
+        $this->assertDatabaseMissing('cart_items', ['id' => $cartItem->id]);
+        // $this->assertCount(0, $this->user->cart->refresh()->items); // 另一种检查方式
+    }
+
+}
+</code></pre>
+</div>
+
+
+<div class="step">
+    <h3 class="step-title">步骤 5：单元测试示例 (模型方法)</h3>
+    <p>编写一个简单的单元测试来验证我们在 `Product` 模型中添加的方法。</p>
+    <p><strong>操作 1：</strong> 创建测试文件。</p>
+    <pre><code class="language-bash">php artisan make:test ProductModelTest --unit</code></pre>
+    <p><strong>操作 2：</strong> 编辑测试文件。</p>
+    <p><strong>文件：</strong> <code>tests/Unit/ProductModelTest.php</code></p>
+    <p><strong>完整内容：</strong></p>
+    <pre><code class="language-php">&lt;?php // tests/Unit/ProductModelTest.php
+
+namespace Tests\Unit;
+
+use App\Models\Product;
+use App\Models\ProductSku;
+use App\Models\Review;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase; // 单元测试中也可用 RefreshDatabase
+use Tests\TestCase; // 继承 Laravel TestCase 以使用 Factory 等
+
+class ProductModelTest extends TestCase // 继承 Laravel TestCase
+{
+    use RefreshDatabase; // 使用数据库和 Factory
+
+    /** @test */
+    public function it_correctly_calculates_average_rating(): void
+    {
+        $product = Product::factory()->create();
+
+        // 创建几个已审核的评价
+        Review::factory()->for($product)->create(['rating' => 5, 'is_approved' => true]);
+        Review::factory()->for($product)->create(['rating' => 4, 'is_approved' => true]);
+        Review::factory()->for($product)->create(['rating' => 3, 'is_approved' => true]);
+        // 创建一个未审核的评价
+        Review::factory()->for($product)->create(['rating' => 1, 'is_approved' => false]);
+
+        // 断言平均分 (只计算已审核的)
+        $this->assertEquals(4.0, $product->averageRating()); // (5+4+3)/3 = 4
+        $this->assertEquals(4, $product->averageRating(0)); // 精度为 0
+    }
+
+     /** @test */
+    public function it_correctly_counts_approved_reviews(): void
+    {
+        $product = Product::factory()->create();
+        Review::factory()->count(3)->for($product)->create(['is_approved' => true]);
+        Review::factory()->count(2)->for($product)->create(['is_approved' => false]);
+
+        $this->assertEquals(3, $product->reviewCount()); // 断言已审核评论数为 3
+    }
+
+    /** @test */
+    public function display_price_accessor_works_correctly(): void
+    {
+        $productNoSku = Product::factory()->create(['price' => 50.00]);
+        $productWithSku = Product::factory()->create(['price' => 100.00]); // 基础价格
+        $sku1 = ProductSku::factory()->for($productWithSku)->create(['price' => 120.00]);
+        $sku2 = ProductSku::factory()->for($productWithSku)->create(['price' => 110.00]);
+
+        // 重新加载带 SKU 的产品以确保关系加载
+        $productWithSku->load('skus');
+
+        $this->assertEquals(50.00, $productNoSku->display_price); // 无 SKU，显示基础价格
+        // 有 SKU，显示第一个 SKU 的价格 (根据模型访问器逻辑)
+        $this->assertEquals(120.00, $productWithSku->display_price);
+    }
+
+    // 可以添加更多单元测试，例如测试 scopeActive 等
+}
+
+</code></pre>
+</div>
+
+
+<div class="step">
+    <h3 class="step-title">步骤 6：运行测试 (再次提醒)</h3>
+    <p>编写完测试后，运行它们来检查功能是否正常。</p>
+    <p><strong>常用命令：</strong></p>
+    <ul>
+        <li>运行所有测试: <code>php artisan test</code></li>
+        <li>运行特定文件: <code>php artisan test tests/Feature/CartFunctionalityTest.php</code></li>
+        <li>运行特定方法: <code>php artisan test --filter can_place_order_with_sufficient_stock_and_valid_data</code></li>
+        <li>运行特性测试套件: <code>php artisan test --testsuite=Feature</code></li>
+        <li>运行单元测试套件: <code>php artisan test --testsuite=Unit</code></li>
+    </ul>
+    <p>定期运行测试，特别是在进行代码修改或添加新功能之后，是保持项目健康的关键。</p>
+</div>
+
+<h2 class="text-3xl font-semibold mt-8 mb-4">第十四章总结</h2>
+<p>在本章中，我们为在线商城 MVP 的核心功能编写了自动化测试。我们创建了特性测试来模拟用户交互，覆盖了商品展示、数据库购物车操作（包括库存检查）、基础下单流程（包括库存扣减）以及用户评价提交等关键路径。我们还编写了简单的单元测试来验证模型中的特定逻辑（如计算平均分）。</p>
+<p>这些测试为我们的代码提供了一层重要的安全网，有助于在未来的开发和重构中捕捉潜在的错误，保证了我们项目代码的质量和稳定性。</p>
+
+<hr class="my-8 border-gray-300">
+
+<p>现在我们的 MVP 功能相对完善，并且有了一定的测试覆盖。接下来的主要选择是：</p>
+<ol>
+    <li>**部署 (Deployment):** 讨论如何将我们的 Laravel 应用部署到生产服务器。</li>
+    <li>**进一步完善功能:** 例如：
+        <ul>
+            <li>更完善的后台订单状态流程（发货、完成、取消逻辑及通知）。</li>
+            <li>商品搜索功能。</li>
+            <li>后台用户管理。</li>
+        </ul>
+    </li>
+</ol>
+
+</body>
+</html>

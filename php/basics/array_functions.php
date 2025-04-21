@@ -71,13 +71,13 @@ echo "<br>";
 
 $stack = ["a", "b"];
 $count = array_push($stack, "c", "d");
-print_r($stack); // 输出: Array ( [0] => a [1] => b [2] => c [3] => d )
+printRWithBr($stack); // 输出: Array ( [0] => a [1] => b [2] => c [3] => d )
 echo "<br>";
 echo "New count: " . $count; // 输出: New count: 4
 echo "<br>";
 
 $stack[] = "e"; // 更常见的方式添加单个元素
-print_r($stack); // 输出: Array ( [0] => a [1] => b [2] => c [3] => d [4] => e )
+printRWithBr($stack); // 输出: Array ( [0] => a [1] => b [2] => c [3] => d [4] => e )
 echo "<br>";
 
 $stack = ["a", "b", "c"];
@@ -86,12 +86,12 @@ foreach ($stack as $item) {
     echo "Popped: " . $last; // 输出: Popped: c ...
     echo "<br>";
 }
-print_r($stack); // 输出: Array ()
+printRWithBr($stack); // 输出: Array ()
 echo "<br>";
 
 $queue = ["b", "c"];
 $count = array_unshift($queue, "a", "x");
-print_r($queue); // 输出: Array ( [0] => a [1] => x [2] => b [3] => c )
+printRWithBr($queue); // 输出: Array ( [0] => a [1] => x [2] => b [3] => c )
 echo "<br>";
 echo "New count: " . $count; // 输出: New count: 4
 echo "<br>";
@@ -99,7 +99,7 @@ echo "<br>";
 $queue = ["a", "b", "c"];
 $first = array_shift($queue);
 echo "Shifted: " . $first . "<br>"; // 输出: Shifted: a
-print_r($queue); // 输出: Array ( [0] => b [1] => c ) (注意索引重排了)
+printRWithBr($queue); // 输出: Array ( [0] => b [1] => c ) (注意索引重排了)
 echo "<br>";
 
 // 排队逻辑
@@ -125,12 +125,12 @@ echo "<br>";
 
 $arr = [0 => "apple", 1 => "banana", 2 => "cherry"];
 unset($arr[1]); // 删除索引为 1 的元素
-print_r($arr); // 输出: Array ( [0] => apple [2] => cherry ) (索引 1 不存在了)
+printRWithBr($arr); // 输出: Array ( [0] => apple [2] => cherry ) (索引 1 不存在了)
 echo "<br>";
 
 // 如果想删除后重新索引，可以用 array_values()
 $reindexed = array_values($arr);
-print_r($reindexed); // 输出: Array ( [0] => apple [1] => cherry )
+printRWithBr($reindexed); // 输出: Array ( [0] => apple [1] => cherry )
 echo "<br>";
 
 echo $fruits[0] . "<br>";
@@ -143,17 +143,17 @@ echo "<br>";
 $user = ['name' => 'Bob', 'age' => 25, 'city' => 'London', 'status' => 'active'];
 $keys = array_keys($user);
 // ['name', 'age', 'city', 'status'];
-print_r($keys); // 输出: Array ( [0] => name [1] => age [2] => city [3] => status )
+printRWithBr($keys); // 输出: Array ( [0] => name [1] => age [2] => city [3] => status )
 echo "<br>";
 
 $values = array_values($user);
 // ['Bob', 25, 'London', 'active'];
-print_r($values); // 输出: Array ( [0] => Bob [1] => 25 [2] => London [3] => active )
+printRWithBr($values); // 输出: Array ( [0] => Bob [1] => 25 [2] => London [3] => active )
 echo "<br>";
 
 $ages = ['Alice' => 30, 'Bob' => 25, 'Charlie' => 30];
 $keysOf30 = array_keys($ages, 30);
-print_r($keysOf30); // 输出: Array ( [0] => Alice [1] => Charlie )
+printRWithBr($keysOf30); // 输出: Array ( [0] => Alice [1] => Charlie )
 echo "<br>";
 
 $os = ['Mac', 'Windows', 'Linux', 0];
@@ -184,13 +184,13 @@ $arr1 = ['color' => 'red', 0 => 'a', 1 => 'b'];
 $arr2 = ['color' => 'green', 'shape' => 'circle', 1 => 'c', 2 => 'd'];
 
 $merged = array_merge($arr1, $arr2);
-print_r($merged);
+printRWithBr($merged);
 echo "<br>";
 
 $base = ['color' => 'red', 'shape' => 'square', 0 => 10, 1 => 20];
 $replacements = ['color' => 'blue', 1 => 25, 'border' => 'dotted'];
 $replaced = array_replace($base, $replacements);
-print_r($replaced);
+printRWithBr($replaced);
 echo "<br>";
 
 $input = ['a', 'b', 'c', 'd', 'e'];
@@ -200,15 +200,15 @@ $slice3 = array_slice($input, 1, -1);  // 从索引 1 开始，到倒数第 1 �
 $slice4 = array_slice($input, -2, 1); // 从倒数第 2 个开始，取 1 个 -> ['d']
 $assoc = ['x' => 10, 'y' => 20, 'z' => 30];
 $slice5 = array_slice($assoc, 1, null, true); // 从索引 1 开始，保留键名 -> ['y' => 20, 'z' => 30]
-print_r($slice1);
+printRWithBr($slice1);
 echo "<br>";
-print_r($slice2);
+printRWithBr($slice2);
 echo "<br>";
-print_r($slice3);
+printRWithBr($slice3);
 echo "<br>";
-print_r($slice4);
+printRWithBr($slice4);
 echo "<br>";
-print_r($slice5);
+printRWithBr($slice5);
 echo "<br>";
 
 // & 我们也叫做「地址传递符」
@@ -261,10 +261,86 @@ $usersData = array_map(function ($user) {
 }, $users);
 echoWithBr(json_encode($usersData));
 
-# 7.6 迭代与函数式处理
-// 需要渲染的字符串 The next F1 race will be in {{ city }} on {{ date }}.
-// 给定的变量值 ['city' => 'Melbourne', 'date' => '2022-04-08']
-// 执行结果 The next F1 race will be in Melbourne on 2022-04-08.
-///
-// ['city' => 'Melbourne', 'date' => '2022-04-08', 'weather' => '晴天']
-// The next F1 race will be in {{ city }} on {{ date }} ssas {{ weather }}.
+echoHr();
+$numbers = [1, 2, 3, 4, 5, 6];
+$even = array_filter($numbers, fn($n) => $n % 2 == 0);
+printRWithBr($even); // 输出: Array ( [1] => 2 [3] => 4 [5] => 6 ) (保留了键名 1, 3, 5)
+
+$mixed = [0, 1, false, true, "", "hello", null, []];
+$notEmpty = array_filter($mixed); // 省略回调，移除所有 falsey 值
+printRWithBr($notEmpty); // 输出: Array ( [1] => 1 [3] => 1 [5] => hello ) (true 被转为 1 输出)
+
+$assoc = ['a' => 1, 'b' => 2, 'c' => 3];
+// 过滤掉键名不是 'a' 的元素
+$onlyA = array_filter($assoc, fn($key) => $key === 'a', ARRAY_FILTER_USE_KEY);
+printRWithBr($onlyA); // 输出: Array ( [a] => 1 )
+
+echoHr();
+$numbers = [1, 2, 3, 4, 5];
+
+// 计算数组元素的和
+$sum = array_reduce($numbers, fn($carry, $item) => $carry + $item, 0); // 初始值为 0
+echoWithBr("Sum: " . $sum); // 输出: Sum: 15
+
+// 将数组元素连接成字符串
+$string = array_reduce($numbers, fn($carry, $item) => $carry . "-" . $item, "Numbers:"); // 初始值为 "Numbers:"
+echoWithBr("\nString: " . $string); // 输出: String: Numbers:-1-2-3-4-5
+
+echoHr();
+$fruits = ['a' => 'apple', 'b' => 'banana'];
+
+// 打印每个元素
+array_walk($fruits, function($value, $key) {
+    echoWithBr($key . " => " . $value . "\n");
+});
+
+// 修改数组元素（注意 &）
+$numbers = [1, 2, 3];
+array_walk($numbers, function(&$value, $key) {
+    $value *= 10;
+});
+printRWithBr($numbers); // 输出: Array ( [0] => 10 [1] => 20 [2] => 30 )
+
+echoHr();
+$numbers = [3, 1, 4, 1, 5, 9];
+sort($numbers);
+printRWithBr($numbers); // 输出: Array ( [0] => 1 [1] => 1 [2] => 3 [3] => 4 [4] => 5 [5] => 9 ) (键被重置)
+rsort($numbers);
+printRWithBr($numbers); // 输出: Array ( [0] => 9 [1] => 5 [2] => 4 [3] => 3 [4] => 1 [5] => 1 ) (键被重置)
+$scores = ['Alice' => 85, 'Bob' => 92, 'Charlie' => 78];
+asort($scores); // 按分数升序，保留名字键
+printRWithBr($scores); // 输出: Array ( [Charlie] => 78 [Alice] => 85 [Bob] => 92 )
+arsort($scores); // 按分数降序，保留名字键
+printRWithBr($scores); // 输出: Array ( [Bob] => 92 [Alice] => 85 [Charlie] => 78 )
+$files = ['img12.png', 'img10.png', 'img2.png', 'img1.png'];
+natsort($files); // 自然排序
+printRWithBr($files); // 输出: Array ( [3] => img1.png [2] => img2.png [1] => img10.png [0] => img12.png ) (键保留)
+$input = ["a", "b", "a", "c", "b", "b"];
+$unique = array_unique($input);
+printRWithBr($unique); // 输出: Array ( [0] => a [1] => b [3] => c )
+
+$array1 = ["a" => "green", "red", "blue", "red"];
+$array2 = ["b" => "green", "yellow", "red"];
+
+$diff = array_diff($array1, $array2);
+printRWithBr($diff); // 输出: Array ( [1] => blue ) ('green' 和 'red' 在 $array2 中也存在)
+
+$intersect = array_intersect($array1, $array2);
+print_r($intersect); // 输出: Array ( [a] => green [0] => red [2] => red )
+
+$numbers = [1, 2, 3, 4.5];
+echoWithBr("Sum: " . array_sum($numbers)); // 输出: Sum: 10.5
+
+$input = ["a" => 1, "b" => 2, "c" => 3];
+$flipped = array_flip($input);
+printRWithBr($flipped); // 输出: Array ( [1] => a [2] => b [3] => c )
+printRWithBr(array_flip($scores)); // 输出: Array ( [85] => Alice [92] => Bob [78] => Charlie ) (分数作为键)
+$numbers = [3, 1, 4, 1, 5, 9];
+printRWithBr(array_reverse($numbers)); // 输出: Array ( [0] => 9 [1] => 5 [2] => 4 [3] => 3 [4] => 1 [5] => 1 ) (键被重置)
+
+// ['f','g','a']
+// -----> ---->
+// ['p','q','r']
+// <----- <----
+
+// list

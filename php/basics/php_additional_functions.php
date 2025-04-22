@@ -91,3 +91,129 @@ echoWithBr("请求开始时间 (带微秒): " . ($_SERVER['REQUEST_TIME_FLOAT'] 
 echoWithBr(date("L", strtotime(date('Y-m-d', strtotime('-1 year')))));
 
 // PHP - Supplement D: 文件系统函数
+echoHr();
+$path1 = "/var/www/html/images/logo.png";
+$path2 = "C:\\Users\\John\\Documents\\report.pdf";
+$path3 = "myfile.txt"; // 只有文件名
+$path4 = "/etc/php/";    // 目录
+
+echo basename($path1); // 输出: logo.png
+echo "<br>";
+echo basename($path1, ".png"); // 输出: logo
+echo "<br>";
+echo basename($path2); // 输出: report.pdf (能处理 Windows 路径)
+echo "<br>";
+echo basename($path3); // 输出: myfile.txt
+echo "<br>";
+echo basename($path4); // 输出: php (返回最后的组件)
+
+echoHr();
+$path = "/var/www/html/images/logo.png";
+echo dirname($path);      // 输出: /var/www/html/images
+echo "<br>";
+echo dirname($path, 2); // 输出: /var/www/html (向上两级)
+echo "<br>";
+echo dirname("/var/www/html"); // 输出: /var/www
+echo "<br>";
+echo dirname("myfile.txt"); // 输出: . (当前目录)
+
+echoHr();
+$path = "/var/www/html/images/logo.PNG";
+// 获取所有信息
+$infoAll = pathinfo($path);
+echo "<pre>All info: ";
+print_r($infoAll);
+echo "</pre>";
+
+echoWithBr(DIRECTORY_SEPARATOR); // 输出: /
+
+echoHr();
+$file = './array_functions.php';
+$dir = '/Library/WebServer/Documents/cod/202503php/php/basics/';
+if (file_exists($file)) {
+    echoWithBr("文件 $file 存在。");
+} else {
+    echoWithBr("文件 $file 不存在。");
+}
+
+if (is_dir($dir)) {
+    echoWithBr("目录 $dir 存在。");
+} else {
+    echoWithBr("目录 $dir 不存在。");
+}
+
+if (is_file($file)) {
+    echoWithBr("文件 $file 是一个文件。");
+} else {
+    echoWithBr("文件 $file 不是一个文件。");
+}
+
+echoWithBr(filetype($file)); // 输出: file
+
+echoWithBr(disk_free_space($dir)); // 返回当前磁盘上可用的空间
+echoWithBr(disk_total_space($dir)); // 返回当前磁盘的总空间
+
+$childes = scandir($dir);
+printRWithBr($childes); // 输出: 目录下的所有文件和目录
+
+echoHr();
+$userInfo = [
+    'name' => 'Elon Musk',
+    'nickname' => '马书记',
+    'age' => 30,
+    'avatar' => 'https://example.com/avatar.jpg',
+    'email' => 'test@example.com',
+    'phone' => '1234567890',
+    'address' => '123 Main St, City, Country',
+    'bio' => 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+    'website' => 'https://example.com',
+    'social' => [
+        'facebook' => 'https://facebook.com/elonmusk',
+        'twitter' => 'https://twitter.com/elonmusk',
+        'linkedin' => 'https://linkedin.com/in/elonmusk',
+    ],
+    'skills' => [
+        'PHP',
+        'JavaScript',
+        'HTML',
+        'CSS',
+        'MySQL',
+    ],
+    'projects' => [
+        [
+            'title' => 'Project 1',
+            'description' => 'Description of project 1.',
+            'url' => 'https://example.com/project1',
+        ],
+        [
+            'title' => 'Project 2',
+            'description' => 'Description of project 2.',
+            'url' => 'https://example.com/project2',
+        ],
+    ],
+    'education' => [
+        [
+            'degree' => 'Bachelor of Science in Computer Science',
+            'institution' => 'University of Example',
+            'year' => 2015,
+        ],
+        [
+            'degree' => 'Master of Science in Software Engineering',
+            'institution' => 'Example University',
+            'year' => 2017,
+        ],
+    ],
+];
+
+// 使用 json_encode() 将数组转换为 JSON 字符串
+echoWithBr(json_encode($userInfo));
+$jsonString = json_encode($userInfo, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+echoWithBr("<pre>$jsonString</pre>");
+
+$userInfoJson = '{"name":"Elon Musk","nickname":"\u9a6c\u4e66\u8bb0","age":30,"avatar":"https:\/\/example.com\/avatar.jpg","email":"test@example.com","phone":"1234567890","address":"123 Main St, City, Country","bio":"Lorem ipsum dolor sit amet, consectetur adipiscing elit.","website":"https:\/\/example.com","social":{"facebook":"https:\/\/facebook.com\/elonmusk","twitter":"https:\/\/twitter.com\/elonmusk","linkedin":"https:\/\/linkedin.com\/in\/elonmusk"},"skills":["PHP","JavaScript","HTML","CSS","MySQL"],"projects":[{"title":"Project 1","description":"Description of project 1.","url":"https:\/\/example.com\/project1"},{"title":"Project 2","description":"Description of project 2.","url":"https:\/\/example.com\/project2"}],"education":[{"degree":"Bachelor of Science in Computer Science","institution":"University of Example","year":2015},{"degree":"Master of Science in Software Engineering","institution":"Example University","year":2017}]}';
+// 使用 json_decode() 将 JSON 字符串转换为 PHP 数组
+$userInfoArray = json_decode($userInfoJson, true);
+echo "<pre>";
+printRWithBr($userInfoArray); // 输出: 数组
+echo "</pre>";
+echoWithBr($userInfoArray['nickname']); // 输出: 马书记

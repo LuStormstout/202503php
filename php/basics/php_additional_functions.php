@@ -217,3 +217,111 @@ echo "<pre>";
 printRWithBr($userInfoArray); // 输出: 数组
 echo "</pre>";
 echoWithBr($userInfoArray['nickname']); // 输出: 马书记
+
+// 正则表达式
+echoHr();
+$string = "abc123def456ghi789";
+$preg = '/\w{6}/';
+
+$html = "<b>bold text</b> and <i>italic text</i>";
+
+// 贪婪模式 (.* 匹配尽可能多的字符)
+preg_match('/<b>(.*)<\/b>/', $html, $matches_greedy);
+printRWithBr($matches_greedy); // 输出: [0 => 'bold text and italic text', 1 => 'bold text and italic text']
+
+echoHr();
+// 懒惰模式 (.? 匹配尽可能少的字符，直到遇到第一个 )
+preg_match('/<b>(.?)<\/b>/', $html, $matches_lazy);
+printRWithBr($matches_lazy); // 输出: [0 => 'bold text', 1 => 'bold text']
+
+$email = "test@example.com";
+
+// 一个相对简单的 Email 验证模式 (注意：完美的 Email 正则非常复杂)
+// 解释:
+// ^                  - 字符串开头
+// [a-zA-Z0-9.*%+-]+  - 用户名部分：一个或多个字母、数字、点、下划线、百分号、加号、减号
+// @                  - 字面的 "@" 符号
+// [a-zA-Z0-9.-]+     - 域名部分：一个或多个字母、数字、点、减号
+// .                 - 字面的 "." 符号 (需要转义)
+// [a-zA-Z]{2,}       - 顶级域名：至少两个字母
+// $                  - 字符串结尾
+// i                  - 不区分大小写修正符
+// 小括号 (...) 创建了捕获组
+$pattern = '/^([a-zA-Z0-9.-]+)@([a-zA-Z0-9.-]+)$/i';
+
+// 使用 preg_match 进行验证和捕获
+if (preg_match($pattern, $email, $matches)) {
+    // 如果 preg_match 返回 1，表示匹配成功
+    echo "有效的 Email 地址。\n";
+    echo "完整匹配: " . htmlspecialchars($matches[0]) . "\n";
+    echo "用户名部分 (捕获组 1): " . htmlspecialchars($matches[1]) . "\n";
+    echo "域名部分 (捕获组 2): " . htmlspecialchars($matches[2]) . "\n";
+} else {
+    // 如果 preg_match 返回 0 或 false
+    echo "无效的 Email 地址格式。\n";
+}
+
+echoHr();
+$text = "访问我们的网站 https://www.example.com 或查看 ftp://files.example.org/data.zip";
+
+// 一个简化的 https://www.google.com/search?q=URL 匹配模式 (实际 https://www.google.com/search?q=URL 匹配可能更复杂)
+// 匹配 http, https, ftp, ftps 协议
+$pattern = '^\b(https?|ftps?)://[-A-Z0-9+&@#/%?=~|!:,.;]*[-A-Z0-9+&@#/%=~|]^i'; // i 不区分大小写
+
+// 使用 preg_match_all 查找所有匹配项
+$match_count = preg_match_all($pattern, $text, $all_matches, PREG_SET_ORDER); // 使用 PREG_SET_ORDER
+
+if ($match_count > 0) {
+    echo "找到了 " . $match_count . " 个 https://www.google.com/search?q=URL:\n";
+    echo "<ul>";
+    foreach ($all_matches as $match) {
+        // $match[0] 是完整的 https://www.google.com/search?q=URL 匹配
+        // $match[1] 是第一个捕获组 (协议部分)
+        $url = htmlspecialchars($match[0]);
+        $protocol = htmlspecialchars($match[1]);
+        echo "<li>协议: {$protocol}, https://www.google.com/search?q=URL: {$url}</li>";
+    }
+    echo "</ul>";
+// echo "<pre>Matches array:\n"; print_r($all_matches); echo "</pre>";
+} else {
+    echo "没有找到 https://www.google.com/search?q=URL。\n";
+}
+
+echoHr();
+// 3. 隐藏手机号中间四位
+$phone = "用户手机号: 13812345678";
+$pattern3 = '/(\d{3})\d{4}(\d{4})/'; // 捕获前三位和后四位
+$replacement3 = '$1****$2'; // 用 **** 替换中间四位
+$masked_phone = preg_replace($pattern3, $replacement3, $phone);
+echo "原始: {$phone}\n";
+echo "隐藏后: {$masked_phone}\n"; // 输出: 隐藏后: 用户手机号: 138****5678
+
+echoHr();
+$markdown = "这是一个链接 [PHP官网](https://www.php.net) 和另一个 [搜索](https://www.google.com/search?q=URL)。";
+
+// 模式：匹配 文字
+// [(.?)] : 捕获链接文字 (非贪婪)
+// (     : 匹配左括号
+// (.?)  : 捕获 https://www.google.com/search?q=URL (非贪婪)
+// )     : 匹配右括号
+$pattern = '/\[(.*?)]\((.*?)\)/';
+
+// 定义回调函数
+$callback = function($matches) {
+    // $matches[0] 是整个匹配 "文字"
+    // $matches[1] 是第一个捕获组 (文字)
+    // $matches[2] 是第二个捕获组 (https://www.google.com/search?q=URL)
+    $text = htmlspecialchars($matches[1], ENT_QUOTES, 'UTF-8'); // 对文字进行 HTML 转义
+    $url = htmlspecialchars($matches[2], ENT_QUOTES, 'UTF-8');  // 对 https://www.google.com/search?q=URL 也进行转义 (防止属性注入)
+
+    // 返回 HTML 链接标签
+    return '<a href="' . $url . '" target="_blank">' . $text . '</a>';
+};
+
+// 执行替换
+$html = preg_replace_callback($pattern, $callback, $markdown);
+
+echo "Markdown: " . htmlspecialchars($markdown) . "\n<br>";
+echo "HTML: " . htmlspecialchars($html) . "\n<br>"; // 查看源码
+echo "渲染效果: " . $html . "\n"; // 在浏览器查看效果
+

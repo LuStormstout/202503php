@@ -414,11 +414,14 @@ session_start(); // 开启或恢复会话
 $_SESSION['user_id'] = 123;
 $_SESSION['username'] = 'Alice';
 $_SESSION['login_time'] = time();
-$\_SESSION['preferences'] = ['theme' =\> 'dark', 'lang' =\> 'zh'];
-echo "Session 数据已设置。\_SESSION['username'])) {
-echo "欢迎回来, " . htmlspecialchars($_SESSION['username']) . "!&lt;br>";
+$_SESSION['preferences'] = ['theme' => 'dark', 'lang' => 'zh'];
+echo "Session 数据已设置。&lt;br>";
+
+// --- 读取数据 ---
+if (isset($_SESSION['username'])) {
+    echo "欢迎回来, " . htmlspecialchars($_SESSION['username']) . "!&lt;br>";
 } else {
-echo "用户未登录。&lt;br>";
+    echo "用户未登录。&lt;br>";
 }
 
 // 使用 ?? 提供默认值
@@ -426,19 +429,10 @@ $lang = $_SESSION['preferences']['lang'] ?? 'en';
 echo "用户语言设置: " . htmlspecialchars($lang) . "&lt;br>";
 
 // --- 修改数据 ---
-_SESSION[
-′
- preferences
-′
- ][
-′
- lang
-′
- ]=
-′
- en_US
-′
- ;//−−−删除单个session变量−−−unset(_SESSION['login_time']);
+$_SESSION['preferences']['lang'] = 'en_US';
+
+// --- 删除单个 session 变量 ---
+unset($_SESSION['login_time']);
 
 ?></code></pre>
 

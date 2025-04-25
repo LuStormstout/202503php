@@ -4,7 +4,7 @@ require_once '../helpers.php';
 
 // --- 连接信息 ---
 // MySQL DSN
-$dsn = "mysql:host=localhost;dbname=test;charset=utf8mb4";
+$dsn = "mysql:host=localhost;dbname=school;charset=utf8mb4";
 // 数据库用户名
 $username = "root";
 // 数据库密码 (!!! 不应硬编码在代码中，应使用配置文件或环境变量 !!!)
@@ -48,14 +48,14 @@ echoHr();
 // --- 使用 query() 执行 SELECT ---
 try {
     // 这个查询是固定的，没有用户输入，所以用 query() 相对安全
-    $sql = "SELECT id, name, age, grade FROM students WHERE grade = 'A'";
+    $sql = "SELECT id, name, gender, phone, email FROM students LIMIT 10";
     $stmt = $pdo->query($sql); // 返回 PDOStatement 对象
 
-    echo "<h4>Students of A class:</h4>";
+    echo "<h4>Students:</h4>";
     echo "<ul>";
     // 遍历 PDOStatement 对象获取结果 (稍后详细讲 fetch)
     foreach ($stmt as $row) {
-        echo "<li>ID: {$row['id']}, Name:" . htmlspecialchars($row['name']) . ", Age: {$row['age']}, Grade: {$row['grade']}</li>";
+        echo "<li>ID: {$row['id']}, Name:" . htmlspecialchars($row['name']) . ", email: {$row['email']}, gender: {$row['gender']}</li>";
     }
     echo "</ul>";
 } catch (PDOException $e) {
@@ -65,7 +65,7 @@ try {
 // --- 使用 exec() 执行 UPDATE ---
 try {
     // 这个 UPDATE 也是固定的
-    $sql = "UPDATE students SET grade = 'A' WHERE grade = 'B'";
+    $sql = "UPDATE students SET email = 'wangxiuying@example.com' WHERE id = 1";
     $affectedRows = $pdo->exec($sql); // 返回受影响的行数
 
     echo "更新了 " . $affectedRows . " 个学生的班级。";

@@ -9,6 +9,21 @@
       ```bash
       php artisan migrate
       ```
+    - 1.3、 生成 factory 文件
+        ```bash
+        php artisan make:factory ProductsFactory --model=Products
+        ```
+        - 1.3.1、编辑 factory 文件, 填充数据
+    - 1.4、生成 seeder 文件
+        ```bash
+        php artisan make:seeder ProductsSeeder
+        ```
+        - 1.4.1、编辑 seeder 文件, 填充数据
+        - 1.4.2、需要在 database\seeders\DatabaseSeeder.php 中注册 seeder
+    - 1.5、运行数据库填充
+        ```bash
+        php artisan db:seed
+        ```
 
 - 2、创建控制器并且同时创建控制器中的资源路由方法, 并且指定使用的 model, 如果模型不存在 laravel 会询问你是否需要创建
     ```bash

@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Products;
+use Illuminate\Contracts\View\Factory;
+use Illuminate\Contracts\View\View;
+use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 
 class ProductsController extends Controller
@@ -10,9 +13,13 @@ class ProductsController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(): Factory|Application|View
     {
-        //
+        // 获取所有产品数据，使用分页，每页显示 20 条记录
+        $products = Products::orderBy('created_at', 'desc')->paginate(20);
+
+        // 返回视图并传递产品数据
+        return view('products.index', compact('products'));
     }
 
     /**

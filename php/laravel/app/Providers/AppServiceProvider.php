@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Faker\Generator as FakerGenerator;
+use Faker\Factory as FakerFactory;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -11,7 +13,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // 配置 Faker 全局使用中文 'zh_CN' 语言包
+        $this->app->singleton(FakerGenerator::class, function () {
+            return FakerFactory::create('zh_CN');
+        });
     }
 
     /**

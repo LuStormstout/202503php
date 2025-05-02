@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
         // 我们的 seeder 文件需要执行的话需要在这里调用/指定
         $this->call([
             CategoriesSeeder::class,
+            ProductsSeeder::class,
         ]);
     }
 }

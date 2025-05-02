@@ -24,6 +24,10 @@
         ```bash
         php artisan db:seed
         ```
+        - 1.5.1、如果你存在多次运行数据库迁移的情况, 你可以使用下面的命令来刷新数据库, 这样能保证你数据库中的数据是最新的且只有一份
+            ```bash
+            php artisan migrate:refresh --seed
+            ```
 
 - 2、创建控制器并且同时创建控制器中的资源路由方法, 并且指定使用的 model, 如果模型不存在 laravel 会询问你是否需要创建
     ```bash

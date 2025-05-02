@@ -19,7 +19,7 @@ class CategoriesFactory extends Factory
     {
         return [
             // 随机生成一个唯一的单词作为分类名称
-            'name' => $this->faker->unique()->word,
+            'name' => $this->faker->unique()->word(),
 
 //            'name' => $this->faker->unique()->randomElement([
 //                'Technology', 'Health', 'Education', 'Travel', 'Finance',

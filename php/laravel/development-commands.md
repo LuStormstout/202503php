@@ -85,3 +85,20 @@
     ```bash
     php artisan db:seed --class=CategoriesSeeder
     ```
+
+### 使用 barryvdh/laravel-ide-helper 来生成自动补全文件，彻底解决 PhpStorm 报错
+
+- 1、安装 barryvdh/laravel-ide-helper
+    ```bash
+    composer require --dev barryvdh/laravel-ide-helper
+    ```
+
+- 2、生成模型注释时，指定 Model 路径
+    ```bash
+    php artisan ide-helper:models --dir=app/Models -W
+    ```
+  
+- 重建 IDE 辅助文件
+    ```bash
+    php artisan ide-helper:generate
+    ```

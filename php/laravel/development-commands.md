@@ -35,7 +35,7 @@
     Route::resource('categories', CategoriesController::class);
     ```
     ```php
-    Route::resource('products', CategoriesController::class);
+    Route::resource('products', ProductsController::class);
     ```
 
 - 3.1、查看已经定义好的路由

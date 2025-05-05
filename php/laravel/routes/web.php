@@ -44,3 +44,5 @@ Route::resource('products', ProductsController::class);
 // Route::get('products', [ProductsController::class, 'index'])->name('products.index');
 // Route::post('products', [ProductsController::class, 'store'])->name('products.store');
 // ...
+
+Route::get('/test', [\App\Http\Controllers\TestController::class, 'index'])->name('test');

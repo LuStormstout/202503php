@@ -17,6 +17,7 @@ return new class extends Migration {
             $table->unsignedBigInteger('category_id')->nullable(false)->comment('分类ID');
             $table->unsignedTinyInteger('stock')->nullable(false)->default(0)->comment('库存');
             $table->unsignedTinyInteger('status')->nullable(false)->default(1)->comment('状态 1:上架 0:下架');
+            $table->softDeletes();
             $table->timestamps();
         });
     }

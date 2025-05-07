@@ -67,10 +67,10 @@ class TestController extends Controller
         // const UPDATED_AT = 'create_time';
 
         // $products = Products::all(); // 得到的是一个集合对象, 里面是多个模型对象
-        $products = Products::where('id', '<', 100)
-            ->orderBy('id', 'desc')
-            ->get();
-        $products = Products::findMany([1, 2, 3]);
+        // $products = Products::where('id', '<', 100)
+        //     ->orderBy('id', 'desc')
+        //     ->get();
+        // $products = Products::findMany([1, 2, 3]);
 
         // $product = Products::find(1); // 返回的是一个模型对象, 如果没有找到就返回 null
         // $product = Products::findOrFail(1); // 如果没有找到(例如 id 改成 100000)就抛出异常, 404 页面
@@ -80,7 +80,7 @@ class TestController extends Controller
         // dd($product->toArray());
         // echo $product->toJson();
         // die;
-        $productCount = Products::count(); // 返回的是一个整数, 统计表中有多少条数据
+        // $productCount = Products::count(); // 返回的是一个整数, 统计表中有多少条数据
         // dd($productCount);
 
         // 测试软删除
@@ -89,14 +89,14 @@ class TestController extends Controller
         // $product = Products::find(1);
         // $product->delete(); // 软删除, 数据库中数据没有删除, 只是标记为已删除
 
-        $product = Products::find(2);
-        $product->price = 999;
+        // $product = Products::find(2);
+        // $product->price = 999;
         // 更新数据, 这里的 save() 方法会自动判断是插入还是更新, 如果有主键 id 就是更新, 没有就是插入
         // 我们在这里还测试了「模型事件」
         // 1、要先去创建一个模型事件的监听器 php artisan make:observer ProductObserver --model=Products
         // 2、在 app/Observers/ProductObserver.php 中定义了创建和更新的事件, saving 事件会在保存之前触发
         // 3、在 app/Providers/AppServiceProvider.php 中的 boot() 方法里注册监听器
-        $product->save();
+        // $product->save();
 
         $html = '<h1 class="text-4xl">Hello World</h1>';
 

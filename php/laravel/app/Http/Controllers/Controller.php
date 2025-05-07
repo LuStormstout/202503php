@@ -16,6 +16,6 @@ abstract class Controller
      */
     public function __construct()
     {
-        $this->perPage = config('app.per_page', 5);
+        $this->perPage = config('app.per_page', 10);
     }
 }

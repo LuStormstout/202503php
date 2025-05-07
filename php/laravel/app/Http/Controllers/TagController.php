@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Tag;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
 class TagController extends Controller
@@ -10,9 +11,10 @@ class TagController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(): View
     {
-        //
+        $tags = Tag::with('posts')->paginate($this->perPage);
+        return view('tags.index', compact('tags'));
     }
 
     /**
@@ -34,9 +36,9 @@ class TagController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Tag $tag)
+    public function show(Tag $tag): View
     {
-        //
+        return view('tags.show', ['tag' => $tag]);
     }
 
     /**

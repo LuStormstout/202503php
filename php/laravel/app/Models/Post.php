@@ -10,15 +10,27 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
 /**
- *
- *
  * @method static PostFactory factory($count = null, $state = [])
  * @method static Builder<static>|Post newModelQuery()
  * @method static Builder<static>|Post newQuery()
  * @method static Builder<static>|Post query()
  * @mixin Eloquent
+ *
+ * @property int $id
+ * @property string $title
+ * @property string $content
+ * @property int $author_id
+ * @property string $slug
+ * @property string $status
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ *
+ * @property-read Author $author
+ * @property-read Metadata|null $metadata
+ * @property-read Tag[] $tags
  */
 class Post extends Model
 {

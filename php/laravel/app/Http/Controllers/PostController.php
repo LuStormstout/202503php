@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\PostRequest;
 use App\Models\Author;
 use App\Models\Post;
 use Illuminate\Contracts\View\View;
@@ -43,22 +44,15 @@ class PostController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param Request $request
+     * @param PostRequest $request
      * @return RedirectResponse
      */
-    public function store(Request $request): RedirectResponse
+    public function store(PostRequest $request): RedirectResponse
     {
         // 因为我们目前没有做作者登录这个功能, 所以我们这里随机拿一个作者 id 给当前要创建的这个文章
         if (!$request->has('author_id')) {
             $request->merge(['author_id' => Author::pluck('id')->random()]);
         }
-
-        // 验证请求数据
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'author_id' => 'required|exists:authors,id',
-        ]);
 
         // 创建新的文章
         Post::create($request->only('title', 'content', 'author_id'));

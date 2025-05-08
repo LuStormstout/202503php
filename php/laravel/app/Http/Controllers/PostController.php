@@ -33,6 +33,8 @@ class PostController extends Controller
 
     /**
      * Show the form for creating a new resource.
+     *
+     * @return View
      */
     public function create(): View
     {
@@ -63,6 +65,9 @@ class PostController extends Controller
 
     /**
      * Display the specified resource.
+     *
+     * @param Post $post
+     * @return View
      */
     public function show(Post $post): View
     {
@@ -71,25 +76,46 @@ class PostController extends Controller
 
     /**
      * Show the form for editing the specified resource.
+     *
+     * @param Post $post
+     * @return View
      */
-    public function edit(Post $post)
+    public function edit(Post $post): View
     {
-        //
+        return view('posts.edit', [
+            'post' => $post,
+            'authors' => Author::all(),
+        ]);
     }
 
     /**
      * Update the specified resource in storage.
+     *
+     * @param PostRequest $request
+     * @param Post $post
+     * @return RedirectResponse
      */
-    public function update(Request $request, Post $post)
+    public function update(PostRequest $request, Post $post): RedirectResponse
     {
-        //
+        // 更新文章
+        $post->update($request->only('title', 'content', 'author_id'));
+
+        // 重定向到文章列表页面, 并显示成功消息
+        return redirect()->route('posts.index')->with('success', 'Post updated successfully.');
     }
 
     /**
      * Remove the specified resource from storage.
+     *
+     * @param Post $post
+     * @return RedirectResponse
      */
-    public function destroy(Post $post)
+    public function destroy(Post $post): RedirectResponse
     {
-        //
+        // 删除文章
+        $post->delete();
+
+        // 重定向到文章列表页面, 并显示成功消息
+        return redirect()->route('posts.index')->with('success', 'Post deleted successfully.');
     }
 }

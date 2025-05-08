@@ -60,7 +60,7 @@
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                         <a href="{{ route('posts.show', $post) }}"
                            class="hover:text-indigo-600 dark:hover:text-indigo-400">
-                            {{ $post->title }}
+                            {{ \Illuminate\Support\Str::limit($post->title, 40) }}
                         </a>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">

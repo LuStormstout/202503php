@@ -40,6 +40,18 @@ class PostObserver
     }
 
     /**
+     * Handle the Post "saving" event.
+     */
+    public function updating(Post $post): void
+    {
+        $oldSlug = $post->getOriginal('slug');
+        $newSlug = Str::slug($post->title);
+        if ($oldSlug !== $newSlug) {
+            $post->slug = $newSlug;
+        }
+    }
+
+    /**
      * Handle the Post "updated" event.
      */
     public function updated(Post $post): void

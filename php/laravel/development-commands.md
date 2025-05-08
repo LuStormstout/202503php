@@ -149,7 +149,7 @@
     ```bash
     php artisan route:list
     ```
-  
+
 - 4、在对应的控制器中实现对应的方法, 并且去创建对应需要的视图文件, 如果时间充足的话可以自照着敲一边. ⚠️下面只是一些生成视图文件的命令的示例
     ```bash
     php artisan make:view posts.index
@@ -157,8 +157,19 @@
     php artisan make:view posts.edit
     php artisan make:view posts.show
     ```
-  
+
 - 还有就是大家要去详细阅读一下我整理的讲义文档
+
+### ✨ 2025 年 05 月 08 日
+
+- 使用下面的命令创建 Post 的 observer
+    ```bash
+    php artisan make:observer PostObserver --model=Post
+    ```
+- 使用下面的命令创建 Post 的 request
+    ```bash
+    php artisan make:request PostRequest
+    ```
   
 
   

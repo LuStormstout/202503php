@@ -8,6 +8,7 @@ use App\Models\Post;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class PostController extends Controller
 {
@@ -19,6 +20,9 @@ class PostController extends Controller
      */
     public function index(Request $request): View
     {
+        // 我们这个只是位了测试日志能正确记录
+        // Log::channel('order')->error('订单支付失败', $request->header());
+
         if ($request->get('search')) {
             $posts = Post::with('author')
                 ->where('title', 'like', '%' . $request->get('search') . '%')

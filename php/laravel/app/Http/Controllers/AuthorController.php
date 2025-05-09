@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AuthorRequest;
 use App\Models\Author;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
@@ -34,17 +35,11 @@ class AuthorController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param Request $request
+     * @param AuthorRequest $request
      * @return RedirectResponse
      */
-    public function store(Request $request): RedirectResponse
+    public function store(AuthorRequest $request): RedirectResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:authors,email',
-            'bio' => 'nullable|string|max:1000',
-        ]);
-
         Author::create($request->only('name', 'email', 'bio'));
 
         // session()->flash('success', 'Author created successfully.');
@@ -70,9 +65,11 @@ class AuthorController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Author $author)
+    public function update(AuthorRequest $request, Author $author): RedirectResponse
     {
-        //
+        $author->update($request->only('name', 'email', 'bio'));
+
+        return redirect()->route('authors.index')->with('success', 'Author updated successfully.');
     }
 
     /**
